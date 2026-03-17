@@ -115,14 +115,13 @@ export default function EspelhoGeralPage() {
               <TableHead>Banco</TableHead>
               <TableHead>Agência</TableHead>
               <TableHead>Conta</TableHead>
-              <TableHead>CNPJ/CPF</TableHead>
               <TableHead>Obra</TableHead>
               <TableHead className="text-right">Valor</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {items.length === 0 && (
-              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Nenhum dado para esta data</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Nenhum dado para esta data</TableCell></TableRow>
             )}
             {items.map((i, idx) => (
               <TableRow key={idx}>

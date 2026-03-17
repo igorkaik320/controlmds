@@ -198,7 +198,7 @@ export default function ComprasAvistaPage() {
           <DialogHeader><DialogTitle>{editingId ? 'Editar' : 'Nova'} Compra à Vista</DialogTitle></DialogHeader>
           <div className="grid gap-3">
             <div><Label>Data *</Label><Input type="date" value={form.data} onChange={e => setForm((p: typeof emptyForm) => ({ ...p, data: e.target.value }))} /></div>
-            <FornecedorSelect value={form.fornecedor} onChange={v => setForm((p: typeof emptyForm) => ({ ...p, fornecedor: v }))} onSelect={handleFornecedorSelect} />
+            <FornecedorSelect value={form.fornecedor} onChange={v => setForm((p: typeof emptyForm) => ({ ...p, fornecedor: v }))} onFornecedorSelect={handleFornecedorSelect} />
             <div className="grid grid-cols-3 gap-2">
               <div><Label>Banco</Label><Input value={form.banco} onChange={e => setForm((p: typeof emptyForm) => ({ ...p, banco: e.target.value }))} /></div>
               <div><Label>Agência</Label><Input value={form.agencia} onChange={e => setForm((p: typeof emptyForm) => ({ ...p, agencia: e.target.value }))} /></div>
