@@ -5,8 +5,11 @@ export const MODULES = [
   { key: 'compras_faturadas', label: 'Compras Faturadas' },
   { key: 'compras_avista', label: 'Compras à Vista' },
   { key: 'espelho_geral', label: 'Espelho Geral' },
+  { key: 'programacao_semanal', label: 'Programação Semanal' },
+  { key: 'espelho_semanal', label: 'Espelho Semanal' },
   { key: 'fornecedores', label: 'Fornecedores' },
   { key: 'obras', label: 'Obras' },
+  { key: 'responsaveis', label: 'Responsáveis' },
 ] as const;
 
 export type ModuleKey = typeof MODULES[number]['key'];

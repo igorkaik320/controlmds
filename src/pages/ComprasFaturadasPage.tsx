@@ -20,6 +20,7 @@ const emptyForm = {
   data: '',
   fornecedor: '',
   pedido: '',
+  condicao_pagamento: '',
   forma_pagamento: '',
   data_liquidacao: '',
   cnpj_cpf: '',
@@ -30,9 +31,13 @@ const emptyForm = {
 
 function calcularDataLiquidacao(data: string, dias: number) {
   if (!data || !dias) return '';
-  const base = new Date(data);
+  const [y, m, d] = data.split('-').map(Number);
+  const base = new Date(y, m - 1, d);
   base.setDate(base.getDate() + dias);
-  return base.toISOString().split('T')[0];
+  const year = base.getFullYear();
+  const month = String(base.getMonth() + 1).padStart(2, '0');
+  const day = String(base.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 export default function ComprasFaturadasPage() {
@@ -77,6 +82,7 @@ export default function ComprasFaturadasPage() {
       data: item.data,
       fornecedor: item.fornecedor,
       pedido: item.pedido || '',
+      condicao_pagamento: '',
       forma_pagamento: item.forma_pagamento || '',
       data_liquidacao: item.data_liquidacao || '',
       cnpj_cpf: item.cnpj_cpf || '',
@@ -93,7 +99,8 @@ export default function ComprasFaturadasPage() {
       return;
     }
     try {
-      const payload = { ...form, valor: parseFloat(form.valor), created_by: user.id };
+      const { condicao_pagamento, ...rest } = form;
+      const payload = { ...rest, valor: parseFloat(form.valor), created_by: user.id };
       if (editingId) {
         await updateCompraFaturada(editingId, payload);
         toast.success('Registro atualizado');
@@ -121,6 +128,24 @@ export default function ComprasFaturadasPage() {
     setForm((prev: typeof emptyForm) => ({
       ...prev,
       cnpj_cpf: f.cnpj_cpf || prev.cnpj_cpf
+    }));
+  }
+
+  function handleCondicaoChange(dias: string) {
+    const diasNum = parseInt(dias) || 0;
+    setForm((prev: typeof emptyForm) => ({
+      ...prev,
+      condicao_pagamento: dias,
+      data_liquidacao: prev.data ? calcularDataLiquidacao(prev.data, diasNum) : prev.data_liquidacao
+    }));
+  }
+
+  function handleDataChange(data: string) {
+    const diasNum = parseInt(form.condicao_pagamento) || 0;
+    setForm((prev: typeof emptyForm) => ({
+      ...prev,
+      data,
+      data_liquidacao: diasNum > 0 ? calcularDataLiquidacao(data, diasNum) : prev.data_liquidacao
     }));
   }
 
@@ -201,16 +226,19 @@ export default function ComprasFaturadasPage() {
       </div>
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-auto">
           <DialogHeader><DialogTitle>{editingId ? 'Editar' : 'Nova'} Compra Faturada</DialogTitle></DialogHeader>
           <div className="grid gap-3">
-            <div><Label>Data *</Label><Input type="date" value={form.data} onChange={e => setForm((p: typeof emptyForm) => ({ ...p, data: e.target.value }))} /></div>
+            <div><Label>Data *</Label><Input type="date" value={form.data} onChange={e => handleDataChange(e.target.value)} /></div>
             <FornecedorSelect value={form.fornecedor} onChange={v => setForm((p: typeof emptyForm) => ({ ...p, fornecedor: v }))} onFornecedorSelect={handleFornecedorSelect} />
             <div className="grid grid-cols-2 gap-2">
               <div><Label>Pedido</Label><Input value={form.pedido} onChange={e => setForm((p: typeof emptyForm) => ({ ...p, pedido: e.target.value }))} /></div>
               <div><Label>Forma de Pagamento</Label><Input value={form.forma_pagamento} onChange={e => setForm((p: typeof emptyForm) => ({ ...p, forma_pagamento: e.target.value }))} /></div>
             </div>
-            <div><Label>Data Liquidação</Label><Input type="date" value={form.data_liquidacao} onChange={e => setForm((p: typeof emptyForm) => ({ ...p, data_liquidacao: e.target.value }))} /></div>
+            <div className="grid grid-cols-2 gap-2">
+              <div><Label>Condição de Pagamento (dias)</Label><Input type="number" placeholder="Ex: 30" value={form.condicao_pagamento} onChange={e => handleCondicaoChange(e.target.value)} /></div>
+              <div><Label>Data Liquidação</Label><Input type="date" value={form.data_liquidacao} onChange={e => setForm((p: typeof emptyForm) => ({ ...p, data_liquidacao: e.target.value }))} /></div>
+            </div>
             <div><Label>CNPJ/CPF</Label><Input value={form.cnpj_cpf} onChange={e => setForm((p: typeof emptyForm) => ({ ...p, cnpj_cpf: e.target.value }))} /></div>
             <div><Label>Valor *</Label><Input type="number" step="0.01" value={form.valor} onChange={e => setForm((p: typeof emptyForm) => ({ ...p, valor: e.target.value }))} /></div>
             <div><Label>Obra</Label><ObraSelect value={form.obra} onChange={v => setForm((p: typeof emptyForm) => ({ ...p, obra: v }))} /></div>
