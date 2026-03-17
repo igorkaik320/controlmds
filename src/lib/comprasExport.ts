@@ -420,8 +420,9 @@ export async function exportEspelhoPDF(
     },
     columnStyles: {
       0: { halign: 'center' },
-      7: { halign: 'right' },
-      8: { halign: 'center' }
+      7: { halign: 'center' },
+      8: { halign: 'right' },
+      9: { halign: 'center' }
     },
     headStyles: {
       fillColor: headerColor,
