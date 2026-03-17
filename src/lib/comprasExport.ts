@@ -145,20 +145,20 @@ function buildEspelhoXlsxData(title1: string, title2: string, items: EspelhoItem
     [title2],
     [`DATA: ${dateStr || new Date().toLocaleDateString('pt-BR')}`],
     [],
-    ['ITEM', 'FORNECEDOR', 'RAZÃO SOCIAL', 'BANCO', 'AGÊNCIA', 'CONTA', 'OBRA', 'VALOR POR OBRA', 'TOTAL FORNECEDOR'],
+    ['ITEM', 'FORNECEDOR', 'RAZÃO SOCIAL', 'BANCO', 'AGÊNCIA', 'CONTA', 'OBRA', 'Nº PEDIDO', 'VALOR POR OBRA', 'TOTAL FORNECEDOR'],
   ];
 
   let lastFornecedor = '';
   for (const i of sorted) {
     if (lastFornecedor && i.fornecedor.toLowerCase() !== lastFornecedor.toLowerCase()) {
-      data.push(['', '', '', '', '', '', '', '', '']);
+      data.push(['', '', '', '', '', '', '', '', '', '']);
     }
-    data.push([i.item, i.fornecedor, i.razao_social, i.banco, i.agencia, i.conta, i.obra, i.valor_por_obra, i.total_fornecedor]);
+    data.push([i.item, i.fornecedor, i.razao_social, i.banco, i.agencia, i.conta, i.obra, i.pedido || '', i.valor_por_obra, i.total_fornecedor]);
     lastFornecedor = i.fornecedor;
   }
 
-  data.push(['', '', '', '', '', '', '', '', '']);
-  data.push(['', '', '', '', '', '', 'TOTAL GERAL', totalGeral, '']);
+  data.push(['', '', '', '', '', '', '', '', '', '']);
+  data.push(['', '', '', '', '', '', '', 'TOTAL GERAL', totalGeral, '']);
 
   if (observation?.trim()) {
     data.push([]);

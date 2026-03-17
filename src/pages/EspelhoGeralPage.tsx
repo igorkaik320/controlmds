@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { FileDown, FileSpreadsheet, ShoppingCart, Receipt, Wallet } from 'lucide-react';
+import { FileDown, FileSpreadsheet } from 'lucide-react';
 import { fetchComprasAvista, fetchComprasFaturadas, fetchFornecedores, fetchConfigRelatorio, buildEspelho, formatCurrencyBR, formatDateBR, EspelhoItem } from '@/lib/comprasService';
 import { exportEspelhoPDF, exportEspelhoXLSX } from '@/lib/comprasExport';
 import { useFormDraft } from '@/hooks/useFormDraft';
@@ -19,8 +19,10 @@ export default function EspelhoGeralPage() {
 
   const [totalAvista, setTotalAvista] = useState(0);
   const [totalFaturadas, setTotalFaturadas] = useState(0);
-  const [totalComPedido, setTotalComPedido] = useState(0);
-  const [totalSemPedido, setTotalSemPedido] = useState(0);
+  const [totalComPedidoFat, setTotalComPedidoFat] = useState(0);
+  const [totalSemPedidoFat, setTotalSemPedidoFat] = useState(0);
+  const [totalComPedidoAv, setTotalComPedidoAv] = useState(0);
+  const [totalSemPedidoAv, setTotalSemPedidoAv] = useState(0);
 
   const load = useCallback(async () => {
     try {
@@ -35,13 +37,14 @@ export default function EspelhoGeralPage() {
 
       const avTotal = avFiltered.reduce((s, c) => s + c.valor, 0);
       const fatTotal = fatFiltered.reduce((s, c) => s + c.valor, 0);
-      const comPedido = fatFiltered.filter(c => c.pedido?.trim()).reduce((s, c) => s + c.valor, 0);
-      const semPedido = fatFiltered.filter(c => !c.pedido?.trim()).reduce((s, c) => s + c.valor, 0);
 
       setTotalAvista(avTotal);
       setTotalFaturadas(fatTotal);
-      setTotalComPedido(comPedido);
-      setTotalSemPedido(semPedido);
+
+      setTotalComPedidoFat(fatFiltered.filter(c => c.pedido?.trim()).reduce((s, c) => s + c.valor, 0));
+      setTotalSemPedidoFat(fatFiltered.filter(c => !c.pedido?.trim()).reduce((s, c) => s + c.valor, 0));
+      setTotalComPedidoAv(avFiltered.filter(c => c.pedido?.trim()).reduce((s, c) => s + c.valor, 0));
+      setTotalSemPedidoAv(avFiltered.filter(c => !c.pedido?.trim()).reduce((s, c) => s + c.valor, 0));
     } catch (e: any) { toast.error(e.message); }
     finally { setLoading(false); }
   }, [filterDate]);
@@ -56,6 +59,20 @@ export default function EspelhoGeralPage() {
   }
 
   if (loading) return <div className="flex min-h-screen items-center justify-center"><p>Carregando...</p></div>;
+
+  // Group items by fornecedor for rowSpan rendering
+  const groupedRows: { item: EspelhoItem; isFirst: boolean; groupSize: number }[] = [];
+  let idx = 0;
+  while (idx < items.length) {
+    const forn = items[idx].fornecedor;
+    let j = idx;
+    while (j < items.length && items[j].fornecedor === forn) j++;
+    const size = j - idx;
+    for (let k = idx; k < j; k++) {
+      groupedRows.push({ item: items[k], isFirst: k === idx, groupSize: size });
+    }
+    idx = j;
+  }
 
   return (
     <div className="space-y-4">
@@ -75,7 +92,7 @@ export default function EspelhoGeralPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Total Geral</p>
@@ -86,18 +103,20 @@ export default function EspelhoGeralPage() {
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Compras à Vista</p>
             <p className="text-xl font-bold">{formatCurrencyBR(totalAvista)}</p>
+            <div className="mt-1 text-xs text-muted-foreground flex gap-3">
+              <span>Com Pedido: {formatCurrencyBR(totalComPedidoAv)}</span>
+              <span>Sem Pedido: {formatCurrencyBR(totalSemPedidoAv)}</span>
+            </div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Com Pedido (Faturadas)</p>
-            <p className="text-xl font-bold">{formatCurrencyBR(totalComPedido)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Sem Pedido (Faturadas)</p>
-            <p className="text-xl font-bold">{formatCurrencyBR(totalSemPedido)}</p>
+            <p className="text-xs text-muted-foreground">Compras Faturadas</p>
+            <p className="text-xl font-bold">{formatCurrencyBR(totalFaturadas)}</p>
+            <div className="mt-1 text-xs text-muted-foreground flex gap-3">
+              <span>Com Pedido: {formatCurrencyBR(totalComPedidoFat)}</span>
+              <span>Sem Pedido: {formatCurrencyBR(totalSemPedidoFat)}</span>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -118,30 +137,38 @@ export default function EspelhoGeralPage() {
               <TableHead>Agência</TableHead>
               <TableHead>Conta</TableHead>
               <TableHead>Obra</TableHead>
+              <TableHead>Nº Pedido</TableHead>
               <TableHead className="text-right">Valor por Obra</TableHead>
               <TableHead className="text-right">Total Fornecedor</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {items.length === 0 && (
-              <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground">Nenhum dado para esta data</TableCell></TableRow>
+            {groupedRows.length === 0 && (
+              <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground">Nenhum dado para esta data</TableCell></TableRow>
             )}
-            {items.map((i, idx) => (
-              <TableRow key={idx}>
-                <TableCell>{i.item}</TableCell>
-                <TableCell className="font-medium">{i.fornecedor}</TableCell>
-                <TableCell>{i.razao_social}</TableCell>
-                <TableCell>{i.banco}</TableCell>
-                <TableCell>{i.agencia}</TableCell>
-                <TableCell>{i.conta}</TableCell>
-                <TableCell>{i.obra}</TableCell>
-                <TableCell className="text-right">{formatCurrencyBR(i.valor_por_obra)}</TableCell>
-                <TableCell className="text-right">{formatCurrencyBR(i.total_fornecedor)}</TableCell>
+            {groupedRows.map((row, rIdx) => (
+              <TableRow key={rIdx}>
+                {row.isFirst && (
+                  <>
+                    <TableCell rowSpan={row.groupSize} className="align-middle text-center">{row.item.item}</TableCell>
+                    <TableCell rowSpan={row.groupSize} className="align-middle font-medium">{row.item.fornecedor}</TableCell>
+                    <TableCell rowSpan={row.groupSize} className="align-middle">{row.item.razao_social}</TableCell>
+                    <TableCell rowSpan={row.groupSize} className="align-middle text-center">{row.item.banco}</TableCell>
+                    <TableCell rowSpan={row.groupSize} className="align-middle text-center">{row.item.agencia}</TableCell>
+                    <TableCell rowSpan={row.groupSize} className="align-middle">{row.item.conta}</TableCell>
+                  </>
+                )}
+                <TableCell>{row.item.obra}</TableCell>
+                <TableCell className="text-center">{row.item.pedido}</TableCell>
+                <TableCell className="text-right">{formatCurrencyBR(row.item.valor_por_obra)}</TableCell>
+                {row.isFirst && (
+                  <TableCell rowSpan={row.groupSize} className="align-middle text-right font-bold">{formatCurrencyBR(row.item.total_fornecedor)}</TableCell>
+                )}
               </TableRow>
             ))}
             {items.length > 0 && (
               <TableRow className="font-bold bg-muted/50">
-                <TableCell colSpan={7} className="text-right">TOTAL GERAL</TableCell>
+                <TableCell colSpan={8} className="text-right">TOTAL GERAL</TableCell>
                 <TableCell className="text-right">{formatCurrencyBR(totalGeral)}</TableCell>
                 <TableCell />
               </TableRow>
