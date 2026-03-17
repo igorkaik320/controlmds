@@ -586,7 +586,7 @@ export async function exportEspelhoSemanalPDF(items: EspelhoItem[], dateStr: str
 
   autoTable(doc, {
     startY: 36,
-    head: [['ITEM', 'FORNECEDOR', 'RAZÃO SOCIAL', 'BANCO', 'AGÊNCIA', 'CONTA', 'OBRA', 'VALOR POR OBRA', 'TOTAL FORNECEDOR']],
+    head: [['ITEM', 'FORNECEDOR', 'RAZÃO SOCIAL', 'BANCO', 'AGÊNCIA', 'CONTA', 'OBRA', 'Nº PEDIDO', 'VALOR POR OBRA', 'TOTAL FORNECEDOR']],
     body: rows,
     tableWidth: 'auto',
     margin: { left: 10, right: 10 },
