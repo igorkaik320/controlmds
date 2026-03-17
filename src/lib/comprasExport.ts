@@ -387,7 +387,7 @@ export async function exportEspelhoPDF(
   const totalGeral = items.reduce((s, i) => s + i.valor_por_obra, 0);
 
   rows.push([
-    '', '', '', '', '', '',
+    '', '', '', '', '', '', '',
     'TOTAL GERAL',
     formatCurrencyBR(totalGeral),
     ''
