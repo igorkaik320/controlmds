@@ -582,7 +582,7 @@ export async function exportEspelhoSemanalPDF(items: EspelhoItem[], dateStr: str
   const rows = buildGroupedEspelhoRows(items);
   const totalGeral = items.reduce((s, i) => s + i.valor_por_obra, 0);
 
-  rows.push(['', '', '', '', '', '', 'TOTAL GERAL', formatCurrencyBR(totalGeral), '']);
+  rows.push(['', '', '', '', '', '', '', 'TOTAL GERAL', formatCurrencyBR(totalGeral), '']);
 
   autoTable(doc, {
     startY: 36,
