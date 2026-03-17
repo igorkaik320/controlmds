@@ -51,6 +51,14 @@ function ModuleRoute({ children, module }: { children: React.ReactNode; module: 
   return <AppLayout>{children}</AppLayout>;
 }
 
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading, userRole } = useAuth();
+  if (loading) return <div className="flex min-h-screen items-center justify-center"><p>Carregando...</p></div>;
+  if (!user) return <Navigate to="/auth" />;
+  if (userRole !== 'admin') return <Navigate to="/" />;
+  return <AppLayout>{children}</AppLayout>;
+}
+
 function AuthRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) return null;
