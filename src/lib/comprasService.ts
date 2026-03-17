@@ -226,34 +226,40 @@ export function buildEspelhoSemanal(compras: ProgramacaoSemanal[], fornecedores:
     fornMap.set(f.nome_fornecedor.toLowerCase(), f);
   }
 
-  const groups = new Map<string, { obras: Map<string, number>; total: number }>();
+  const totals = new Map<string, number>();
   for (const c of compras) {
     const key = c.fornecedor.toLowerCase();
-    if (!groups.has(key)) groups.set(key, { obras: new Map(), total: 0 });
-    const g = groups.get(key)!;
-    const obra = c.obra || 'Sem obra';
-    g.obras.set(obra, (g.obras.get(obra) || 0) + c.valor);
-    g.total += c.valor;
+    totals.set(key, (totals.get(key) || 0) + c.valor);
   }
 
+  const sorted = [...compras].sort((a, b) => {
+    const f = a.fornecedor.localeCompare(b.fornecedor);
+    if (f !== 0) return f;
+    return (a.obra || '').localeCompare(b.obra || '');
+  });
+
   const items: EspelhoItem[] = [];
-  let itemNum = 1;
-  for (const [key, g] of groups) {
+  let itemNum = 0;
+  let lastForn = '';
+  for (const c of sorted) {
+    const key = c.fornecedor.toLowerCase();
     const forn = fornMap.get(key);
-    const firstCompra = compras.find(c => c.fornecedor.toLowerCase() === key);
-    for (const [obra, valorObra] of g.obras) {
-      items.push({
-        item: itemNum++,
-        fornecedor: firstCompra?.fornecedor || key,
-        razao_social: forn?.razao_social || '',
-        banco: firstCompra?.banco || forn?.banco || '',
-        agencia: firstCompra?.agencia || forn?.agencia || '',
-        conta: firstCompra?.conta || forn?.conta || '',
-        obra,
-        valor_por_obra: valorObra,
-        total_fornecedor: g.total,
-      });
+    if (key !== lastForn) {
+      itemNum++;
+      lastForn = key;
     }
+    items.push({
+      item: itemNum,
+      fornecedor: c.fornecedor,
+      razao_social: forn?.razao_social || '',
+      banco: c.banco || forn?.banco || '',
+      agencia: c.agencia || forn?.agencia || '',
+      conta: c.conta || forn?.conta || '',
+      obra: c.obra || 'Sem obra',
+      pedido: c.pedido || '',
+      valor_por_obra: c.valor,
+      total_fornecedor: totals.get(key) || 0,
+    });
   }
   return items;
 }
