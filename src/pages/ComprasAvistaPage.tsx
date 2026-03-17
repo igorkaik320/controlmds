@@ -19,6 +19,7 @@ import type { Fornecedor } from '@/lib/comprasService';
 const emptyForm = {
   data: '',
   fornecedor: '',
+  pedido: '',
   banco: '',
   agencia: '',
   conta: '',
@@ -69,6 +70,7 @@ export default function ComprasAvistaPage() {
     setForm({
       data: item.data,
       fornecedor: item.fornecedor,
+      pedido: item.pedido || '',
       banco: item.banco || '',
       agencia: item.agencia || '',
       conta: item.conta || '',
@@ -152,6 +154,7 @@ export default function ComprasAvistaPage() {
             <TableRow>
               <TableHead>Data</TableHead>
               <TableHead>Fornecedor</TableHead>
+              <TableHead>Pedido</TableHead>
               <TableHead>Banco</TableHead>
               <TableHead>Agência</TableHead>
               <TableHead>Conta</TableHead>
@@ -164,12 +167,13 @@ export default function ComprasAvistaPage() {
           </TableHeader>
           <TableBody>
             {filtered.length === 0 && (
-              <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground">Nenhum registro</TableCell></TableRow>
+              <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground">Nenhum registro</TableCell></TableRow>
             )}
             {filtered.map(i => (
               <TableRow key={i.id}>
                 <TableCell>{formatDateBR(i.data)}</TableCell>
                 <TableCell>{i.fornecedor}</TableCell>
+                <TableCell>{i.pedido}</TableCell>
                 <TableCell>{i.banco}</TableCell>
                 <TableCell>{i.agencia}</TableCell>
                 <TableCell>{i.conta}</TableCell>
@@ -199,6 +203,7 @@ export default function ComprasAvistaPage() {
           <div className="grid gap-3">
             <div><Label>Data *</Label><Input type="date" value={form.data} onChange={e => setForm((p: typeof emptyForm) => ({ ...p, data: e.target.value }))} /></div>
             <FornecedorSelect value={form.fornecedor} onChange={v => setForm((p: typeof emptyForm) => ({ ...p, fornecedor: v }))} onFornecedorSelect={handleFornecedorSelect} />
+            <div><Label>Pedido</Label><Input value={form.pedido} onChange={e => setForm((p: typeof emptyForm) => ({ ...p, pedido: e.target.value }))} /></div>
             <div className="grid grid-cols-3 gap-2">
               <div><Label>Banco</Label><Input value={form.banco} onChange={e => setForm((p: typeof emptyForm) => ({ ...p, banco: e.target.value }))} /></div>
               <div><Label>Agência</Label><Input value={form.agencia} onChange={e => setForm((p: typeof emptyForm) => ({ ...p, agencia: e.target.value }))} /></div>
