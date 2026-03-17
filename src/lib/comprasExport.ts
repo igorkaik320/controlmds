@@ -108,6 +108,7 @@ function buildGroupedEspelhoRows(items: EspelhoItem[]) {
           { content: item.agencia, rowSpan: grupo.length, styles: { halign: 'center', valign: 'middle' } },
           { content: item.conta, rowSpan: grupo.length, styles: { valign: 'middle' } },
           item.obra,
+          { content: item.pedido || '', styles: { halign: 'center' } },
           { content: formatCurrencyBR(item.valor_por_obra), styles: { halign: 'right' } },
           {
             content: formatCurrencyBR(totalFornecedor),
@@ -118,6 +119,7 @@ function buildGroupedEspelhoRows(items: EspelhoItem[]) {
       } else {
         rows.push([
           item.obra,
+          { content: item.pedido || '', styles: { halign: 'center' } },
           { content: formatCurrencyBR(item.valor_por_obra), styles: { halign: 'right' } }
         ]);
       }
