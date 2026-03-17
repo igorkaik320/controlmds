@@ -457,7 +457,7 @@ export async function exportEspelhoXLSX(items: EspelhoItem[], dateStr: string, o
   );
 
   const ws = XLSX.utils.aoa_to_sheet(data);
-  applySheetColumns(ws, [6, 25, 25, 12, 10, 15, 20, 18, 18]);
+  applySheetColumns(ws, [6, 25, 25, 12, 10, 15, 20, 12, 18, 18]);
 
   XLSX.utils.book_append_sheet(wb, ws, 'Espelho Geral');
   XLSX.writeFile(wb, 'espelho-geral.xlsx');
