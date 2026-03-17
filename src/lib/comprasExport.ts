@@ -108,6 +108,7 @@ function buildGroupedEspelhoRows(items: EspelhoItem[]) {
           { content: item.agencia, rowSpan: grupo.length, styles: { halign: 'center', valign: 'middle' } },
           { content: item.conta, rowSpan: grupo.length, styles: { valign: 'middle' } },
           item.obra,
+          { content: item.pedido || '', styles: { halign: 'center' } },
           { content: formatCurrencyBR(item.valor_por_obra), styles: { halign: 'right' } },
           {
             content: formatCurrencyBR(totalFornecedor),
@@ -118,6 +119,7 @@ function buildGroupedEspelhoRows(items: EspelhoItem[]) {
       } else {
         rows.push([
           item.obra,
+          { content: item.pedido || '', styles: { halign: 'center' } },
           { content: formatCurrencyBR(item.valor_por_obra), styles: { halign: 'right' } }
         ]);
       }
@@ -143,20 +145,20 @@ function buildEspelhoXlsxData(title1: string, title2: string, items: EspelhoItem
     [title2],
     [`DATA: ${dateStr || new Date().toLocaleDateString('pt-BR')}`],
     [],
-    ['ITEM', 'FORNECEDOR', 'RAZÃO SOCIAL', 'BANCO', 'AGÊNCIA', 'CONTA', 'OBRA', 'VALOR POR OBRA', 'TOTAL FORNECEDOR'],
+    ['ITEM', 'FORNECEDOR', 'RAZÃO SOCIAL', 'BANCO', 'AGÊNCIA', 'CONTA', 'OBRA', 'Nº PEDIDO', 'VALOR POR OBRA', 'TOTAL FORNECEDOR'],
   ];
 
   let lastFornecedor = '';
   for (const i of sorted) {
     if (lastFornecedor && i.fornecedor.toLowerCase() !== lastFornecedor.toLowerCase()) {
-      data.push(['', '', '', '', '', '', '', '', '']);
+      data.push(['', '', '', '', '', '', '', '', '', '']);
     }
-    data.push([i.item, i.fornecedor, i.razao_social, i.banco, i.agencia, i.conta, i.obra, i.valor_por_obra, i.total_fornecedor]);
+    data.push([i.item, i.fornecedor, i.razao_social, i.banco, i.agencia, i.conta, i.obra, i.pedido || '', i.valor_por_obra, i.total_fornecedor]);
     lastFornecedor = i.fornecedor;
   }
 
-  data.push(['', '', '', '', '', '', '', '', '']);
-  data.push(['', '', '', '', '', '', 'TOTAL GERAL', totalGeral, '']);
+  data.push(['', '', '', '', '', '', '', '', '', '']);
+  data.push(['', '', '', '', '', '', '', 'TOTAL GERAL', totalGeral, '']);
 
   if (observation?.trim()) {
     data.push([]);
@@ -385,7 +387,7 @@ export async function exportEspelhoPDF(
   const totalGeral = items.reduce((s, i) => s + i.valor_por_obra, 0);
 
   rows.push([
-    '', '', '', '', '', '',
+    '', '', '', '', '', '', '',
     'TOTAL GERAL',
     formatCurrencyBR(totalGeral),
     ''
@@ -401,6 +403,7 @@ export async function exportEspelhoPDF(
       'AGÊNCIA',
       'CONTA',
       'OBRA',
+      'Nº PEDIDO',
       'VALOR POR OBRA',
       'TOTAL FORNECEDOR'
     ]],
@@ -417,8 +420,9 @@ export async function exportEspelhoPDF(
     },
     columnStyles: {
       0: { halign: 'center' },
-      7: { halign: 'right' },
-      8: { halign: 'center' }
+      7: { halign: 'center' },
+      8: { halign: 'right' },
+      9: { halign: 'center' }
     },
     headStyles: {
       fillColor: headerColor,
@@ -453,7 +457,7 @@ export async function exportEspelhoXLSX(items: EspelhoItem[], dateStr: string, o
   );
 
   const ws = XLSX.utils.aoa_to_sheet(data);
-  applySheetColumns(ws, [6, 25, 25, 12, 10, 15, 20, 18, 18]);
+  applySheetColumns(ws, [6, 25, 25, 12, 10, 15, 20, 12, 18, 18]);
 
   XLSX.utils.book_append_sheet(wb, ws, 'Espelho Geral');
   XLSX.writeFile(wb, 'espelho-geral.xlsx');
@@ -578,11 +582,11 @@ export async function exportEspelhoSemanalPDF(items: EspelhoItem[], dateStr: str
   const rows = buildGroupedEspelhoRows(items);
   const totalGeral = items.reduce((s, i) => s + i.valor_por_obra, 0);
 
-  rows.push(['', '', '', '', '', '', 'TOTAL GERAL', formatCurrencyBR(totalGeral), '']);
+  rows.push(['', '', '', '', '', '', '', 'TOTAL GERAL', formatCurrencyBR(totalGeral), '']);
 
   autoTable(doc, {
     startY: 36,
-    head: [['ITEM', 'FORNECEDOR', 'RAZÃO SOCIAL', 'BANCO', 'AGÊNCIA', 'CONTA', 'OBRA', 'VALOR POR OBRA', 'TOTAL FORNECEDOR']],
+    head: [['ITEM', 'FORNECEDOR', 'RAZÃO SOCIAL', 'BANCO', 'AGÊNCIA', 'CONTA', 'OBRA', 'Nº PEDIDO', 'VALOR POR OBRA', 'TOTAL FORNECEDOR']],
     body: rows,
     tableWidth: 'auto',
     margin: { left: 10, right: 10 },
@@ -596,8 +600,9 @@ export async function exportEspelhoSemanalPDF(items: EspelhoItem[], dateStr: str
     },
     columnStyles: {
       0: { halign: 'center' },
-      7: { halign: 'right' },
-      8: { halign: 'center' }
+      7: { halign: 'center' },
+      8: { halign: 'right' },
+      9: { halign: 'center' }
     },
     headStyles: {
       fillColor: headerColor,
@@ -630,7 +635,7 @@ export async function exportEspelhoSemanalXLSX(items: EspelhoItem[], dateStr: st
   );
 
   const ws = XLSX.utils.aoa_to_sheet(data);
-  applySheetColumns(ws, [6, 25, 25, 12, 10, 15, 20, 18, 18]);
+  applySheetColumns(ws, [6, 25, 25, 12, 10, 15, 20, 12, 18, 18]);
 
   XLSX.utils.book_append_sheet(wb, ws, 'Espelho Semanal');
   XLSX.writeFile(wb, 'espelho-semanal.xlsx');
