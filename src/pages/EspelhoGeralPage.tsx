@@ -129,7 +129,6 @@ export default function EspelhoGeralPage() {
                 <TableCell>{i.banco}</TableCell>
                 <TableCell>{i.agencia}</TableCell>
                 <TableCell>{i.conta}</TableCell>
-                <TableCell>{i.cnpj_cpf}</TableCell>
                 <TableCell>{i.obra}</TableCell>
                 <TableCell className="text-right">{formatCurrencyBR(i.valor_por_obra)}</TableCell>
               </TableRow>
