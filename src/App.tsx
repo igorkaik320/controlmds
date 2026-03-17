@@ -84,6 +84,9 @@ const App = () => (
             <Route path="/fornecedores" element={<ModuleRoute module="fornecedores"><FornecedoresPage /></ModuleRoute>} />
             <Route path="/obras" element={<ModuleRoute module="obras"><ObrasPage /></ModuleRoute>} />
             <Route path="/responsaveis" element={<ModuleRoute module="responsaveis"><ResponsaveisPage /></ModuleRoute>} />
+            <Route path="/usuarios" element={<AdminRoute><UserManagement /></AdminRoute>} />
+            <Route path="/auditoria" element={<AdminRoute><AuditLog /></AdminRoute>} />
+            <Route path="/config-relatorio" element={<AdminRoute><ConfigRelatorioPage /></AdminRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
