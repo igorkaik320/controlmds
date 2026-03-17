@@ -17,7 +17,7 @@ import { useFormDraft } from '@/hooks/useFormDraft';
 import { toast } from 'sonner';
 import type { Fornecedor } from '@/lib/comprasService';
 
-const emptyForm = { data: '', fornecedor: '', banco: '', agencia: '', conta: '', cnpj_cpf: '', valor: '', obra: '', observacao: '', responsavel: '' };
+const emptyForm = { data: '', fornecedor: '', pedido: '', banco: '', agencia: '', conta: '', cnpj_cpf: '', valor: '', obra: '', observacao: '', responsavel: '' };
 
 export default function ProgramacaoSemanalPage() {
   const { user } = useAuth();
@@ -53,7 +53,7 @@ export default function ProgramacaoSemanalPage() {
 
   function openEdit(item: ProgramacaoSemanal) {
     setEditingId(item.id);
-    setForm({ data: item.data, fornecedor: item.fornecedor, banco: item.banco || '', agencia: item.agencia || '', conta: item.conta || '', cnpj_cpf: item.cnpj_cpf || '', valor: String(item.valor), obra: item.obra || '', observacao: item.observacao || '', responsavel: item.responsavel || '' });
+    setForm({ data: item.data, fornecedor: item.fornecedor, pedido: item.pedido || '', banco: item.banco || '', agencia: item.agencia || '', conta: item.conta || '', cnpj_cpf: item.cnpj_cpf || '', valor: String(item.valor), obra: item.obra || '', observacao: item.observacao || '', responsavel: item.responsavel || '' });
     setShowDialog(true);
   }
 
@@ -84,9 +84,9 @@ export default function ProgramacaoSemanalPage() {
   if (loading) return <div className="p-6 text-center text-muted-foreground">Carregando...</div>;
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h2 className="text-xl font-bold">Programação Semanal</h2>
+        <h2 className="text-2xl font-bold">Programação Semanal</h2>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={handleExportPDF}><FileDown className="h-4 w-4 mr-1" />PDF</Button>
           <Button variant="outline" size="sm" onClick={() => exportProgramacaoSemanalXLSX(filtered, observation)}><FileSpreadsheet className="h-4 w-4 mr-1" />Excel</Button>
@@ -106,15 +106,15 @@ export default function ProgramacaoSemanalPage() {
       <div className="rounded-md border overflow-auto">
         <Table>
           <TableHeader><TableRow>
-            <TableHead>Data</TableHead><TableHead>Fornecedor</TableHead><TableHead>Banco</TableHead><TableHead>Agência</TableHead>
+            <TableHead>Data</TableHead><TableHead>Fornecedor</TableHead><TableHead>Pedido</TableHead><TableHead>Banco</TableHead><TableHead>Agência</TableHead>
             <TableHead>Conta</TableHead><TableHead>CNPJ/CPF</TableHead><TableHead>Valor</TableHead><TableHead>Obra</TableHead>
             <TableHead>Responsável</TableHead><TableHead>Obs.</TableHead><TableHead>Ações</TableHead>
           </TableRow></TableHeader>
           <TableBody>
-            {filtered.length === 0 && <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground">Nenhum registro</TableCell></TableRow>}
+            {filtered.length === 0 && <TableRow><TableCell colSpan={12} className="text-center text-muted-foreground">Nenhum registro</TableCell></TableRow>}
             {filtered.map(i => (
               <TableRow key={i.id}>
-                <TableCell>{formatDateBR(i.data)}</TableCell><TableCell>{i.fornecedor}</TableCell>
+                <TableCell>{formatDateBR(i.data)}</TableCell><TableCell>{i.fornecedor}</TableCell><TableCell>{i.pedido}</TableCell>
                 <TableCell>{i.banco}</TableCell><TableCell>{i.agencia}</TableCell><TableCell>{i.conta}</TableCell>
                 <TableCell>{i.cnpj_cpf}</TableCell><TableCell className="font-mono">{formatCurrencyBR(i.valor)}</TableCell>
                 <TableCell>{i.obra}</TableCell><TableCell>{i.responsavel}</TableCell><TableCell className="max-w-[120px] truncate">{i.observacao}</TableCell>
@@ -128,7 +128,7 @@ export default function ProgramacaoSemanalPage() {
             ))}
             {filtered.length > 0 && (
               <TableRow className="font-bold bg-muted/50">
-                <TableCell colSpan={6} className="text-right">TOTAL</TableCell>
+                <TableCell colSpan={7} className="text-right">TOTAL</TableCell>
                 <TableCell className="font-mono">{formatCurrencyBR(filtered.reduce((s, i) => s + i.valor, 0))}</TableCell>
                 <TableCell colSpan={4} />
               </TableRow>
@@ -143,6 +143,7 @@ export default function ProgramacaoSemanalPage() {
           <div className="space-y-3">
             <div><Label>Data *</Label><Input type="date" value={form.data} onChange={e => setForm(p => ({ ...p, data: e.target.value }))} /></div>
             <FornecedorSelect value={form.fornecedor} onChange={v => setForm(p => ({ ...p, fornecedor: v }))} onFornecedorSelect={handleFornecedorSelect} />
+            <div><Label>Pedido</Label><Input value={form.pedido} onChange={e => setForm(p => ({ ...p, pedido: e.target.value }))} /></div>
             <div className="grid grid-cols-3 gap-2">
               <div><Label>Banco</Label><Input value={form.banco} onChange={e => setForm(p => ({ ...p, banco: e.target.value }))} /></div>
               <div><Label>Agência</Label><Input value={form.agencia} onChange={e => setForm(p => ({ ...p, agencia: e.target.value }))} /></div>

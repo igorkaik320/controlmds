@@ -39,7 +39,7 @@ export default function EspelhoSemanalPage() {
   if (loading) return <div className="p-6 text-center text-muted-foreground">Carregando...</div>;
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h2 className="text-xl font-bold">Espelho Semanal</h2>

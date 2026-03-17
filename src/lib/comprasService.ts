@@ -8,7 +8,7 @@ export interface CompraFaturada {
 }
 
 export interface CompraAvista {
-  id: string; data: string; fornecedor: string; banco: string | null; agencia: string | null;
+  id: string; data: string; fornecedor: string; pedido: string | null; banco: string | null; agencia: string | null;
   conta: string | null; cnpj_cpf: string | null; valor: number; obra: string | null;
   observacao: string | null; created_by: string; created_at: string; updated_at: string;
 }
@@ -30,7 +30,7 @@ export interface EspelhoItem {
 }
 
 export interface ProgramacaoSemanal {
-  id: string; data: string; fornecedor: string; banco: string | null; agencia: string | null;
+  id: string; data: string; fornecedor: string; pedido: string | null; banco: string | null; agencia: string | null;
   conta: string | null; cnpj_cpf: string | null; valor: number; obra: string | null;
   observacao: string | null; responsavel: string | null; created_by: string; created_at: string; updated_at: string;
 }

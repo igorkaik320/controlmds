@@ -13,10 +13,10 @@ export default function ResponsavelSelect({ value, onChange }: Props) {
   return (
     <div>
       <Label className="text-xs">Responsável</Label>
-      <Select value={value} onValueChange={onChange}>
+      <Select value={value || '__all__'} onValueChange={(next) => onChange(next === '__all__' ? '' : next)}>
         <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
         <SelectContent>
-          <SelectItem value="">Todos</SelectItem>
+          <SelectItem value="__all__">Todos</SelectItem>
           {responsaveis.map(r => (
             <SelectItem key={r.id} value={r.nome}>{r.nome}</SelectItem>
           ))}
