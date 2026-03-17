@@ -26,7 +26,7 @@ export interface ConfigRelatorio {
 
 export interface EspelhoItem {
   item: number; fornecedor: string; razao_social: string; banco: string; agencia: string;
-  conta: string; obra: string; valor_por_obra: number; total_fornecedor: number;
+  conta: string; obra: string; pedido: string; valor_por_obra: number; total_fornecedor: number;
 }
 
 export interface ProgramacaoSemanal {
