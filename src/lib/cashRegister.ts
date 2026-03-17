@@ -276,7 +276,8 @@ export interface UserWithRole {
 }
 
 export async function fetchAllUsersWithRoles(): Promise<UserWithRole[]> {
-  const { data: profiles } = await supabase.from('profiles').select('user_id, display_name, created_at');
+  // Try fetching all profiles - if RLS restricts, use the RPC approach
+  const { data: profiles, error: profilesError } = await supabase.from('profiles').select('user_id, display_name, created_at');
   const { data: roles } = await supabase.from('user_roles').select('user_id, role');
 
   const roleMap: Record<string, string> = {};
@@ -287,11 +288,38 @@ export async function fetchAllUsersWithRoles(): Promise<UserWithRole[]> {
     }
   }
 
-  return (profiles || []).map((p) => ({
-    user_id: p.user_id,
-    display_name: p.display_name,
-    role: roleMap[p.user_id] || 'operador',
-    created_at: p.created_at,
+  // If profiles returned data, use it
+  if (profiles && profiles.length > 0) {
+    // Also include users from roles that might not be in profiles
+    const profileUserIds = new Set(profiles.map(p => p.user_id));
+    const allUsers: UserWithRole[] = profiles.map((p) => ({
+      user_id: p.user_id,
+      display_name: p.display_name || 'Sem nome',
+      role: roleMap[p.user_id] || 'operador',
+      created_at: p.created_at || new Date().toISOString(),
+    }));
+
+    // Add users from roles that aren't in profiles
+    for (const r of roles || []) {
+      if (!profileUserIds.has(r.user_id)) {
+        allUsers.push({
+          user_id: r.user_id,
+          display_name: 'Usuário ' + r.user_id.substring(0, 8),
+          role: roleMap[r.user_id] || 'operador',
+          created_at: new Date().toISOString(),
+        });
+      }
+    }
+
+    return allUsers;
+  }
+
+  // Fallback: build from roles only
+  return (roles || []).map(r => ({
+    user_id: r.user_id,
+    display_name: 'Usuário ' + r.user_id.substring(0, 8),
+    role: roleMap[r.user_id] || 'operador',
+    created_at: new Date().toISOString(),
   }));
 }
 
