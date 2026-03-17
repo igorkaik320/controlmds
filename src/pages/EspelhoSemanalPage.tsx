@@ -66,21 +66,22 @@ export default function EspelhoSemanalPage() {
           <TableHeader><TableRow>
             <TableHead>Item</TableHead><TableHead>Fornecedor</TableHead><TableHead>Razão Social</TableHead>
             <TableHead>Banco</TableHead><TableHead>Agência</TableHead><TableHead>Conta</TableHead>
-            <TableHead>Obra</TableHead><TableHead>Valor por Obra</TableHead><TableHead>Total Fornecedor</TableHead>
+            <TableHead>Obra</TableHead><TableHead>Nº Pedido</TableHead><TableHead>Valor por Obra</TableHead><TableHead>Total Fornecedor</TableHead>
           </TableRow></TableHeader>
           <TableBody>
-            {items.length === 0 && <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground">Nenhum dado</TableCell></TableRow>}
+            {items.length === 0 && <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground">Nenhum dado</TableCell></TableRow>}
             {items.map((i, idx) => (
               <TableRow key={idx}>
                 <TableCell>{i.item}</TableCell><TableCell>{i.fornecedor}</TableCell><TableCell>{i.razao_social}</TableCell>
                 <TableCell>{i.banco}</TableCell><TableCell>{i.agencia}</TableCell><TableCell>{i.conta}</TableCell>
-                <TableCell>{i.obra}</TableCell><TableCell className="font-mono">{formatCurrencyBR(i.valor_por_obra)}</TableCell>
+                <TableCell>{i.obra}</TableCell><TableCell className="text-center">{i.pedido}</TableCell>
+                <TableCell className="font-mono">{formatCurrencyBR(i.valor_por_obra)}</TableCell>
                 <TableCell className="font-mono">{formatCurrencyBR(i.total_fornecedor)}</TableCell>
               </TableRow>
             ))}
             {items.length > 0 && (
               <TableRow className="font-bold bg-muted/50">
-                <TableCell colSpan={7} className="text-right">TOTAL GERAL</TableCell>
+                <TableCell colSpan={8} className="text-right">TOTAL GERAL</TableCell>
                 <TableCell className="font-mono">{formatCurrencyBR(totalGeral)}</TableCell>
                 <TableCell />
               </TableRow>
