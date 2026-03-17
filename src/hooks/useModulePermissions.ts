@@ -8,8 +8,14 @@ export function useModulePermissions() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (authLoading || !user) { setLoading(false); return; }
-    if (userRole === 'admin') { setLoading(false); return; }
+    if (authLoading || !user) {
+      setLoading(false);
+      return;
+    }
+    if (userRole === 'admin') {
+      setLoading(false);
+      return;
+    }
     fetchUserPermissions(user.id)
       .then(setPermissions)
       .catch(() => {})

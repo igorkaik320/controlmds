@@ -8,11 +8,14 @@ import { useModulePermissions } from "@/hooks/useModulePermissions";
 import AppLayout from "@/components/AppLayout";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import AuditLog from "./pages/AuditLog";
+import UserManagement from "./pages/UserManagement";
 import ComprasAvistaPage from "./pages/ComprasAvistaPage";
 import ComprasFaturadasPage from "./pages/ComprasFaturadasPage";
 import EspelhoGeralPage from "./pages/EspelhoGeralPage";
 import ProgramacaoSemanalPage from "./pages/ProgramacaoSemanalPage";
 import EspelhoSemanalPage from "./pages/EspelhoSemanalPage";
+import ConfigRelatorioPage from "./pages/ConfigRelatorioPage";
 import FornecedoresPage from "./pages/FornecedoresPage";
 import ObrasPage from "./pages/ObrasPage";
 import ResponsaveisPage from "./pages/ResponsaveisPage";
@@ -48,6 +51,14 @@ function ModuleRoute({ children, module }: { children: React.ReactNode; module: 
   return <AppLayout>{children}</AppLayout>;
 }
 
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading, userRole } = useAuth();
+  if (loading) return <div className="flex min-h-screen items-center justify-center"><p>Carregando...</p></div>;
+  if (!user) return <Navigate to="/auth" />;
+  if (userRole !== 'admin') return <Navigate to="/" />;
+  return <AppLayout>{children}</AppLayout>;
+}
+
 function AuthRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) return null;
@@ -73,6 +84,9 @@ const App = () => (
             <Route path="/fornecedores" element={<ModuleRoute module="fornecedores"><FornecedoresPage /></ModuleRoute>} />
             <Route path="/obras" element={<ModuleRoute module="obras"><ObrasPage /></ModuleRoute>} />
             <Route path="/responsaveis" element={<ModuleRoute module="responsaveis"><ResponsaveisPage /></ModuleRoute>} />
+            <Route path="/usuarios" element={<AdminRoute><UserManagement /></AdminRoute>} />
+            <Route path="/auditoria" element={<AdminRoute><AuditLog /></AdminRoute>} />
+            <Route path="/config-relatorio" element={<AdminRoute><ConfigRelatorioPage /></AdminRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

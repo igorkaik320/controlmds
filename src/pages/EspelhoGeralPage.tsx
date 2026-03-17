@@ -111,34 +111,43 @@ export default function EspelhoGeralPage() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>Item</TableHead>
               <TableHead>Fornecedor</TableHead>
+              <TableHead>Razão Social</TableHead>
               <TableHead>Banco</TableHead>
               <TableHead>Agência</TableHead>
               <TableHead>Conta</TableHead>
               <TableHead>Obra</TableHead>
-              <TableHead className="text-right">Valor</TableHead>
+              <TableHead className="text-right">Valor por Obra</TableHead>
+              <TableHead className="text-right">Total Fornecedor</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {items.length === 0 && (
-              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Nenhum dado para esta data</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground">Nenhum dado para esta data</TableCell></TableRow>
             )}
             {items.map((i, idx) => (
               <TableRow key={idx}>
+                <TableCell>{i.item}</TableCell>
                 <TableCell className="font-medium">{i.fornecedor}</TableCell>
+                <TableCell>{i.razao_social}</TableCell>
                 <TableCell>{i.banco}</TableCell>
                 <TableCell>{i.agencia}</TableCell>
                 <TableCell>{i.conta}</TableCell>
                 <TableCell>{i.obra}</TableCell>
                 <TableCell className="text-right">{formatCurrencyBR(i.valor_por_obra)}</TableCell>
+                <TableCell className="text-right">{formatCurrencyBR(i.total_fornecedor)}</TableCell>
               </TableRow>
             ))}
+            {items.length > 0 && (
+              <TableRow className="font-bold bg-muted/50">
+                <TableCell colSpan={7} className="text-right">TOTAL GERAL</TableCell>
+                <TableCell className="text-right">{formatCurrencyBR(totalGeral)}</TableCell>
+                <TableCell />
+              </TableRow>
+            )}
           </TableBody>
         </Table>
-      </div>
-
-      <div className="text-right font-bold text-lg">
-        Total Geral: {formatCurrencyBR(totalGeral)}
       </div>
     </div>
   );
