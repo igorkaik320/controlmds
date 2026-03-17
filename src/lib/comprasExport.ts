@@ -403,6 +403,7 @@ export async function exportEspelhoPDF(
       'AGÊNCIA',
       'CONTA',
       'OBRA',
+      'Nº PEDIDO',
       'VALOR POR OBRA',
       'TOTAL FORNECEDOR'
     ]],
