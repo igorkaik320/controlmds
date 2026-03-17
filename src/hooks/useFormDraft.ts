@@ -13,7 +13,9 @@ export function useFormDraft<T>(key: string, initialValue: T): [T, (val: T | ((p
   });
 
   useEffect(() => {
-    try { sessionStorage.setItem(storageKey, JSON.stringify(value)); } catch {}
+    try {
+      sessionStorage.setItem(storageKey, JSON.stringify(value));
+    } catch {}
   }, [value, storageKey]);
 
   const clear = useCallback(() => {

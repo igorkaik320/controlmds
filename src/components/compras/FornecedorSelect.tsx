@@ -24,7 +24,9 @@ export default function FornecedorSelect({ value, onChange, onFornecedorSelect }
   useEffect(() => { loadFornecedores(); }, []);
 
   async function loadFornecedores() {
-    try { setFornecedores(await fetchFornecedores()); } catch {}
+    try {
+      setFornecedores(await fetchFornecedores());
+    } catch {}
   }
 
   async function handleSaveNew() {
@@ -40,46 +42,129 @@ export default function FornecedorSelect({ value, onChange, onFornecedorSelect }
   }
 
   function handleSelect(val: string) {
-    if (val === '__new__') { setShowNew(true); return; }
+    if (val === '__new__') {
+      setShowNew(true);
+      return;
+    }
+
     onChange(val);
-    const found = fornecedores.find(f => f.nome_fornecedor === val);
-    if (found && onFornecedorSelect) onFornecedorSelect(found);
+
+    const forn = fornecedores.find(f => f.nome_fornecedor === val);
+    if (forn && onFornecedorSelect) onFornecedorSelect(forn);
   }
 
   return (
-    <div>
-      <Label className="text-xs">Fornecedor *</Label>
-      <Select value={value} onValueChange={handleSelect}>
-        <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-        <SelectContent>
-          {fornecedores.map(f => (
-            <SelectItem key={f.id} value={f.nome_fornecedor}>{f.nome_fornecedor}</SelectItem>
-          ))}
-          <SelectItem value="__new__">
-            <span className="flex items-center gap-1"><Plus className="h-3 w-3" /> Novo Fornecedor</span>
-          </SelectItem>
-        </SelectContent>
-      </Select>
+    <>
+      <div className="flex gap-2 items-end">
+        <div className="flex-1 space-y-2">
+
+          {/* Campo para digitar manualmente */}
+          <Input
+            value={value}
+            placeholder="Digite ou selecione fornecedor"
+            onChange={(e) => onChange(e.target.value)}
+          />
+
+          {/* Lista de fornecedores */}
+          <Select value={value} onValueChange={handleSelect}>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecionar fornecedor da lista" />
+            </SelectTrigger>
+            <SelectContent>
+              {fornecedores.map(f => (
+                <SelectItem key={f.id} value={f.nome_fornecedor}>
+                  {f.nome_fornecedor}
+                </SelectItem>
+              ))}
+
+              <SelectItem value="__new__">
+                <span className="flex items-center gap-1">
+                  <Plus className="h-3 w-3" />
+                  Novo fornecedor
+                </span>
+              </SelectItem>
+
+            </SelectContent>
+          </Select>
+
+        </div>
+      </div>
 
       <Dialog open={showNew} onOpenChange={setShowNew}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Novo Fornecedor</DialogTitle></DialogHeader>
+
+          <DialogHeader>
+            <DialogTitle>Novo Fornecedor</DialogTitle>
+          </DialogHeader>
+
           <div className="space-y-3">
-            <div><Label>Nome *</Label><Input value={newForn.nome_fornecedor} onChange={e => setNewForn(p => ({ ...p, nome_fornecedor: e.target.value }))} /></div>
-            <div><Label>Razão Social</Label><Input value={newForn.razao_social} onChange={e => setNewForn(p => ({ ...p, razao_social: e.target.value }))} /></div>
-            <div><Label>CNPJ/CPF</Label><Input value={newForn.cnpj_cpf} onChange={e => setNewForn(p => ({ ...p, cnpj_cpf: e.target.value }))} /></div>
-            <div className="grid grid-cols-3 gap-2">
-              <div><Label>Banco</Label><Input value={newForn.banco} onChange={e => setNewForn(p => ({ ...p, banco: e.target.value }))} /></div>
-              <div><Label>Agência</Label><Input value={newForn.agencia} onChange={e => setNewForn(p => ({ ...p, agencia: e.target.value }))} /></div>
-              <div><Label>Conta</Label><Input value={newForn.conta} onChange={e => setNewForn(p => ({ ...p, conta: e.target.value }))} /></div>
+
+            <div>
+              <Label>Nome *</Label>
+              <Input
+                value={newForn.nome_fornecedor}
+                onChange={e => setNewForn(p => ({ ...p, nome_fornecedor: e.target.value }))}
+              />
             </div>
+
+            <div>
+              <Label>Razão Social</Label>
+              <Input
+                value={newForn.razao_social}
+                onChange={e => setNewForn(p => ({ ...p, razao_social: e.target.value }))}
+              />
+            </div>
+
+            <div>
+              <Label>CNPJ/CPF</Label>
+              <Input
+                value={newForn.cnpj_cpf}
+                onChange={e => setNewForn(p => ({ ...p, cnpj_cpf: e.target.value }))}
+              />
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+
+              <div>
+                <Label>Banco</Label>
+                <Input
+                  value={newForn.banco}
+                  onChange={e => setNewForn(p => ({ ...p, banco: e.target.value }))}
+                />
+              </div>
+
+              <div>
+                <Label>Agência</Label>
+                <Input
+                  value={newForn.agencia}
+                  onChange={e => setNewForn(p => ({ ...p, agencia: e.target.value }))}
+                />
+              </div>
+
+              <div>
+                <Label>Conta</Label>
+                <Input
+                  value={newForn.conta}
+                  onChange={e => setNewForn(p => ({ ...p, conta: e.target.value }))}
+                />
+              </div>
+
+            </div>
+
           </div>
+
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowNew(false)}>Cancelar</Button>
-            <Button onClick={handleSaveNew}>Salvar</Button>
+            <Button variant="outline" onClick={() => setShowNew(false)}>
+              Cancelar
+            </Button>
+
+            <Button onClick={handleSaveNew}>
+              Salvar
+            </Button>
           </DialogFooter>
+
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }
