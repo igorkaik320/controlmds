@@ -17,5 +17,3 @@ const Index = () => {
 };
 
 export default Index;
-
-5;
