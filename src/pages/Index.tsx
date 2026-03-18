@@ -1,15 +1,15 @@
-import { useAuth } from '@/lib/auth';
-import OperadorPage from './OperadorPage';
-import ConferentePage from './ConferentePage';
-import AdminPage from './AdminPage';
+import { useAuth } from "@/lib/auth";
+import OperadorPage from "./OperadorPage";
+import ConferentePage from "./ConferentePage";
+import AdminPage from "./AdminPage";
 
 const Index = () => {
   const { userRole } = useAuth();
 
   switch (userRole) {
-    case 'admin':
+    case "admin":
       return <AdminPage />;
-    case 'conferente':
+    case "conferente":
       return <ConferentePage />;
     default:
       return <OperadorPage />;
@@ -17,3 +17,5 @@ const Index = () => {
 };
 
 export default Index;
+
+5;
