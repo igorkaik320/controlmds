@@ -239,7 +239,7 @@ export default function ComprasFaturadasPage() {
               <div><Label>Condição de Pagamento (dias)</Label><Input type="number" placeholder="Ex: 30" value={form.condicao_pagamento} onChange={e => handleCondicaoChange(e.target.value)} /></div>
               <div><Label>Data Liquidação</Label><Input type="date" value={form.data_liquidacao} onChange={e => setForm((p: typeof emptyForm) => ({ ...p, data_liquidacao: e.target.value }))} /></div>
             </div>
-            <div><Label>CNPJ/CPF</Label><Input value={form.cnpj_cpf} onChange={e => setForm((p: typeof emptyForm) => ({ ...p, cnpj_cpf: e.target.value }))} /></div>
+            <div><Label>CNPJ/CPF</Label><Input value={form.cnpj_cpf} onChange={e => setForm((p: typeof emptyForm) => ({ ...p, cnpj_cpf: formatCPFCNPJ(e.target.value) }))} maxLength={18} /></div>
             <div><Label>Valor *</Label><Input type="number" step="0.01" value={form.valor} onChange={e => setForm((p: typeof emptyForm) => ({ ...p, valor: e.target.value }))} /></div>
             <div><Label>Obra</Label><ObraSelect value={form.obra} onChange={v => setForm((p: typeof emptyForm) => ({ ...p, obra: v }))} /></div>
             <div><Label>Observação</Label><Textarea value={form.observacao} onChange={e => setForm((p: typeof emptyForm) => ({ ...p, observacao: e.target.value }))} /></div>
