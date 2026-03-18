@@ -377,9 +377,9 @@ export async function exportEspelhoPDF(
   await addLogos(doc, config || null, pageWidth);
 
   doc.setFontSize(16);
-  doc.text('PROGRAMAÇÃO SEMANAL', pageWidth / 2, 12, { align: 'center' });
+  doc.text('PREVISÃO DE COMPRAS AVISTA', pageWidth / 2, 12, { align: 'center' });
   doc.setFontSize(12);
-  doc.text('PROGRAMAÇÃO RESUMO', pageWidth / 2, 20, { align: 'center' });
+  doc.text('PLANILHA RESUMO RESUMO PREVISÃO DE COMPRAS', pageWidth / 2, 20, { align: 'center' });
   doc.setFontSize(10);
   doc.text(`DATA: ${dateStr || new Date().toLocaleDateString('pt-BR')}`, 14, 30);
 
