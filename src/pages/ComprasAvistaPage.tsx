@@ -9,6 +9,7 @@ import { Plus, Pencil, Trash2, FileDown, FileSpreadsheet } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { CompraAvista, fetchComprasAvista, saveCompraAvista, updateCompraAvista, deleteCompraAvista, fetchConfigRelatorio, formatCurrencyBR, formatDateBR } from '@/lib/comprasService';
 import { exportAvistaPDF, exportAvistaXLSX } from '@/lib/comprasExport';
+import { formatCPFCNPJ } from '@/lib/formatters';
 import FornecedorSelect from '@/components/compras/FornecedorSelect';
 import ObraSelect from '@/components/compras/ObraSelect';
 import DateRangeFilter from '@/components/DateRangeFilter';
