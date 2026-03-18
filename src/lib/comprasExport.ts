@@ -377,7 +377,7 @@ export async function exportEspelhoPDF(
   await addLogos(doc, config || null, pageWidth);
 
   doc.setFontSize(16);
-  doc.text('PREVISÃO DE COMPRAS AVISTA', pageWidth / 2, 12, { align: 'center' });
+  doc.text('PREVISÃO DE COMPRAS A VISTA', pageWidth / 2, 12, { align: 'center' });
   doc.setFontSize(12);
   doc.text('PLANILHA RESUMO RESUMO PREVISÃO DE COMPRAS', pageWidth / 2, 20, { align: 'center' });
   doc.setFontSize(10);
