@@ -19,6 +19,10 @@ import ConfigRelatorioPage from "./pages/ConfigRelatorioPage";
 import FornecedoresPage from "./pages/FornecedoresPage";
 import ObrasPage from "./pages/ObrasPage";
 import ResponsaveisPage from "./pages/ResponsaveisPage";
+import VeiculosMaquinasPage from "./pages/VeiculosMaquinasPage";
+import TiposCombustivelPage from "./pages/TiposCombustivelPage";
+import AbastecimentosPage from "./pages/AbastecimentosPage";
+import DashboardCombustivelPage from "./pages/DashboardCombustivelPage";
 import NotFound from "./pages/NotFound";
 import type { ModuleKey } from "@/lib/modulePermissions";
 import { Lock } from "lucide-react";
@@ -84,6 +88,10 @@ const App = () => (
             <Route path="/fornecedores" element={<ModuleRoute module="fornecedores"><FornecedoresPage /></ModuleRoute>} />
             <Route path="/obras" element={<ModuleRoute module="obras"><ObrasPage /></ModuleRoute>} />
             <Route path="/responsaveis" element={<ModuleRoute module="responsaveis"><ResponsaveisPage /></ModuleRoute>} />
+            <Route path="/veiculos" element={<ModuleRoute module="veiculos_maquinas"><VeiculosMaquinasPage /></ModuleRoute>} />
+            <Route path="/tipos-combustivel" element={<ModuleRoute module="tipos_combustivel"><TiposCombustivelPage /></ModuleRoute>} />
+            <Route path="/combustivel/abastecimentos" element={<ModuleRoute module="abastecimentos"><AbastecimentosPage /></ModuleRoute>} />
+            <Route path="/combustivel/dashboard" element={<ModuleRoute module="combustivel_dashboard"><DashboardCombustivelPage /></ModuleRoute>} />
             <Route path="/usuarios" element={<AdminRoute><UserManagement /></AdminRoute>} />
             <Route path="/auditoria" element={<AdminRoute><AuditLog /></AdminRoute>} />
             <Route path="/config-relatorio" element={<AdminRoute><ConfigRelatorioPage /></AdminRoute>} />

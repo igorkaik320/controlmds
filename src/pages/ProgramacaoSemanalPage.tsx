@@ -9,6 +9,7 @@ import { Plus, Pencil, Trash2, FileDown, FileSpreadsheet } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { ProgramacaoSemanal, fetchProgramacaoSemanal, saveProgramacaoSemanal, updateProgramacaoSemanal, deleteProgramacaoSemanal, fetchConfigRelatorio, formatCurrencyBR, formatDateBR } from '@/lib/comprasService';
 import { exportProgramacaoSemanalPDF, exportProgramacaoSemanalXLSX } from '@/lib/comprasExport';
+import { formatCPFCNPJ } from '@/lib/formatters';
 import FornecedorSelect from '@/components/compras/FornecedorSelect';
 import ObraSelect from '@/components/compras/ObraSelect';
 import ResponsavelSelect from '@/components/compras/ResponsavelSelect';
@@ -149,7 +150,7 @@ export default function ProgramacaoSemanalPage() {
               <div><Label>Agência</Label><Input value={form.agencia} onChange={e => setForm(p => ({ ...p, agencia: e.target.value }))} /></div>
               <div><Label>Conta</Label><Input value={form.conta} onChange={e => setForm(p => ({ ...p, conta: e.target.value }))} /></div>
             </div>
-            <div><Label>CNPJ/CPF</Label><Input value={form.cnpj_cpf} onChange={e => setForm(p => ({ ...p, cnpj_cpf: e.target.value }))} /></div>
+            <div><Label>CNPJ/CPF</Label><Input value={form.cnpj_cpf} onChange={e => setForm(p => ({ ...p, cnpj_cpf: formatCPFCNPJ(e.target.value) }))} maxLength={18} /></div>
             <div><Label>Valor *</Label><Input type="number" step="0.01" value={form.valor} onChange={e => setForm(p => ({ ...p, valor: e.target.value }))} /></div>
             <div><Label>Obra</Label><ObraSelect value={form.obra} onChange={v => setForm(p => ({ ...p, obra: v }))} /></div>
             <ResponsavelSelect value={form.responsavel} onChange={v => setForm(p => ({ ...p, responsavel: v }))} />

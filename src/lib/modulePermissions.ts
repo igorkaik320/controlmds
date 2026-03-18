@@ -10,6 +10,10 @@ export const MODULES = [
   { key: 'fornecedores', label: 'Fornecedores' },
   { key: 'obras', label: 'Obras' },
   { key: 'responsaveis', label: 'Responsáveis' },
+  { key: 'combustivel_dashboard', label: 'Dashboard Combustível' },
+  { key: 'abastecimentos', label: 'Abastecimentos' },
+  { key: 'veiculos_maquinas', label: 'Veículos/Máquinas' },
+  { key: 'tipos_combustivel', label: 'Tipos de Combustível' },
 ] as const;
 
 export type ModuleKey = typeof MODULES[number]['key'];

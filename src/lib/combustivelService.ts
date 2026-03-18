@@ -1,0 +1,114 @@
+import { supabase } from '@/integrations/supabase/client';
+
+// ---- Types ----
+export interface VeiculoMaquina {
+  id: string;
+  tipo: 'veiculo' | 'maquina';
+  placa: string;
+  modelo: string;
+  marca: string;
+  categoria: string;
+  created_by: string;
+  created_at: string;
+}
+
+export interface TipoCombustivel {
+  id: string;
+  nome: string;
+  created_by: string;
+  created_at: string;
+}
+
+export interface Abastecimento {
+  id: string;
+  veiculo_id: string;
+  nfe: string | null;
+  data: string;
+  combustivel_id: string;
+  quantidade_litros: number;
+  valor_unitario: number;
+  valor_total: number;
+  observacao: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  // joined fields
+  veiculo?: VeiculoMaquina;
+  combustivel?: TipoCombustivel;
+}
+
+// ---- Veículos / Máquinas ----
+export async function fetchVeiculos(): Promise<VeiculoMaquina[]> {
+  const { data, error } = await supabase.from('veiculos_maquinas').select('*').order('modelo');
+  if (error) throw error;
+  return data || [];
+}
+
+export async function saveVeiculo(v: Omit<VeiculoMaquina, 'id' | 'created_at'>) {
+  const { data, error } = await supabase.from('veiculos_maquinas').insert(v as any).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateVeiculo(id: string, v: Partial<VeiculoMaquina>) {
+  const { error } = await supabase.from('veiculos_maquinas').update(v as any).eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteVeiculo(id: string) {
+  const { error } = await supabase.from('veiculos_maquinas').delete().eq('id', id);
+  if (error) throw error;
+}
+
+// ---- Tipos de Combustível ----
+export async function fetchTiposCombustivel(): Promise<TipoCombustivel[]> {
+  const { data, error } = await supabase.from('tipos_combustivel').select('*').order('nome');
+  if (error) throw error;
+  return data || [];
+}
+
+export async function saveTipoCombustivel(nome: string, userId: string) {
+  const { data, error } = await supabase.from('tipos_combustivel').insert({ nome, created_by: userId } as any).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateTipoCombustivel(id: string, nome: string) {
+  const { error } = await supabase.from('tipos_combustivel').update({ nome } as any).eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteTipoCombustivel(id: string) {
+  const { error } = await supabase.from('tipos_combustivel').delete().eq('id', id);
+  if (error) throw error;
+}
+
+// ---- Abastecimentos ----
+export async function fetchAbastecimentos(): Promise<Abastecimento[]> {
+  const { data, error } = await supabase
+    .from('abastecimentos')
+    .select('*, veiculo:veiculos_maquinas(*), combustivel:tipos_combustivel(*)')
+    .order('data', { ascending: false });
+  if (error) throw error;
+  return (data || []) as any;
+}
+
+export async function saveAbastecimento(a: {
+  veiculo_id: string; nfe?: string; data: string; combustivel_id: string;
+  quantidade_litros: number; valor_unitario: number; valor_total: number;
+  observacao?: string; created_by: string;
+}) {
+  const { data, error } = await supabase.from('abastecimentos').insert(a as any).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateAbastecimento(id: string, a: Partial<Abastecimento>) {
+  const { error } = await supabase.from('abastecimentos').update({ ...a, updated_at: new Date().toISOString() } as any).eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteAbastecimento(id: string) {
+  const { error } = await supabase.from('abastecimentos').delete().eq('id', id);
+  if (error) throw error;
+}
