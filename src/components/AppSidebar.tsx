@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useAuth } from '@/lib/auth';
 import { useModulePermissions } from '@/hooks/useModulePermissions';
 import {
@@ -8,7 +7,8 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { NavLink } from '@/components/NavLink';
 import {
-  Landmark, ShoppingCart, Receipt, Eye, Settings, Users, History, Truck, LogOut, Lock, Building2, ChevronDown, CalendarDays, BarChart3, UserCheck,
+  Landmark, ShoppingCart, Receipt, Eye, Settings, Users, History, Truck, LogOut, Lock,
+  Building2, ChevronDown, CalendarDays, BarChart3, UserCheck, Fuel, Car, Droplets,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ModuleKey } from '@/lib/modulePermissions';
@@ -43,12 +43,22 @@ export function AppSidebar() {
       ],
     },
     {
+      label: 'Controle de Combustível',
+      defaultOpen: false,
+      items: [
+        { title: 'Dashboard', url: '/combustivel/dashboard', icon: Fuel, module: 'combustivel_dashboard' },
+        { title: 'Abastecimentos', url: '/combustivel/abastecimentos', icon: Droplets, module: 'abastecimentos' },
+      ],
+    },
+    {
       label: 'Cadastros',
       defaultOpen: false,
       items: [
         { title: 'Fornecedores', url: '/fornecedores', icon: Truck, module: 'fornecedores' },
         { title: 'Obras', url: '/obras', icon: Building2, module: 'obras' },
         { title: 'Responsáveis', url: '/responsaveis', icon: UserCheck, module: 'responsaveis' },
+        { title: 'Veículos/Máquinas', url: '/veiculos', icon: Car, module: 'veiculos_maquinas' },
+        { title: 'Tipos de Combustível', url: '/tipos-combustivel', icon: Droplets, module: 'tipos_combustivel' },
       ],
     },
   ];

@@ -16,7 +16,7 @@ const categoriasLabel: Record<string, string> = {
   carro: 'Carro', moto: 'Moto', outro: 'Outro',
 };
 
-const emptyForm = { tipo: 'veiculo' as const, placa: '', modelo: '', marca: '', categoria: 'outro' };
+const emptyForm = { tipo: 'veiculo' as 'veiculo' | 'maquina', placa: '', modelo: '', marca: '', categoria: 'outro' };
 
 export default function VeiculosMaquinasPage() {
   const { user, userRole } = useAuth();
