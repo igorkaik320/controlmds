@@ -75,6 +75,7 @@ export function AppSidebar() {
     label: 'Cadastros',
     defaultOpen: false,
     items: [
+      { title: 'Empresas', url: '/empresas', icon: Factory, module: 'empresas' },
       { title: 'Fornecedores', url: '/fornecedores', icon: Truck, module: 'fornecedores' },
       { title: 'Obras', url: '/obras', icon: Building2, module: 'obras' },
       { title: 'Responsáveis', url: '/responsaveis', icon: UserCheck, module: 'responsaveis' },
