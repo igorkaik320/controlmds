@@ -4,7 +4,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/lib/auth";
-import { useBeforeUnloadDraftGuard } from "@/lib/draftGuard";
 import { useModulePermissions } from "@/hooks/useModulePermissions";
 import AppLayout from "@/components/AppLayout";
 import Index from "./pages/Index";
@@ -30,11 +29,6 @@ import type { ModuleKey } from "@/lib/modulePermissions";
 import { Lock } from "lucide-react";
 
 const queryClient = new QueryClient();
-
-function DraftGuards() {
-  useBeforeUnloadDraftGuard();
-  return null;
-}
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -119,7 +113,6 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <DraftGuards />
       <Toaster />
       <Sonner />
       <BrowserRouter>
@@ -127,43 +120,19 @@ const App = () => (
           <Routes>
             <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-            <Route
-              path="/compras/faturadas"
-              element={<ModuleRoute module="compras_faturadas"><ComprasFaturadasPage /></ModuleRoute>}
-            />
-            <Route
-              path="/compras/avista"
-              element={<ModuleRoute module="compras_avista"><ComprasAvistaPage /></ModuleRoute>}
-            />
-            <Route
-              path="/compras/espelho"
-              element={<ModuleRoute module="espelho_geral"><EspelhoGeralPage /></ModuleRoute>}
-            />
-            <Route
-              path="/compras/programacao-semanal"
-              element={<ModuleRoute module="programacao_semanal"><ProgramacaoSemanalPage /></ModuleRoute>}
-            />
-            <Route
-              path="/compras/espelho-semanal"
-              element={<ModuleRoute module="espelho_semanal"><EspelhoSemanalPage /></ModuleRoute>}
-            />
+            <Route path="/compras/faturadas" element={<ModuleRoute module="compras_faturadas"><ComprasFaturadasPage /></ModuleRoute>} />
+            <Route path="/compras/avista" element={<ModuleRoute module="compras_avista"><ComprasAvistaPage /></ModuleRoute>} />
+            <Route path="/compras/espelho" element={<ModuleRoute module="espelho_geral"><EspelhoGeralPage /></ModuleRoute>} />
+            <Route path="/compras/programacao-semanal" element={<ModuleRoute module="programacao_semanal"><ProgramacaoSemanalPage /></ModuleRoute>} />
+            <Route path="/compras/espelho-semanal" element={<ModuleRoute module="espelho_semanal"><EspelhoSemanalPage /></ModuleRoute>} />
             <Route path="/empresas" element={<ModuleRoute module="empresas"><EmpresasPage /></ModuleRoute>} />
             <Route path="/fornecedores" element={<ModuleRoute module="fornecedores"><FornecedoresPage /></ModuleRoute>} />
             <Route path="/obras" element={<ModuleRoute module="obras"><ObrasPage /></ModuleRoute>} />
             <Route path="/responsaveis" element={<ModuleRoute module="responsaveis"><ResponsaveisPage /></ModuleRoute>} />
             <Route path="/veiculos" element={<ModuleRoute module="veiculos_maquinas"><VeiculosMaquinasPage /></ModuleRoute>} />
-            <Route
-              path="/tipos-combustivel"
-              element={<ModuleRoute module="tipos_combustivel"><TiposCombustivelPage /></ModuleRoute>}
-            />
-            <Route
-              path="/combustivel/abastecimentos"
-              element={<ModuleRoute module="abastecimentos"><AbastecimentosPage /></ModuleRoute>}
-            />
-            <Route
-              path="/combustivel/dashboard"
-              element={<ModuleRoute module="combustivel_dashboard"><DashboardCombustivelPage /></ModuleRoute>}
-            />
+            <Route path="/tipos-combustivel" element={<ModuleRoute module="tipos_combustivel"><TiposCombustivelPage /></ModuleRoute>} />
+            <Route path="/combustivel/abastecimentos" element={<ModuleRoute module="abastecimentos"><AbastecimentosPage /></ModuleRoute>} />
+            <Route path="/combustivel/dashboard" element={<ModuleRoute module="combustivel_dashboard"><DashboardCombustivelPage /></ModuleRoute>} />
             <Route path="/usuarios" element={<AdminRoute><UserManagement /></AdminRoute>} />
             <Route path="/auditoria" element={<AdminRoute><AuditLog /></AdminRoute>} />
             <Route path="/config-relatorio" element={<AdminRoute><ConfigRelatorioPage /></AdminRoute>} />
