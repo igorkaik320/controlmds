@@ -121,15 +121,15 @@ export function AppSidebar() {
     if (locked) {
       return (
         <SidebarMenuItem key={item.url}>
-          <SidebarMenuButton className="cursor-not-allowed text-sidebar-foreground/50 opacity-40">
+          <SidebarMenuButton className="cursor-not-allowed rounded-xl px-3 py-2 text-sidebar-foreground/45 opacity-45">
             <item.icon className="h-4 w-4" />
             {!collapsed && (
               <>
                 <span>{item.title}</span>
-                <Lock className="ml-auto h-3 w-3" />
+                <Lock className="ml-auto h-3.5 w-3.5" />
               </>
             )}
-            {collapsed && <Lock className="h-3 w-3" />}
+            {collapsed && <Lock className="h-3.5 w-3.5" />}
           </SidebarMenuButton>
         </SidebarMenuItem>
       );
@@ -140,8 +140,8 @@ export function AppSidebar() {
         <SidebarMenuButton asChild>
           <NavLink
             to={item.url}
-            className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-            activeClassName="bg-sidebar-primary font-medium text-sidebar-primary-foreground"
+            className="rounded-xl px-3 py-2 text-[14px] text-sidebar-foreground/80 transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            activeClassName="bg-sidebar-primary text-sidebar-primary-foreground font-semibold shadow-sm"
           >
             <item.icon className="h-4 w-4" />
             {!collapsed && <span>{item.title}</span>}
@@ -156,31 +156,44 @@ export function AppSidebar() {
   }
 
   return (
-    <Sidebar collapsible="icon" className="border-r-0">
+    <Sidebar collapsible="icon" className="border-r border-sidebar-border/60">
       <SidebarContent className="bg-sidebar-background">
         {!collapsed && (
-          <div className="border-b border-sidebar-border p-4">
-            <h2 className="tracking-tight text-base font-bold text-sidebar-foreground">ControlMDS</h2>
-            <p className="mt-0.5 text-xs text-sidebar-foreground/60">{profile?.display_name}</p>
+          <div className="border-b border-sidebar-border/70 px-4 py-5">
+            <div className="space-y-1">
+              <h2 className="text-lg font-bold tracking-tight text-sidebar-foreground">
+                ControlMDS
+              </h2>
+              <p className="text-sm text-sidebar-foreground/75">{profile?.display_name}</p>
+              <div className="pt-1">
+                <span className="inline-flex rounded-full bg-sidebar-accent px-2.5 py-1 text-[11px] font-medium text-sidebar-accent-foreground">
+                  {userRole === 'admin' ? 'Administrador' : userRole === 'conferente' ? 'Conferente' : 'Operador'}
+                </span>
+              </div>
+            </div>
           </div>
         )}
 
-        <SidebarGroup className="px-2 py-1">
+        <SidebarGroup className="px-3 py-3">
           {groups.map((group) => (
-            <div key={group.label} className="mb-1">
+            <div key={group.label} className="mb-3">
               {collapsed ? (
                 <SidebarGroupContent>
-                  <SidebarMenu>{group.items.map(renderMenuItem)}</SidebarMenu>
+                  <SidebarMenu className="space-y-1">
+                    {group.items.map(renderMenuItem)}
+                  </SidebarMenu>
                 </SidebarGroupContent>
               ) : (
                 <Collapsible defaultOpen={group.defaultOpen}>
-                  <CollapsibleTrigger className="flex w-full items-center justify-between px-3 py-2 text-[11px] font-semibold uppercase tracking-widest text-sidebar-foreground/50 transition-colors hover:text-sidebar-foreground">
-                    {group.label}
-                    <ChevronDown className="h-3 w-3 transition-transform" />
+                  <CollapsibleTrigger className="flex w-full items-center justify-between px-2 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-sidebar-foreground/55 transition-colors hover:text-sidebar-foreground">
+                    <span>{group.label}</span>
+                    <ChevronDown className="h-3.5 w-3.5" />
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <SidebarGroupContent>
-                      <SidebarMenu>{group.items.map(renderMenuItem)}</SidebarMenu>
+                      <SidebarMenu className="space-y-1">
+                        {group.items.map(renderMenuItem)}
+                      </SidebarMenu>
                     </SidebarGroupContent>
                   </CollapsibleContent>
                 </Collapsible>
@@ -189,10 +202,10 @@ export function AppSidebar() {
           ))}
         </SidebarGroup>
 
-        <div className="mt-auto border-t border-sidebar-border p-3">
+        <div className="mt-auto border-t border-sidebar-border/70 p-3">
           <Button
             variant="ghost"
-            className="w-full justify-start text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+            className="w-full justify-start rounded-xl text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-foreground"
             onClick={handleSignOut}
           >
             <LogOut className="mr-2 h-4 w-4" />
