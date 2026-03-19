@@ -38,24 +38,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (isMounted) setLoading(false);
     };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const refreshUserDataSilently = async (userId: string) => {
+      await Promise.all([fetchProfile(userId), fetchRole(userId)]);
+    };
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      const nextUser = session?.user ?? null;
+      const currentUserId = user?.id;
+      const nextUserId = nextUser?.id;
+
       setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        setLoading(true);
-        loadUserData(session.user.id);
-      } else {
+      setUser(nextUser);
+
+      if (!nextUser) {
         setProfile(null);
         setUserRole('operador');
         setLoading(false);
+        return;
+      }
+
+      // Só entra em loading se for troca real de usuário ou primeiro carregamento.
+      if (!currentUserId || currentUserId !== nextUserId) {
+        setLoading(true);
+        loadUserData(nextUser.id);
+        return;
+      }
+
+      // Em eventos como TOKEN_REFRESHED ao voltar para a aba,
+      // atualiza silenciosamente sem desmontar a tela.
+      if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
+        refreshUserDataSilently(nextUser.id);
       }
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
+      const nextUser = session?.user ?? null;
+
       setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        loadUserData(session.user.id);
+      setUser(nextUser);
+
+      if (nextUser) {
+        loadUserData(nextUser.id);
       } else {
         setLoading(false);
       }
@@ -65,7 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [user?.id]);
 
   async function fetchProfile(userId: string) {
     const { data } = await supabase
@@ -73,6 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .select('display_name, role')
       .eq('user_id', userId)
       .single();
+
     if (data) setProfile(data);
   }
 
@@ -81,6 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .from('user_roles')
       .select('role')
       .eq('user_id', userId);
+
     if (data && data.length > 0) {
       const roles = data.map((r) => r.role as AppRole);
       if (roles.includes('admin')) setUserRole('admin');
@@ -115,7 +142,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, userRole, loading, signUp, signIn, signOut, hasRole }}>
+    <AuthContext.Provider
+      value={{ user, session, profile, userRole, loading, signUp, signIn, signOut, hasRole }}
+    >
       {children}
     </AuthContext.Provider>
   );
