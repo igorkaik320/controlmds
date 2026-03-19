@@ -7,15 +7,26 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, Pencil, Trash2, FileDown, FileSpreadsheet } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
-import { CompraFaturada, fetchComprasFaturadas, saveCompraFaturada, updateCompraFaturada, deleteCompraFaturada, fetchConfigRelatorio, formatCurrencyBR, formatDateBR } from '@/lib/comprasService';
+import {
+  CompraFaturada,
+  fetchComprasFaturadas,
+  saveCompraFaturada,
+  updateCompraFaturada,
+  deleteCompraFaturada,
+  fetchConfigRelatorio,
+  formatCurrencyBR,
+  formatDateBR
+} from '@/lib/comprasService';
 import { exportFaturadasPDF, exportFaturadasXLSX } from '@/lib/comprasExport';
 import { formatCPFCNPJ, formatCurrencyInput, parseCurrencyInput } from '@/lib/formatters';
 import FornecedorSelect from '@/components/compras/FornecedorSelect';
 import ObraSelect from '@/components/compras/ObraSelect';
+import EmpresaSelect from '@/components/compras/EmpresaSelect';
 import DateRangeFilter from '@/components/DateRangeFilter';
 import { useFormDraft } from '@/hooks/useFormDraft';
 import { toast } from 'sonner';
 import type { Fornecedor } from '@/lib/comprasService';
+import { fetchObras, Obra } from '@/lib/obrasService';
 
 const emptyForm = {
   data: '',
@@ -44,21 +55,33 @@ function calcularDataLiquidacao(data: string, dias: number) {
 export default function ComprasFaturadasPage() {
   const { user } = useAuth();
   const [items, setItems] = useState<CompraFaturada[]>([]);
+  const [obras, setObras] = useState<Obra[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showDialog, setShowDialog] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [showDialog, setShowDialog, clearShowDialog] = useFormDraft('fat-showDialog', false);
+  const [editingId, setEditingId, clearEditingId] = useFormDraft<string | null>('fat-editingId', null);
 
   const [dateFrom, setDateFrom] = useFormDraft('fat-dateFrom', '');
   const [dateTo, setDateTo] = useFormDraft('fat-dateTo', '');
   const [filterForn, setFilterForn] = useFormDraft('fat-filterForn', '');
   const [filterObra, setFilterObra] = useFormDraft('fat-filterObra', '');
+  const [filterEmpresa, setFilterEmpresa] = useFormDraft('fat-filterEmpresa', '');
   const [observation, setObservation] = useFormDraft('fat-observation', '');
 
-  const [form, setForm] = useFormDraft('fat-form', emptyForm);
+  const [form, setForm, clearForm] = useFormDraft('fat-form', emptyForm);
 
   const load = useCallback(async () => {
-    try { setItems(await fetchComprasFaturadas()); } catch (e: any) { toast.error(e.message); }
-    finally { setLoading(false); }
+    try {
+      const [compras, obrasData] = await Promise.all([
+        fetchComprasFaturadas(),
+        fetchObras()
+      ]);
+      setItems(compras);
+      setObras(obrasData);
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -68,12 +91,29 @@ export default function ComprasFaturadasPage() {
     if (dateTo && i.data > dateTo) return false;
     if (filterForn && !i.fornecedor.toLowerCase().includes(filterForn.toLowerCase())) return false;
     if (filterObra && !(i.obra || '').toLowerCase().includes(filterObra.toLowerCase())) return false;
+
+    if (filterEmpresa) {
+      const allowedObras = new Set(
+        obras
+          .filter((obra) => obra.empresa_id === filterEmpresa)
+          .map((obra) => obra.nome.toLowerCase())
+      );
+
+      if (!i.obra || !allowedObras.has(i.obra.toLowerCase())) return false;
+    }
+
     return true;
   });
 
+  function resetDialogDraft() {
+    clearEditingId();
+    clearForm();
+    clearShowDialog();
+  }
+
   function openNew() {
-    setEditingId(null);
-    setForm(emptyForm);
+    clearEditingId();
+    clearForm();
     setShowDialog(true);
   }
 
@@ -99,9 +139,11 @@ export default function ComprasFaturadasPage() {
       toast.error('Preencha os campos obrigatórios');
       return;
     }
+
     try {
       const { condicao_pagamento, ...rest } = form;
       const payload = { ...rest, valor: parseCurrencyInput(form.valor), created_by: user.id };
+
       if (editingId) {
         await updateCompraFaturada(editingId, payload);
         toast.success('Registro atualizado');
@@ -109,15 +151,24 @@ export default function ComprasFaturadasPage() {
         await saveCompraFaturada(payload as any);
         toast.success('Registro cadastrado');
       }
-      setShowDialog(false);
-      setForm(emptyForm);
+
+      resetDialogDraft();
       load();
-    } catch (e: any) { toast.error(e.message); }
+    } catch (e: any) {
+      toast.error(e.message);
+    }
   }
 
   async function handleDelete(id: string) {
     if (!confirm('Excluir este registro?')) return;
-    try { await deleteCompraFaturada(id); load(); toast.success('Excluído'); } catch (e: any) { toast.error(e.message); }
+
+    try {
+      await deleteCompraFaturada(id);
+      load();
+      toast.success('Excluído');
+    } catch (e: any) {
+      toast.error(e.message);
+    }
   }
 
   async function handleExportPDF() {
@@ -157,9 +208,15 @@ export default function ComprasFaturadasPage() {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-2xl font-bold">Compras Faturadas</h2>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleExportPDF}><FileDown className="h-4 w-4 mr-1" />PDF</Button>
-          <Button variant="outline" size="sm" onClick={() => exportFaturadasXLSX(filtered, observation)}><FileSpreadsheet className="h-4 w-4 mr-1" />Excel</Button>
-          <Button size="sm" onClick={openNew}><Plus className="h-4 w-4 mr-1" />Novo</Button>
+          <Button variant="outline" size="sm" onClick={handleExportPDF}>
+            <FileDown className="h-4 w-4 mr-1" />PDF
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => exportFaturadasXLSX(filtered, observation)}>
+            <FileSpreadsheet className="h-4 w-4 mr-1" />Excel
+          </Button>
+          <Button size="sm" onClick={openNew}>
+            <Plus className="h-4 w-4 mr-1" />Novo
+          </Button>
         </div>
       </div>
 
@@ -171,6 +228,9 @@ export default function ComprasFaturadasPage() {
         <div>
           <Label className="text-xs">Obra</Label>
           <Input value={filterObra} onChange={e => setFilterObra(e.target.value)} placeholder="Filtrar..." className="w-40" />
+        </div>
+        <div className="w-52">
+          <EmpresaSelect value={filterEmpresa} onChange={setFilterEmpresa} label="Empresa" allowAll />
         </div>
         <DateRangeFilter dateFrom={dateFrom} dateTo={dateTo} onDateFromChange={setDateFrom} onDateToChange={setDateTo} />
         <div className="flex-1 min-w-[200px]">
@@ -226,7 +286,16 @@ export default function ComprasFaturadasPage() {
         Total: {formatCurrencyBR(filtered.reduce((s, i) => s + i.valor, 0))}
       </div>
 
-      <Dialog open={showDialog} onOpenChange={setShowDialog}>
+      <Dialog
+        open={showDialog}
+        onOpenChange={(open) => {
+          if (!open) {
+            resetDialogDraft();
+            return;
+          }
+          setShowDialog(true);
+        }}
+      >
         <DialogContent className="max-w-lg max-h-[90vh] overflow-auto">
           <DialogHeader><DialogTitle>{editingId ? 'Editar' : 'Nova'} Compra Faturada</DialogTitle></DialogHeader>
           <div className="grid gap-3">
@@ -246,7 +315,7 @@ export default function ComprasFaturadasPage() {
             <div><Label>Observação</Label><Textarea value={form.observacao} onChange={e => setForm((p: typeof emptyForm) => ({ ...p, observacao: e.target.value }))} /></div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDialog(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={resetDialogDraft}>Cancelar</Button>
             <Button onClick={handleSubmit}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
