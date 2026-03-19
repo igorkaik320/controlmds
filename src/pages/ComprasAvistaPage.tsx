@@ -76,7 +76,7 @@ export default function ComprasAvistaPage() {
       agencia: item.agencia || '',
       conta: item.conta || '',
       cnpj_cpf: item.cnpj_cpf || '',
-      valor: String(item.valor),
+      valor: formatCurrencyInput(String(Math.round(item.valor * 100))),
       obra: item.obra || '',
       observacao: item.observacao || ''
     });

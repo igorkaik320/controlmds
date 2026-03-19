@@ -87,7 +87,7 @@ export default function ComprasFaturadasPage() {
       forma_pagamento: item.forma_pagamento || '',
       data_liquidacao: item.data_liquidacao || '',
       cnpj_cpf: item.cnpj_cpf || '',
-      valor: String(item.valor),
+      valor: formatCurrencyInput(String(Math.round(item.valor * 100))),
       obra: item.obra || '',
       observacao: item.observacao || ''
     });
