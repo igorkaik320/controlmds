@@ -23,6 +23,7 @@ import VeiculosMaquinasPage from "./pages/VeiculosMaquinasPage";
 import TiposCombustivelPage from "./pages/TiposCombustivelPage";
 import AbastecimentosPage from "./pages/AbastecimentosPage";
 import DashboardCombustivelPage from "./pages/DashboardCombustivelPage";
+import EmpresasPage from "./pages/EmpresasPage";
 import NotFound from "./pages/NotFound";
 import type { ModuleKey } from "@/lib/modulePermissions";
 import { Lock } from "lucide-react";
