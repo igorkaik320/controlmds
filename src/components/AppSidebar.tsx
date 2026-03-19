@@ -1,20 +1,54 @@
 import { useAuth } from '@/lib/auth';
 import { useModulePermissions } from '@/hooks/useModulePermissions';
 import {
-  Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
-  SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar,
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { NavLink } from '@/components/NavLink';
 import {
-  Landmark, ShoppingCart, Receipt, Eye, Settings, Users, History, Truck, LogOut, Lock,
-  Building2, ChevronDown, CalendarDays, BarChart3, UserCheck, Fuel, Car, Droplets, Factory,
+  Landmark,
+  ShoppingCart,
+  Receipt,
+  Eye,
+  Settings,
+  Users,
+  History,
+  Truck,
+  LogOut,
+  Lock,
+  Building2,
+  ChevronDown,
+  CalendarDays,
+  BarChart3,
+  UserCheck,
+  Fuel,
+  Car,
+  Droplets,
+  Factory,
+  Tags,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ModuleKey } from '@/lib/modulePermissions';
 
-interface MenuItem { title: string; url: string; icon: any; module?: ModuleKey; }
-interface MenuGroup { label: string; items: MenuItem[]; defaultOpen?: boolean; }
+interface MenuItem {
+  title: string;
+  url: string;
+  icon: any;
+  module?: ModuleKey;
+}
+
+interface MenuGroup {
+  label: string;
+  items: MenuItem[];
+  defaultOpen?: boolean;
+}
 
 export function AppSidebar() {
   const { state } = useSidebar();
@@ -25,7 +59,6 @@ export function AppSidebar() {
 
   const groups: MenuGroup[] = [];
 
-  // 1) Administração (admin only)
   if (isAdmin) {
     groups.push({
       label: 'Administração',
@@ -38,7 +71,6 @@ export function AppSidebar() {
     });
   }
 
-  // 2) Financeiro
   groups.push({
     label: 'Financeiro',
     defaultOpen: true,
@@ -47,7 +79,6 @@ export function AppSidebar() {
     ],
   });
 
-  // 3) Previsão de Compras
   groups.push({
     label: 'Previsão de Compras',
     defaultOpen: true,
@@ -60,7 +91,6 @@ export function AppSidebar() {
     ],
   });
 
-  // 4) Controle de Combustível
   groups.push({
     label: 'Controle de Combustível',
     defaultOpen: false,
@@ -70,7 +100,6 @@ export function AppSidebar() {
     ],
   });
 
-  // 5) Cadastros (last)
   groups.push({
     label: 'Cadastros',
     defaultOpen: false,
@@ -80,6 +109,7 @@ export function AppSidebar() {
       { title: 'Obras', url: '/obras', icon: Building2, module: 'obras' },
       { title: 'Responsáveis', url: '/responsaveis', icon: UserCheck, module: 'responsaveis' },
       { title: 'Veículos/Máquinas', url: '/veiculos', icon: Car, module: 'veiculos_maquinas' },
+      { title: 'Categorias de Veículos', url: '/categorias-veiculos', icon: Tags, module: 'veiculos_maquinas' },
       { title: 'Tipos de Combustível', url: '/tipos-combustivel', icon: Droplets, module: 'tipos_combustivel' },
     ],
   });
@@ -91,12 +121,12 @@ export function AppSidebar() {
     if (locked) {
       return (
         <SidebarMenuItem key={item.url}>
-          <SidebarMenuButton className="opacity-40 cursor-not-allowed text-sidebar-foreground/50">
+          <SidebarMenuButton className="cursor-not-allowed text-sidebar-foreground/50 opacity-40">
             <item.icon className="h-4 w-4" />
             {!collapsed && (
               <>
                 <span>{item.title}</span>
-                <Lock className="h-3 w-3 ml-auto" />
+                <Lock className="ml-auto h-3 w-3" />
               </>
             )}
             {collapsed && <Lock className="h-3 w-3" />}
@@ -108,7 +138,11 @@ export function AppSidebar() {
     return (
       <SidebarMenuItem key={item.url}>
         <SidebarMenuButton asChild>
-          <NavLink to={item.url} className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground" activeClassName="bg-sidebar-primary text-sidebar-primary-foreground font-medium">
+          <NavLink
+            to={item.url}
+            className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            activeClassName="bg-sidebar-primary font-medium text-sidebar-primary-foreground"
+          >
             <item.icon className="h-4 w-4" />
             {!collapsed && <span>{item.title}</span>}
           </NavLink>
@@ -117,13 +151,17 @@ export function AppSidebar() {
     );
   }
 
+  async function handleSignOut() {
+    await signOut();
+  }
+
   return (
     <Sidebar collapsible="icon" className="border-r-0">
       <SidebarContent className="bg-sidebar-background">
         {!collapsed && (
-          <div className="p-4 border-b border-sidebar-border">
-            <h2 className="text-base font-bold text-sidebar-foreground tracking-tight">ControlMDS</h2>
-            <p className="text-xs text-sidebar-foreground/60 mt-0.5">{profile?.display_name}</p>
+          <div className="border-b border-sidebar-border p-4">
+            <h2 className="tracking-tight text-base font-bold text-sidebar-foreground">ControlMDS</h2>
+            <p className="mt-0.5 text-xs text-sidebar-foreground/60">{profile?.display_name}</p>
           </div>
         )}
 
@@ -136,7 +174,7 @@ export function AppSidebar() {
                 </SidebarGroupContent>
               ) : (
                 <Collapsible defaultOpen={group.defaultOpen}>
-                  <CollapsibleTrigger className="flex items-center justify-between w-full px-3 py-2 text-[11px] font-semibold text-sidebar-foreground/50 uppercase tracking-widest hover:text-sidebar-foreground transition-colors">
+                  <CollapsibleTrigger className="flex w-full items-center justify-between px-3 py-2 text-[11px] font-semibold uppercase tracking-widest text-sidebar-foreground/50 transition-colors hover:text-sidebar-foreground">
                     {group.label}
                     <ChevronDown className="h-3 w-3 transition-transform" />
                   </CollapsibleTrigger>
@@ -151,9 +189,13 @@ export function AppSidebar() {
           ))}
         </SidebarGroup>
 
-        <div className="mt-auto p-3 border-t border-sidebar-border">
-          <Button variant="ghost" className="w-full justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent" onClick={signOut}>
-            <LogOut className="h-4 w-4 mr-2" />
+        <div className="mt-auto border-t border-sidebar-border p-3">
+          <Button
+            variant="ghost"
+            className="w-full justify-start text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+            onClick={handleSignOut}
+          >
+            <LogOut className="mr-2 h-4 w-4" />
             {!collapsed && 'Sair'}
           </Button>
         </div>
