@@ -9,7 +9,7 @@ import { Plus, Pencil, Trash2, FileDown, FileSpreadsheet } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { CompraAvista, fetchComprasAvista, saveCompraAvista, updateCompraAvista, deleteCompraAvista, fetchConfigRelatorio, formatCurrencyBR, formatDateBR } from '@/lib/comprasService';
 import { exportAvistaPDF, exportAvistaXLSX } from '@/lib/comprasExport';
-import { formatCPFCNPJ } from '@/lib/formatters';
+import { formatCPFCNPJ, formatCurrencyInput, parseCurrencyInput } from '@/lib/formatters';
 import FornecedorSelect from '@/components/compras/FornecedorSelect';
 import ObraSelect from '@/components/compras/ObraSelect';
 import DateRangeFilter from '@/components/DateRangeFilter';
@@ -76,7 +76,7 @@ export default function ComprasAvistaPage() {
       agencia: item.agencia || '',
       conta: item.conta || '',
       cnpj_cpf: item.cnpj_cpf || '',
-      valor: String(item.valor),
+      valor: formatCurrencyInput(String(Math.round(item.valor * 100))),
       obra: item.obra || '',
       observacao: item.observacao || ''
     });
@@ -86,7 +86,7 @@ export default function ComprasAvistaPage() {
   async function handleSubmit() {
     if (!user || !form.data || !form.fornecedor || !form.valor) { toast.error('Preencha os campos obrigatórios'); return; }
     try {
-      const payload = { ...form, valor: parseFloat(form.valor), created_by: user.id };
+      const payload = { ...form, valor: parseCurrencyInput(form.valor), created_by: user.id };
       if (editingId) {
         await updateCompraAvista(editingId, payload);
         toast.success('Registro atualizado');
@@ -211,7 +211,7 @@ export default function ComprasAvistaPage() {
               <div><Label>Conta</Label><Input value={form.conta} onChange={e => setForm((p: typeof emptyForm) => ({ ...p, conta: e.target.value }))} /></div>
             </div>
             <div><Label>CNPJ/CPF</Label><Input value={form.cnpj_cpf} onChange={e => setForm((p: typeof emptyForm) => ({ ...p, cnpj_cpf: formatCPFCNPJ(e.target.value) }))} maxLength={18} /></div>
-            <div><Label>Valor *</Label><Input type="number" step="0.01" value={form.valor} onChange={e => setForm((p: typeof emptyForm) => ({ ...p, valor: e.target.value }))} /></div>
+            <div><Label>Valor *</Label><Input value={form.valor} onChange={e => setForm((p: typeof emptyForm) => ({ ...p, valor: formatCurrencyInput(e.target.value) }))} placeholder="R$ 0,00" /></div>
             <div><Label>Obra</Label><ObraSelect value={form.obra} onChange={v => setForm((p: typeof emptyForm) => ({ ...p, obra: v }))} /></div>
             <div><Label>Observação</Label><Textarea value={form.observacao} onChange={e => setForm((p: typeof emptyForm) => ({ ...p, observacao: e.target.value }))} /></div>
           </div>
