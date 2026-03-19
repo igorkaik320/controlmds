@@ -8,6 +8,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { FileDown, FileSpreadsheet, Wallet } from 'lucide-react';
 import { fetchProgramacaoSemanal, fetchFornecedores, fetchConfigRelatorio, buildEspelhoSemanal, formatCurrencyBR, formatDateBR, EspelhoItem } from '@/lib/comprasService';
 import { exportEspelhoSemanalPDF, exportEspelhoSemanalXLSX } from '@/lib/comprasExport';
+import { fetchObras } from '@/lib/obrasService';
+import { fetchEmpresas } from '@/lib/empresasService';
+import EmpresaSelect from '@/components/compras/EmpresaSelect';
 import { useFormDraft } from '@/hooks/useFormDraft';
 import { toast } from 'sonner';
 
@@ -16,23 +19,46 @@ export default function EspelhoSemanalPage() {
   const [loading, setLoading] = useState(true);
   const [filterDate, setFilterDate] = useFormDraft('espelho-sem-date', new Date().toISOString().split('T')[0]);
   const [observation, setObservation] = useFormDraft('espelho-sem-obs', '');
+  const [filterEmpresa, setFilterEmpresa] = useFormDraft('espelho-sem-empresa', '');
   const [totalGeral, setTotalGeral] = useState(0);
+  const [empresaLogos, setEmpresaLogos] = useState<{ logo_esquerda: string | null; logo_direita: string | null }>({ logo_esquerda: null, logo_direita: null });
 
   const load = useCallback(async () => {
     try {
-      const [compras, fornecedores] = await Promise.all([fetchProgramacaoSemanal(), fetchFornecedores()]);
-      const filtered = filterDate ? compras.filter(c => c.data === filterDate) : compras;
+      const [compras, fornecedores, obras, empresas] = await Promise.all([
+        fetchProgramacaoSemanal(), fetchFornecedores(), fetchObras(), fetchEmpresas()
+      ]);
+
+      let allowedObras: Set<string> | null = null;
+      if (filterEmpresa) {
+        allowedObras = new Set(obras.filter(o => o.empresa_id === filterEmpresa).map(o => o.nome.toLowerCase()));
+        const empresa = empresas.find(e => e.id === filterEmpresa);
+        if (empresa) setEmpresaLogos({ logo_esquerda: empresa.logo_esquerda, logo_direita: empresa.logo_direita });
+      } else {
+        setEmpresaLogos({ logo_esquerda: null, logo_direita: null });
+      }
+
+      const filtered = (filterDate ? compras.filter(c => c.data === filterDate) : compras)
+        .filter(c => !allowedObras || (c.obra && allowedObras.has(c.obra.toLowerCase())));
+
       const espelho = buildEspelhoSemanal(filtered, fornecedores);
       setItems(espelho);
       setTotalGeral(espelho.reduce((s, i) => s + i.valor_por_obra, 0));
     } catch (e: any) { toast.error(e.message); }
     finally { setLoading(false); }
-  }, [filterDate]);
+  }, [filterDate, filterEmpresa]);
 
   useEffect(() => { load(); }, [load]);
 
   async function handleExportPDF() {
-    const config = await fetchConfigRelatorio();
+    let config = await fetchConfigRelatorio();
+    if (filterEmpresa && (empresaLogos.logo_esquerda || empresaLogos.logo_direita)) {
+      config = {
+        ...config!,
+        logo_esquerda: empresaLogos.logo_esquerda || config?.logo_esquerda || null,
+        logo_direita: empresaLogos.logo_direita || config?.logo_direita || null,
+      };
+    }
     exportEspelhoSemanalPDF(items, filterDate ? formatDateBR(filterDate) : '', config, observation);
   }
 
@@ -51,8 +77,11 @@ export default function EspelhoSemanalPage() {
         </div>
       </div>
 
-      <div className="flex items-end gap-3">
+      <div className="flex flex-wrap items-end gap-3">
         <div><Label className="text-xs">Data</Label><Input type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)} className="w-44" /></div>
+        <div className="w-48">
+          <EmpresaSelect value={filterEmpresa} onChange={setFilterEmpresa} label="Empresa" allowAll />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

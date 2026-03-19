@@ -9,6 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { FileDown, FileSpreadsheet } from 'lucide-react';
 import { fetchComprasAvista, fetchComprasFaturadas, fetchFornecedores, fetchConfigRelatorio, buildEspelho, formatCurrencyBR, formatDateBR, EspelhoItem } from '@/lib/comprasService';
 import { exportEspelhoPDF, exportEspelhoXLSX } from '@/lib/comprasExport';
+import { fetchObras } from '@/lib/obrasService';
+import { fetchEmpresas, Empresa } from '@/lib/empresasService';
+import EmpresaSelect from '@/components/compras/EmpresaSelect';
 import { useFormDraft } from '@/hooks/useFormDraft';
 import { toast } from 'sonner';
 
@@ -20,6 +23,7 @@ export default function EspelhoGeralPage() {
   const [filterDate, setFilterDate] = useFormDraft('espelho-date', new Date().toISOString().split('T')[0]);
   const [observation, setObservation] = useFormDraft('espelho-obs', '');
   const [fonte, setFonte] = useFormDraft<FonteDados>('espelho-fonte', 'ambos');
+  const [filterEmpresa, setFilterEmpresa] = useFormDraft('espelho-empresa', '');
 
   const [totalAvista, setTotalAvista] = useState(0);
   const [totalFaturadas, setTotalFaturadas] = useState(0);
@@ -27,17 +31,31 @@ export default function EspelhoGeralPage() {
   const [totalSemPedidoFat, setTotalSemPedidoFat] = useState(0);
   const [totalComPedidoAv, setTotalComPedidoAv] = useState(0);
   const [totalSemPedidoAv, setTotalSemPedidoAv] = useState(0);
+  const [empresaLogos, setEmpresaLogos] = useState<{ logo_esquerda: string | null; logo_direita: string | null }>({ logo_esquerda: null, logo_direita: null });
 
   const load = useCallback(async () => {
     try {
-      const [comprasAv, comprasFat, fornecedores] = await Promise.all([
-        fetchComprasAvista(), fetchComprasFaturadas(), fetchFornecedores()
+      const [comprasAv, comprasFat, fornecedores, obras, empresas] = await Promise.all([
+        fetchComprasAvista(), fetchComprasFaturadas(), fetchFornecedores(), fetchObras(), fetchEmpresas()
       ]);
 
-      const avFiltered = filterDate ? comprasAv.filter(c => c.data === filterDate) : comprasAv;
-      const fatFiltered = filterDate ? comprasFat.filter(c => c.data === filterDate) : comprasFat;
+      // Get obra names that belong to selected empresa
+      let allowedObras: Set<string> | null = null;
+      if (filterEmpresa) {
+        allowedObras = new Set(obras.filter(o => o.empresa_id === filterEmpresa).map(o => o.nome.toLowerCase()));
+        const empresa = empresas.find(e => e.id === filterEmpresa);
+        if (empresa) {
+          setEmpresaLogos({ logo_esquerda: empresa.logo_esquerda, logo_direita: empresa.logo_direita });
+        }
+      } else {
+        setEmpresaLogos({ logo_esquerda: null, logo_direita: null });
+      }
 
-      // Build espelho based on selected source
+      const filterByEmpresa = (c: any) => !allowedObras || (c.obra && allowedObras.has(c.obra.toLowerCase()));
+
+      const avFiltered = (filterDate ? comprasAv.filter(c => c.data === filterDate) : comprasAv).filter(filterByEmpresa);
+      const fatFiltered = (filterDate ? comprasFat.filter(c => c.data === filterDate) : comprasFat).filter(filterByEmpresa);
+
       let comprasParaEspelho: any[] = [];
       if (fonte === 'avista' || fonte === 'ambos') comprasParaEspelho = [...comprasParaEspelho, ...avFiltered];
       if (fonte === 'faturadas' || fonte === 'ambos') comprasParaEspelho = [...comprasParaEspelho, ...fatFiltered];
@@ -56,20 +74,27 @@ export default function EspelhoGeralPage() {
       setTotalSemPedidoAv(avFiltered.filter(c => !c.pedido?.trim()).reduce((s, c) => s + c.valor, 0));
     } catch (e: any) { toast.error(e.message); }
     finally { setLoading(false); }
-  }, [filterDate, fonte]);
+  }, [filterDate, fonte, filterEmpresa]);
 
   useEffect(() => { load(); }, [load]);
 
   const totalGeral = items.reduce((s, i) => s + i.valor_por_obra, 0);
 
   async function handleExportPDF() {
-    const config = await fetchConfigRelatorio();
+    let config = await fetchConfigRelatorio();
+    // Override logos with empresa logos if selected
+    if (filterEmpresa && (empresaLogos.logo_esquerda || empresaLogos.logo_direita)) {
+      config = {
+        ...config!,
+        logo_esquerda: empresaLogos.logo_esquerda || config?.logo_esquerda || null,
+        logo_direita: empresaLogos.logo_direita || config?.logo_direita || null,
+      };
+    }
     exportEspelhoPDF(items, filterDate ? formatDateBR(filterDate) : '', config, observation);
   }
 
   if (loading) return <div className="flex min-h-screen items-center justify-center"><p>Carregando...</p></div>;
 
-  // Group items by fornecedor for rowSpan rendering
   const groupedRows: { item: EspelhoItem; isFirst: boolean; groupSize: number }[] = [];
   let idx = 0;
   while (idx < items.length) {
@@ -111,6 +136,9 @@ export default function EspelhoGeralPage() {
               <SelectItem value="faturadas">Somente Compras Faturadas</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+        <div className="w-48">
+          <EmpresaSelect value={filterEmpresa} onChange={setFilterEmpresa} label="Empresa" allowAll />
         </div>
       </div>
 
