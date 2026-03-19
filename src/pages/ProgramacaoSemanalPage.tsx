@@ -9,7 +9,7 @@ import { Plus, Pencil, Trash2, FileDown, FileSpreadsheet } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { ProgramacaoSemanal, fetchProgramacaoSemanal, saveProgramacaoSemanal, updateProgramacaoSemanal, deleteProgramacaoSemanal, fetchConfigRelatorio, formatCurrencyBR, formatDateBR } from '@/lib/comprasService';
 import { exportProgramacaoSemanalPDF, exportProgramacaoSemanalXLSX } from '@/lib/comprasExport';
-import { formatCPFCNPJ } from '@/lib/formatters';
+import { formatCPFCNPJ, formatCurrencyInput, parseCurrencyInput } from '@/lib/formatters';
 import FornecedorSelect from '@/components/compras/FornecedorSelect';
 import ObraSelect from '@/components/compras/ObraSelect';
 import ResponsavelSelect from '@/components/compras/ResponsavelSelect';
