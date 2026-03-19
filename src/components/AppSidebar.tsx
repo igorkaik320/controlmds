@@ -121,7 +121,7 @@ export function AppSidebar() {
     if (locked) {
       return (
         <SidebarMenuItem key={item.url}>
-          <SidebarMenuButton className="cursor-not-allowed rounded-xl px-3 py-2 text-sidebar-foreground/45 opacity-45">
+          <SidebarMenuButton className="cursor-not-allowed rounded-xl px-3 py-2 text-white/35 opacity-45">
             <item.icon className="h-4 w-4" />
             {!collapsed && (
               <>
@@ -140,8 +140,8 @@ export function AppSidebar() {
         <SidebarMenuButton asChild>
           <NavLink
             to={item.url}
-            className="rounded-xl px-3 py-2 text-[14px] text-sidebar-foreground/80 transition-all duration-200 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-            activeClassName="bg-sidebar-primary text-sidebar-primary-foreground font-semibold shadow-sm"
+            className="rounded-xl px-3 py-2 text-[14px] text-white/78 transition-all duration-200 hover:bg-white/8 hover:text-white"
+            activeClassName="bg-blue-500 text-white font-semibold shadow-[0_6px_18px_rgba(59,130,246,0.35)]"
           >
             <item.icon className="h-4 w-4" />
             {!collapsed && <span>{item.title}</span>}
@@ -156,18 +156,25 @@ export function AppSidebar() {
   }
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-sidebar-border/60">
-      <SidebarContent className="bg-sidebar-background">
+    <Sidebar
+      collapsible="icon"
+      className="border-r border-slate-700/40 bg-[#233247]"
+    >
+      <SidebarContent className="bg-[#233247]">
         {!collapsed && (
-          <div className="border-b border-sidebar-border/70 px-4 py-5">
+          <div className="border-b border-white/10 bg-[#1d2a3c] px-4 py-5">
             <div className="space-y-1">
-              <h2 className="text-lg font-bold tracking-tight text-sidebar-foreground">
+              <h2 className="text-lg font-bold tracking-tight text-white">
                 ControlMDS
               </h2>
-              <p className="text-sm text-sidebar-foreground/75">{profile?.display_name}</p>
+              <p className="text-sm text-white/75">{profile?.display_name}</p>
               <div className="pt-1">
-                <span className="inline-flex rounded-full bg-sidebar-accent px-2.5 py-1 text-[11px] font-medium text-sidebar-accent-foreground">
-                  {userRole === 'admin' ? 'Administrador' : userRole === 'conferente' ? 'Conferente' : 'Operador'}
+                <span className="inline-flex rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium text-white/90">
+                  {userRole === 'admin'
+                    ? 'Administrador'
+                    : userRole === 'conferente'
+                    ? 'Conferente'
+                    : 'Operador'}
                 </span>
               </div>
             </div>
@@ -185,7 +192,7 @@ export function AppSidebar() {
                 </SidebarGroupContent>
               ) : (
                 <Collapsible defaultOpen={group.defaultOpen}>
-                  <CollapsibleTrigger className="flex w-full items-center justify-between px-2 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-sidebar-foreground/55 transition-colors hover:text-sidebar-foreground">
+                  <CollapsibleTrigger className="flex w-full items-center justify-between px-2 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/55 transition-colors hover:text-white/85">
                     <span>{group.label}</span>
                     <ChevronDown className="h-3.5 w-3.5" />
                   </CollapsibleTrigger>
@@ -202,10 +209,10 @@ export function AppSidebar() {
           ))}
         </SidebarGroup>
 
-        <div className="mt-auto border-t border-sidebar-border/70 p-3">
+        <div className="mt-auto border-t border-white/10 p-3">
           <Button
             variant="ghost"
-            className="w-full justify-start rounded-xl text-sidebar-foreground/75 hover:bg-sidebar-accent hover:text-sidebar-foreground"
+            className="w-full justify-start rounded-xl text-white/72 hover:bg-white/8 hover:text-white"
             onClick={handleSignOut}
           >
             <LogOut className="mr-2 h-4 w-4" />
