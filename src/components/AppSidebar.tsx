@@ -8,7 +8,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { NavLink } from '@/components/NavLink';
 import {
   Landmark, ShoppingCart, Receipt, Eye, Settings, Users, History, Truck, LogOut, Lock,
-  Building2, ChevronDown, CalendarDays, BarChart3, UserCheck, Fuel, Car, Droplets, LayoutDashboard,
+  Building2, ChevronDown, CalendarDays, BarChart3, UserCheck, Fuel, Car, Droplets, Factory,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ModuleKey } from '@/lib/modulePermissions';
@@ -75,6 +75,7 @@ export function AppSidebar() {
     label: 'Cadastros',
     defaultOpen: false,
     items: [
+      { title: 'Empresas', url: '/empresas', icon: Factory, module: 'empresas' },
       { title: 'Fornecedores', url: '/fornecedores', icon: Truck, module: 'fornecedores' },
       { title: 'Obras', url: '/obras', icon: Building2, module: 'obras' },
       { title: 'Responsáveis', url: '/responsaveis', icon: UserCheck, module: 'responsaveis' },

@@ -4,6 +4,7 @@ export interface Obra {
   id: string;
   nome: string;
   descricao: string | null;
+  empresa_id: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -15,20 +16,20 @@ export async function fetchObras(): Promise<Obra[]> {
   return data || [];
 }
 
-export async function saveObra(nome: string, descricao: string | null, userId: string) {
+export async function saveObra(nome: string, descricao: string | null, userId: string, empresaId?: string | null) {
   const { data, error } = await supabase
     .from('obras')
-    .insert({ nome, descricao, created_by: userId } as any)
+    .insert({ nome, descricao, empresa_id: empresaId || null, created_by: userId } as any)
     .select()
     .single();
   if (error) throw error;
   return data;
 }
 
-export async function updateObra(id: string, nome: string, descricao: string | null) {
+export async function updateObra(id: string, nome: string, descricao: string | null, empresaId?: string | null) {
   const { error } = await supabase
     .from('obras')
-    .update({ nome, descricao, updated_at: new Date().toISOString() } as any)
+    .update({ nome, descricao, empresa_id: empresaId || null, updated_at: new Date().toISOString() } as any)
     .eq('id', id);
   if (error) throw error;
 }

@@ -23,6 +23,7 @@ import VeiculosMaquinasPage from "./pages/VeiculosMaquinasPage";
 import TiposCombustivelPage from "./pages/TiposCombustivelPage";
 import AbastecimentosPage from "./pages/AbastecimentosPage";
 import DashboardCombustivelPage from "./pages/DashboardCombustivelPage";
+import EmpresasPage from "./pages/EmpresasPage";
 import NotFound from "./pages/NotFound";
 import type { ModuleKey } from "@/lib/modulePermissions";
 import { Lock } from "lucide-react";
@@ -85,6 +86,7 @@ const App = () => (
             <Route path="/compras/espelho" element={<ModuleRoute module="espelho_geral"><EspelhoGeralPage /></ModuleRoute>} />
             <Route path="/compras/programacao-semanal" element={<ModuleRoute module="programacao_semanal"><ProgramacaoSemanalPage /></ModuleRoute>} />
             <Route path="/compras/espelho-semanal" element={<ModuleRoute module="espelho_semanal"><EspelhoSemanalPage /></ModuleRoute>} />
+            <Route path="/empresas" element={<ModuleRoute module="empresas"><EmpresasPage /></ModuleRoute>} />
             <Route path="/fornecedores" element={<ModuleRoute module="fornecedores"><FornecedoresPage /></ModuleRoute>} />
             <Route path="/obras" element={<ModuleRoute module="obras"><ObrasPage /></ModuleRoute>} />
             <Route path="/responsaveis" element={<ModuleRoute module="responsaveis"><ResponsaveisPage /></ModuleRoute>} />
