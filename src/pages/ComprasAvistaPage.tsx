@@ -86,7 +86,7 @@ export default function ComprasAvistaPage() {
   async function handleSubmit() {
     if (!user || !form.data || !form.fornecedor || !form.valor) { toast.error('Preencha os campos obrigatórios'); return; }
     try {
-      const payload = { ...form, valor: parseFloat(form.valor), created_by: user.id };
+      const payload = { ...form, valor: parseCurrencyInput(form.valor), created_by: user.id };
       if (editingId) {
         await updateCompraAvista(editingId, payload);
         toast.success('Registro atualizado');
