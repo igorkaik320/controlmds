@@ -54,7 +54,7 @@ export default function ProgramacaoSemanalPage() {
 
   function openEdit(item: ProgramacaoSemanal) {
     setEditingId(item.id);
-    setForm({ data: item.data, fornecedor: item.fornecedor, pedido: item.pedido || '', banco: item.banco || '', agencia: item.agencia || '', conta: item.conta || '', cnpj_cpf: item.cnpj_cpf || '', valor: String(item.valor), obra: item.obra || '', observacao: item.observacao || '', responsavel: item.responsavel || '' });
+    setForm({ data: item.data, fornecedor: item.fornecedor, pedido: item.pedido || '', banco: item.banco || '', agencia: item.agencia || '', conta: item.conta || '', cnpj_cpf: item.cnpj_cpf || '', valor: formatCurrencyInput(String(Math.round(item.valor * 100))), obra: item.obra || '', observacao: item.observacao || '', responsavel: item.responsavel || '' });
     setShowDialog(true);
   }
 
