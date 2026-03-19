@@ -44,43 +44,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      const nextUser = session?.user ?? null;
-      const currentUserId = user?.id;
-      const nextUserId = nextUser?.id;
+    } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      const nextUser = nextSession?.user ?? null;
 
-      setSession(session);
-      setUser(nextUser);
+      setSession(nextSession);
+      setUser((currentUser) => {
+        const currentUserId = currentUser?.id;
+        const nextUserId = nextUser?.id ?? null;
 
-      if (!nextUser) {
-        setProfile(null);
-        setUserRole('operador');
-        setLoading(false);
-        return;
-      }
+        if (!nextUser) {
+          setProfile(null);
+          setUserRole('operador');
+          setLoading(false);
+          return null;
+        }
 
-      // Só entra em loading se for troca real de usuário ou primeiro carregamento.
-      if (!currentUserId || currentUserId !== nextUserId) {
-        setLoading(true);
-        loadUserData(nextUser.id);
-        return;
-      }
+        if (!currentUserId || currentUserId !== nextUserId) {
+          setLoading(true);
+          void loadUserData(nextUserId);
+        } else if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
+          void refreshUserDataSilently(nextUserId);
+        }
 
-      // Em eventos como TOKEN_REFRESHED ao voltar para a aba,
-      // atualiza silenciosamente sem desmontar a tela.
-      if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
-        refreshUserDataSilently(nextUser.id);
-      }
+        return nextUser;
+      });
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const nextUser = session?.user ?? null;
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      const nextUser = currentSession?.user ?? null;
 
-      setSession(session);
+      setSession(currentSession);
       setUser(nextUser);
 
       if (nextUser) {
-        loadUserData(nextUser.id);
+        void loadUserData(nextUser.id);
       } else {
         setLoading(false);
       }
@@ -90,7 +87,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, [user?.id]);
+  }, []);
 
   async function fetchProfile(userId: string) {
     const { data } = await supabase
