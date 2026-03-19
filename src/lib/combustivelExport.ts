@@ -14,10 +14,18 @@ export function exportAbastecimentosPDF(items: Abastecimento[]) {
 
   autoTable(doc, {
     startY: 22,
-    head: [['Data', 'Veículo', 'Placa', 'Categoria', 'NF-e', 'Combustível', 'Qtd (L)', 'Valor Unit.', 'Valor Total']],
+    head: [[
+      'Data',
+      'Veículo',
+      'Categoria',
+      'NF-e',
+      'Combustível',
+      'Qtd (L)',
+      'Valor Unit.',
+      'Valor Total'
+    ]],
     body: items.map(i => [
       formatDateBR(i.data),
-      i.veiculo?.modelo || '',
       i.veiculo?.placa || '',
       i.veiculo?.categoria || '',
       i.nfe || '',
@@ -26,11 +34,24 @@ export function exportAbastecimentosPDF(items: Abastecimento[]) {
       formatCurrencyBR(i.valor_unitario),
       formatCurrencyBR(i.valor_total),
     ]),
-    foot: [['', '', '', '', '', 'TOTAL', totalLitros.toFixed(2), '', formatCurrencyBR(total)]],
+    foot: [[
+      '',
+      '',
+      '',
+      '',
+      'TOTAL',
+      totalLitros.toFixed(2),
+      '',
+      formatCurrencyBR(total)
+    ]],
     theme: 'grid',
     styles: { fontSize: 8 },
     headStyles: { fillColor: [41, 128, 185] },
-    footStyles: { fillColor: [236, 240, 241], textColor: [0, 0, 0], fontStyle: 'bold' },
+    footStyles: {
+      fillColor: [236, 240, 241],
+      textColor: [0, 0, 0],
+      fontStyle: 'bold'
+    },
   });
 
   doc.save('abastecimentos.pdf');
@@ -39,8 +60,7 @@ export function exportAbastecimentosPDF(items: Abastecimento[]) {
 export function exportAbastecimentosXLSX(items: Abastecimento[]) {
   const rows = items.map(i => ({
     Data: formatDateBR(i.data),
-    Veículo: i.veiculo?.modelo || '',
-    Placa: i.veiculo?.placa || '',
+    Veículo: i.veiculo?.placa || '',
     Categoria: i.veiculo?.categoria || '',
     'NF-e': i.nfe || '',
     Combustível: i.combustivel?.nome || '',
