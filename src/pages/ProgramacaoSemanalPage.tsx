@@ -151,7 +151,7 @@ export default function ProgramacaoSemanalPage() {
               <div><Label>Conta</Label><Input value={form.conta} onChange={e => setForm(p => ({ ...p, conta: e.target.value }))} /></div>
             </div>
             <div><Label>CNPJ/CPF</Label><Input value={form.cnpj_cpf} onChange={e => setForm(p => ({ ...p, cnpj_cpf: formatCPFCNPJ(e.target.value) }))} maxLength={18} /></div>
-            <div><Label>Valor *</Label><Input type="number" step="0.01" value={form.valor} onChange={e => setForm(p => ({ ...p, valor: e.target.value }))} /></div>
+            <div><Label>Valor *</Label><Input value={form.valor} onChange={e => setForm(p => ({ ...p, valor: formatCurrencyInput(e.target.value) }))} placeholder="R$ 0,00" /></div>
             <div><Label>Obra</Label><ObraSelect value={form.obra} onChange={v => setForm(p => ({ ...p, obra: v }))} /></div>
             <ResponsavelSelect value={form.responsavel} onChange={v => setForm(p => ({ ...p, responsavel: v }))} />
             <div><Label>Observação</Label><Textarea value={form.observacao} onChange={e => setForm(p => ({ ...p, observacao: e.target.value }))} /></div>
