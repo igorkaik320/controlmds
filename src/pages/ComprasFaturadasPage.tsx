@@ -101,7 +101,7 @@ export default function ComprasFaturadasPage() {
     }
     try {
       const { condicao_pagamento, ...rest } = form;
-      const payload = { ...rest, valor: parseFloat(form.valor), created_by: user.id };
+      const payload = { ...rest, valor: parseCurrencyInput(form.valor), created_by: user.id };
       if (editingId) {
         await updateCompraFaturada(editingId, payload);
         toast.success('Registro atualizado');
