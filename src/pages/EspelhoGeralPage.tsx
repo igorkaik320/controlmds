@@ -5,17 +5,21 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FileDown, FileSpreadsheet } from 'lucide-react';
 import { fetchComprasAvista, fetchComprasFaturadas, fetchFornecedores, fetchConfigRelatorio, buildEspelho, formatCurrencyBR, formatDateBR, EspelhoItem } from '@/lib/comprasService';
 import { exportEspelhoPDF, exportEspelhoXLSX } from '@/lib/comprasExport';
 import { useFormDraft } from '@/hooks/useFormDraft';
 import { toast } from 'sonner';
 
+type FonteDados = 'avista' | 'faturadas' | 'ambos';
+
 export default function EspelhoGeralPage() {
   const [items, setItems] = useState<EspelhoItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterDate, setFilterDate] = useFormDraft('espelho-date', new Date().toISOString().split('T')[0]);
   const [observation, setObservation] = useFormDraft('espelho-obs', '');
+  const [fonte, setFonte] = useFormDraft<FonteDados>('espelho-fonte', 'ambos');
 
   const [totalAvista, setTotalAvista] = useState(0);
   const [totalFaturadas, setTotalFaturadas] = useState(0);
@@ -33,7 +37,12 @@ export default function EspelhoGeralPage() {
       const avFiltered = filterDate ? comprasAv.filter(c => c.data === filterDate) : comprasAv;
       const fatFiltered = filterDate ? comprasFat.filter(c => c.data === filterDate) : comprasFat;
 
-      setItems(buildEspelho(avFiltered, fornecedores));
+      // Build espelho based on selected source
+      let comprasParaEspelho: any[] = [];
+      if (fonte === 'avista' || fonte === 'ambos') comprasParaEspelho = [...comprasParaEspelho, ...avFiltered];
+      if (fonte === 'faturadas' || fonte === 'ambos') comprasParaEspelho = [...comprasParaEspelho, ...fatFiltered];
+
+      setItems(buildEspelho(comprasParaEspelho, fornecedores));
 
       const avTotal = avFiltered.reduce((s, c) => s + c.valor, 0);
       const fatTotal = fatFiltered.reduce((s, c) => s + c.valor, 0);
@@ -47,7 +56,7 @@ export default function EspelhoGeralPage() {
       setTotalSemPedidoAv(avFiltered.filter(c => !c.pedido?.trim()).reduce((s, c) => s + c.valor, 0));
     } catch (e: any) { toast.error(e.message); }
     finally { setLoading(false); }
-  }, [filterDate]);
+  }, [filterDate, fonte]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -89,6 +98,19 @@ export default function EspelhoGeralPage() {
         <div>
           <Label className="text-xs">Data</Label>
           <Input type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)} className="w-44" />
+        </div>
+        <div>
+          <Label className="text-xs">Fonte dos Dados</Label>
+          <Select value={fonte} onValueChange={(v: FonteDados) => setFonte(v)}>
+            <SelectTrigger className="w-48">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ambos">Ambos (À Vista + Faturadas)</SelectItem>
+              <SelectItem value="avista">Somente Compras à Vista</SelectItem>
+              <SelectItem value="faturadas">Somente Compras Faturadas</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
