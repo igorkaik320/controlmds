@@ -20,6 +20,7 @@ import FornecedoresPage from "./pages/FornecedoresPage";
 import ObrasPage from "./pages/ObrasPage";
 import ResponsaveisPage from "./pages/ResponsaveisPage";
 import VeiculosMaquinasPage from "./pages/VeiculosMaquinasPage";
+import CategoriasVeiculosPage from "./pages/CategoriasVeiculosPage";
 import TiposCombustivelPage from "./pages/TiposCombustivelPage";
 import AbastecimentosPage from "./pages/AbastecimentosPage";
 import DashboardCombustivelPage from "./pages/DashboardCombustivelPage";
@@ -30,18 +31,20 @@ import { Lock } from "lucide-react";
 
 const queryClient = new QueryClient();
 
+function LoadingScreen() {
+  return (
+    <div className="flex min-h-screen items-center justify-center">
+      <p>Carregando...</p>
+    </div>
+  );
+}
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
 
-  if (!user && loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p>Carregando...</p>
-      </div>
-    );
-  }
-
+  if (!user && loading) return <LoadingScreen />;
   if (!user) return <Navigate to="/auth" />;
+
   return <AppLayout>{children}</AppLayout>;
 }
 
@@ -49,28 +52,14 @@ function ModuleRoute({ children, module }: { children: React.ReactNode; module: 
   const { user, loading } = useAuth();
   const { canAccess, loading: permLoading } = useModulePermissions();
 
-  if (!user && loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p>Carregando...</p>
-      </div>
-    );
-  }
-
-  if (permLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p>Carregando...</p>
-      </div>
-    );
-  }
-
+  if (!user && loading) return <LoadingScreen />;
+  if (permLoading) return <LoadingScreen />;
   if (!user) return <Navigate to="/auth" />;
 
   if (!canAccess(module)) {
     return (
       <AppLayout>
-        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4">
           <Lock className="h-12 w-12 text-muted-foreground" />
           <h2 className="text-xl font-bold">Acesso Restrito</h2>
           <p className="text-muted-foreground">
@@ -87,14 +76,7 @@ function ModuleRoute({ children, module }: { children: React.ReactNode; module: 
 function AdminRoute({ children }: { children: React.ReactNode }) {
   const { user, loading, userRole } = useAuth();
 
-  if (!user && loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p>Carregando...</p>
-      </div>
-    );
-  }
-
+  if (!user && loading) return <LoadingScreen />;
   if (!user) return <Navigate to="/auth" />;
   if (userRole !== "admin") return <Navigate to="/" />;
 
@@ -120,22 +102,55 @@ const App = () => (
           <Routes>
             <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-            <Route path="/compras/faturadas" element={<ModuleRoute module="compras_faturadas"><ComprasFaturadasPage /></ModuleRoute>} />
-            <Route path="/compras/avista" element={<ModuleRoute module="compras_avista"><ComprasAvistaPage /></ModuleRoute>} />
-            <Route path="/compras/espelho" element={<ModuleRoute module="espelho_geral"><EspelhoGeralPage /></ModuleRoute>} />
-            <Route path="/compras/programacao-semanal" element={<ModuleRoute module="programacao_semanal"><ProgramacaoSemanalPage /></ModuleRoute>} />
-            <Route path="/compras/espelho-semanal" element={<ModuleRoute module="espelho_semanal"><EspelhoSemanalPage /></ModuleRoute>} />
+
+            <Route
+              path="/compras/faturadas"
+              element={<ModuleRoute module="compras_faturadas"><ComprasFaturadasPage /></ModuleRoute>}
+            />
+            <Route
+              path="/compras/avista"
+              element={<ModuleRoute module="compras_avista"><ComprasAvistaPage /></ModuleRoute>}
+            />
+            <Route
+              path="/compras/espelho"
+              element={<ModuleRoute module="espelho_geral"><EspelhoGeralPage /></ModuleRoute>}
+            />
+            <Route
+              path="/compras/programacao-semanal"
+              element={<ModuleRoute module="programacao_semanal"><ProgramacaoSemanalPage /></ModuleRoute>}
+            />
+            <Route
+              path="/compras/espelho-semanal"
+              element={<ModuleRoute module="espelho_semanal"><EspelhoSemanalPage /></ModuleRoute>}
+            />
+
             <Route path="/empresas" element={<ModuleRoute module="empresas"><EmpresasPage /></ModuleRoute>} />
             <Route path="/fornecedores" element={<ModuleRoute module="fornecedores"><FornecedoresPage /></ModuleRoute>} />
             <Route path="/obras" element={<ModuleRoute module="obras"><ObrasPage /></ModuleRoute>} />
             <Route path="/responsaveis" element={<ModuleRoute module="responsaveis"><ResponsaveisPage /></ModuleRoute>} />
             <Route path="/veiculos" element={<ModuleRoute module="veiculos_maquinas"><VeiculosMaquinasPage /></ModuleRoute>} />
-            <Route path="/tipos-combustivel" element={<ModuleRoute module="tipos_combustivel"><TiposCombustivelPage /></ModuleRoute>} />
-            <Route path="/combustivel/abastecimentos" element={<ModuleRoute module="abastecimentos"><AbastecimentosPage /></ModuleRoute>} />
-            <Route path="/combustivel/dashboard" element={<ModuleRoute module="combustivel_dashboard"><DashboardCombustivelPage /></ModuleRoute>} />
+            <Route
+              path="/categorias-veiculos"
+              element={<ModuleRoute module="veiculos_maquinas"><CategoriasVeiculosPage /></ModuleRoute>}
+            />
+            <Route
+              path="/tipos-combustivel"
+              element={<ModuleRoute module="tipos_combustivel"><TiposCombustivelPage /></ModuleRoute>}
+            />
+
+            <Route
+              path="/combustivel/abastecimentos"
+              element={<ModuleRoute module="abastecimentos"><AbastecimentosPage /></ModuleRoute>}
+            />
+            <Route
+              path="/combustivel/dashboard"
+              element={<ModuleRoute module="combustivel_dashboard"><DashboardCombustivelPage /></ModuleRoute>}
+            />
+
             <Route path="/usuarios" element={<AdminRoute><UserManagement /></AdminRoute>} />
             <Route path="/auditoria" element={<AdminRoute><AuditLog /></AdminRoute>} />
             <Route path="/config-relatorio" element={<AdminRoute><ConfigRelatorioPage /></AdminRoute>} />
+
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
