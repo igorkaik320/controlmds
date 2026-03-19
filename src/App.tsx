@@ -1,108 +1,157 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "@/lib/auth";
-import { useModulePermissions } from "@/hooks/useModulePermissions";
-import AppLayout from "@/components/AppLayout";
-import Index from "./pages/Index";
-import Auth from "./pages/Auth";
-import AuditLog from "./pages/AuditLog";
-import UserManagement from "./pages/UserManagement";
-import ComprasAvistaPage from "./pages/ComprasAvistaPage";
-import ComprasFaturadasPage from "./pages/ComprasFaturadasPage";
-import EspelhoGeralPage from "./pages/EspelhoGeralPage";
-import ProgramacaoSemanalPage from "./pages/ProgramacaoSemanalPage";
-import EspelhoSemanalPage from "./pages/EspelhoSemanalPage";
-import ConfigRelatorioPage from "./pages/ConfigRelatorioPage";
-import FornecedoresPage from "./pages/FornecedoresPage";
-import ObrasPage from "./pages/ObrasPage";
-import ResponsaveisPage from "./pages/ResponsaveisPage";
-import VeiculosMaquinasPage from "./pages/VeiculosMaquinasPage";
-import TiposCombustivelPage from "./pages/TiposCombustivelPage";
-import AbastecimentosPage from "./pages/AbastecimentosPage";
-import DashboardCombustivelPage from "./pages/DashboardCombustivelPage";
-import EmpresasPage from "./pages/EmpresasPage";
-import NotFound from "./pages/NotFound";
-import type { ModuleKey } from "@/lib/modulePermissions";
-import { Lock } from "lucide-react";
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import type { User, Session } from '@supabase/supabase-js';
 
-const queryClient = new QueryClient();
+export type AppRole = 'admin' | 'operador' | 'conferente';
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
-  if (loading) return <div className="flex min-h-screen items-center justify-center"><p>Carregando...</p></div>;
-  if (!user) return <Navigate to="/auth" />;
-  return <AppLayout>{children}</AppLayout>;
+interface Profile {
+  display_name: string;
+  role: string;
 }
 
-function ModuleRoute({ children, module }: { children: React.ReactNode; module: ModuleKey }) {
-  const { user, loading } = useAuth();
-  const { canAccess, loading: permLoading } = useModulePermissions();
-  if (loading || permLoading) return <div className="flex min-h-screen items-center justify-center"><p>Carregando...</p></div>;
-  if (!user) return <Navigate to="/auth" />;
-  if (!canAccess(module)) {
-    return (
-      <AppLayout>
-        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-          <Lock className="h-12 w-12 text-muted-foreground" />
-          <h2 className="text-xl font-bold">Acesso Restrito</h2>
-          <p className="text-muted-foreground">Você não tem permissão para acessar este módulo.</p>
-        </div>
-      </AppLayout>
-    );
+interface AuthCtx {
+  user: User | null;
+  session: Session | null;
+  profile: Profile | null;
+  userRole: AppRole;
+  loading: boolean;
+  signUp: (email: string, password: string, displayName: string) => Promise<{ error: any }>;
+  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signOut: () => Promise<void>;
+  hasRole: (role: AppRole) => boolean;
+}
+
+const AuthContext = createContext<AuthCtx | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [userRole, setUserRole] = useState<AppRole>('operador');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadUserData = async (userId: string) => {
+      await Promise.all([fetchProfile(userId), fetchRole(userId)]);
+      if (isMounted) setLoading(false);
+    };
+
+    const refreshUserDataSilently = async (userId: string) => {
+      await Promise.all([fetchProfile(userId), fetchRole(userId)]);
+    };
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      const nextUser = session?.user ?? null;
+      const currentUserId = user?.id;
+      const nextUserId = nextUser?.id;
+
+      setSession(session);
+      setUser(nextUser);
+
+      if (!nextUser) {
+        setProfile(null);
+        setUserRole('operador');
+        setLoading(false);
+        return;
+      }
+
+      // Só entra em loading se for troca real de usuário ou primeiro carregamento.
+      if (!currentUserId || currentUserId !== nextUserId) {
+        setLoading(true);
+        loadUserData(nextUser.id);
+        return;
+      }
+
+      // Em eventos como TOKEN_REFRESHED ao voltar para a aba,
+      // atualiza silenciosamente sem desmontar a tela.
+      if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
+        refreshUserDataSilently(nextUser.id);
+      }
+    });
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const nextUser = session?.user ?? null;
+
+      setSession(session);
+      setUser(nextUser);
+
+      if (nextUser) {
+        loadUserData(nextUser.id);
+      } else {
+        setLoading(false);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, [user?.id]);
+
+  async function fetchProfile(userId: string) {
+    const { data } = await supabase
+      .from('profiles')
+      .select('display_name, role')
+      .eq('user_id', userId)
+      .single();
+
+    if (data) setProfile(data);
   }
-  return <AppLayout>{children}</AppLayout>;
+
+  async function fetchRole(userId: string) {
+    const { data } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId);
+
+    if (data && data.length > 0) {
+      const roles = data.map((r) => r.role as AppRole);
+      if (roles.includes('admin')) setUserRole('admin');
+      else if (roles.includes('conferente')) setUserRole('conferente');
+      else setUserRole('operador');
+    } else {
+      setUserRole('operador');
+    }
+  }
+
+  const signUp = async (email: string, password: string, displayName: string) => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { display_name: displayName } },
+    });
+    return { error };
+  };
+
+  const signIn = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    return { error };
+  };
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+  };
+
+  const hasRole = (role: AppRole) => {
+    if (userRole === 'admin') return true;
+    return userRole === role;
+  };
+
+  return (
+    <AuthContext.Provider
+      value={{ user, session, profile, userRole, loading, signUp, signIn, signOut, hasRole }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
-function AdminRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading, userRole } = useAuth();
-  if (loading) return <div className="flex min-h-screen items-center justify-center"><p>Carregando...</p></div>;
-  if (!user) return <Navigate to="/auth" />;
-  if (userRole !== 'admin') return <Navigate to="/" />;
-  return <AppLayout>{children}</AppLayout>;
+export function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+  return ctx;
 }
-
-function AuthRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
-  if (loading) return null;
-  if (user) return <Navigate to="/" />;
-  return <>{children}</>;
-}
-
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <Routes>
-            <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
-            <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-            <Route path="/compras/faturadas" element={<ModuleRoute module="compras_faturadas"><ComprasFaturadasPage /></ModuleRoute>} />
-            <Route path="/compras/avista" element={<ModuleRoute module="compras_avista"><ComprasAvistaPage /></ModuleRoute>} />
-            <Route path="/compras/espelho" element={<ModuleRoute module="espelho_geral"><EspelhoGeralPage /></ModuleRoute>} />
-            <Route path="/compras/programacao-semanal" element={<ModuleRoute module="programacao_semanal"><ProgramacaoSemanalPage /></ModuleRoute>} />
-            <Route path="/compras/espelho-semanal" element={<ModuleRoute module="espelho_semanal"><EspelhoSemanalPage /></ModuleRoute>} />
-            <Route path="/empresas" element={<ModuleRoute module="empresas"><EmpresasPage /></ModuleRoute>} />
-            <Route path="/fornecedores" element={<ModuleRoute module="fornecedores"><FornecedoresPage /></ModuleRoute>} />
-            <Route path="/obras" element={<ModuleRoute module="obras"><ObrasPage /></ModuleRoute>} />
-            <Route path="/responsaveis" element={<ModuleRoute module="responsaveis"><ResponsaveisPage /></ModuleRoute>} />
-            <Route path="/veiculos" element={<ModuleRoute module="veiculos_maquinas"><VeiculosMaquinasPage /></ModuleRoute>} />
-            <Route path="/tipos-combustivel" element={<ModuleRoute module="tipos_combustivel"><TiposCombustivelPage /></ModuleRoute>} />
-            <Route path="/combustivel/abastecimentos" element={<ModuleRoute module="abastecimentos"><AbastecimentosPage /></ModuleRoute>} />
-            <Route path="/combustivel/dashboard" element={<ModuleRoute module="combustivel_dashboard"><DashboardCombustivelPage /></ModuleRoute>} />
-            <Route path="/usuarios" element={<AdminRoute><UserManagement /></AdminRoute>} />
-            <Route path="/auditoria" element={<AdminRoute><AuditLog /></AdminRoute>} />
-            <Route path="/config-relatorio" element={<AdminRoute><ConfigRelatorioPage /></AdminRoute>} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
-
-export default App;
