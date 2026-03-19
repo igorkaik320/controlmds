@@ -1,17 +1,26 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FileDown, FileSpreadsheet } from 'lucide-react';
-import { fetchComprasAvista, fetchComprasFaturadas, fetchFornecedores, fetchConfigRelatorio, buildEspelho, formatCurrencyBR, formatDateBR, EspelhoItem } from '@/lib/comprasService';
+import {
+  fetchComprasAvista,
+  fetchComprasFaturadas,
+  fetchFornecedores,
+  fetchConfigRelatorio,
+  buildEspelho,
+  formatCurrencyBR,
+  formatDateBR,
+  EspelhoItem
+} from '@/lib/comprasService';
 import { exportEspelhoPDF, exportEspelhoXLSX } from '@/lib/comprasExport';
 import { fetchObras } from '@/lib/obrasService';
-import { fetchEmpresas, Empresa } from '@/lib/empresasService';
+import { fetchEmpresas } from '@/lib/empresasService';
 import EmpresaSelect from '@/components/compras/EmpresaSelect';
+import DateRangeFilter from '@/components/DateRangeFilter';
 import { useFormDraft } from '@/hooks/useFormDraft';
 import { toast } from 'sonner';
 
@@ -20,7 +29,9 @@ type FonteDados = 'avista' | 'faturadas' | 'ambos';
 export default function EspelhoGeralPage() {
   const [items, setItems] = useState<EspelhoItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterDate, setFilterDate] = useFormDraft('espelho-date', new Date().toISOString().split('T')[0]);
+
+  const [dateFrom, setDateFrom] = useFormDraft('espelho-dateFrom', '');
+  const [dateTo, setDateTo] = useFormDraft('espelho-dateTo', '');
   const [observation, setObservation] = useFormDraft('espelho-obs', '');
   const [fonte, setFonte] = useFormDraft<FonteDados>('espelho-fonte', 'ambos');
   const [filterEmpresa, setFilterEmpresa] = useFormDraft('espelho-empresa', '');
@@ -31,30 +42,59 @@ export default function EspelhoGeralPage() {
   const [totalSemPedidoFat, setTotalSemPedidoFat] = useState(0);
   const [totalComPedidoAv, setTotalComPedidoAv] = useState(0);
   const [totalSemPedidoAv, setTotalSemPedidoAv] = useState(0);
-  const [empresaLogos, setEmpresaLogos] = useState<{ logo_esquerda: string | null; logo_direita: string | null }>({ logo_esquerda: null, logo_direita: null });
+  const [empresaLogos, setEmpresaLogos] = useState<{ logo_esquerda: string | null; logo_direita: string | null }>({
+    logo_esquerda: null,
+    logo_direita: null,
+  });
 
   const load = useCallback(async () => {
     try {
+      setLoading(true);
+
       const [comprasAv, comprasFat, fornecedores, obras, empresas] = await Promise.all([
-        fetchComprasAvista(), fetchComprasFaturadas(), fetchFornecedores(), fetchObras(), fetchEmpresas()
+        fetchComprasAvista(),
+        fetchComprasFaturadas(),
+        fetchFornecedores(),
+        fetchObras(),
+        fetchEmpresas(),
       ]);
 
-      // Get obra names that belong to selected empresa
       let allowedObras: Set<string> | null = null;
+
       if (filterEmpresa) {
-        allowedObras = new Set(obras.filter(o => o.empresa_id === filterEmpresa).map(o => o.nome.toLowerCase()));
-        const empresa = empresas.find(e => e.id === filterEmpresa);
+        allowedObras = new Set(
+          obras
+            .filter((o) => o.empresa_id === filterEmpresa)
+            .map((o) => o.nome.toLowerCase())
+        );
+
+        const empresa = empresas.find((e) => e.id === filterEmpresa);
         if (empresa) {
-          setEmpresaLogos({ logo_esquerda: empresa.logo_esquerda, logo_direita: empresa.logo_direita });
+          setEmpresaLogos({
+            logo_esquerda: empresa.logo_esquerda,
+            logo_direita: empresa.logo_direita,
+          });
         }
       } else {
         setEmpresaLogos({ logo_esquerda: null, logo_direita: null });
       }
 
-      const filterByEmpresa = (c: any) => !allowedObras || (c.obra && allowedObras.has(c.obra.toLowerCase()));
+      const filterByEmpresa = (c: any) =>
+        !allowedObras || (c.obra && allowedObras.has(c.obra.toLowerCase()));
 
-      const avFiltered = (filterDate ? comprasAv.filter(c => c.data === filterDate) : comprasAv).filter(filterByEmpresa);
-      const fatFiltered = (filterDate ? comprasFat.filter(c => c.data === filterDate) : comprasFat).filter(filterByEmpresa);
+      const filterByPeriodo = (c: any) => {
+        if (dateFrom && c.data < dateFrom) return false;
+        if (dateTo && c.data > dateTo) return false;
+        return true;
+      };
+
+      const avFiltered = comprasAv
+        .filter(filterByPeriodo)
+        .filter(filterByEmpresa);
+
+      const fatFiltered = comprasFat
+        .filter(filterByPeriodo)
+        .filter(filterByEmpresa);
 
       let comprasParaEspelho: any[] = [];
       if (fonte === 'avista' || fonte === 'ambos') comprasParaEspelho = [...comprasParaEspelho, ...avFiltered];
@@ -68,62 +108,120 @@ export default function EspelhoGeralPage() {
       setTotalAvista(avTotal);
       setTotalFaturadas(fatTotal);
 
-      setTotalComPedidoFat(fatFiltered.filter(c => c.pedido?.trim()).reduce((s, c) => s + c.valor, 0));
-      setTotalSemPedidoFat(fatFiltered.filter(c => !c.pedido?.trim()).reduce((s, c) => s + c.valor, 0));
-      setTotalComPedidoAv(avFiltered.filter(c => c.pedido?.trim()).reduce((s, c) => s + c.valor, 0));
-      setTotalSemPedidoAv(avFiltered.filter(c => !c.pedido?.trim()).reduce((s, c) => s + c.valor, 0));
-    } catch (e: any) { toast.error(e.message); }
-    finally { setLoading(false); }
-  }, [filterDate, fonte, filterEmpresa]);
+      setTotalComPedidoFat(
+        fatFiltered
+          .filter((c) => c.pedido?.trim())
+          .reduce((s, c) => s + c.valor, 0)
+      );
 
-  useEffect(() => { load(); }, [load]);
+      setTotalSemPedidoFat(
+        fatFiltered
+          .filter((c) => !c.pedido?.trim())
+          .reduce((s, c) => s + c.valor, 0)
+      );
+
+      setTotalComPedidoAv(
+        avFiltered
+          .filter((c) => c.pedido?.trim())
+          .reduce((s, c) => s + c.valor, 0)
+      );
+
+      setTotalSemPedidoAv(
+        avFiltered
+          .filter((c) => !c.pedido?.trim())
+          .reduce((s, c) => s + c.valor, 0)
+      );
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [dateFrom, dateTo, fonte, filterEmpresa]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const totalGeral = items.reduce((s, i) => s + i.valor_por_obra, 0);
 
-  async function handleExportPDF() {
-    let config = await fetchConfigRelatorio();
-    // Override logos with empresa logos if selected
-    if (filterEmpresa && (empresaLogos.logo_esquerda || empresaLogos.logo_direita)) {
-      config = {
-        ...config!,
-        logo_esquerda: empresaLogos.logo_esquerda || config?.logo_esquerda || null,
-        logo_direita: empresaLogos.logo_direita || config?.logo_direita || null,
-      };
-    }
-    exportEspelhoPDF(items, filterDate ? formatDateBR(filterDate) : '', config, observation);
+  function formatPeriodoLabel() {
+    if (dateFrom && dateTo) return `${formatDateBR(dateFrom)} a ${formatDateBR(dateTo)}`;
+    if (dateFrom) return `A partir de ${formatDateBR(dateFrom)}`;
+    if (dateTo) return `Até ${formatDateBR(dateTo)}`;
+    return 'Todos os períodos';
   }
 
-  if (loading) return <div className="flex min-h-screen items-center justify-center"><p>Carregando...</p></div>;
+  async function handleExportPDF() {
+    let config = await fetchConfigRelatorio();
+
+    if (filterEmpresa && (empresaLogos.logo_esquerda || empresaLogos.logo_direita) && config) {
+      config = {
+        ...config,
+        logo_esquerda: empresaLogos.logo_esquerda || config.logo_esquerda || null,
+        logo_direita: empresaLogos.logo_direita || config.logo_direita || null,
+      };
+    }
+
+    exportEspelhoPDF(items, formatPeriodoLabel(), config, observation);
+  }
+
+  if (loading) {
+    return <div className="flex min-h-screen items-center justify-center"><p>Carregando...</p></div>;
+  }
 
   const groupedRows: { item: EspelhoItem; isFirst: boolean; groupSize: number }[] = [];
   let idx = 0;
+
   while (idx < items.length) {
     const forn = items[idx].fornecedor;
     let j = idx;
+
     while (j < items.length && items[j].fornecedor === forn) j++;
+
     const size = j - idx;
+
     for (let k = idx; k < j; k++) {
-      groupedRows.push({ item: items[k], isFirst: k === idx, groupSize: size });
+      groupedRows.push({
+        item: items[k],
+        isFirst: k === idx,
+        groupSize: size,
+      });
     }
+
     idx = j;
   }
 
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-2xl font-bold">Espelho Geral do Dia</h2>
-        <p className="text-sm text-muted-foreground">Resumo automático das compras agrupado por fornecedor/obra</p>
+        <h2 className="text-2xl font-bold">Espelho Geral</h2>
+        <p className="text-sm text-muted-foreground">
+          Resumo automático das compras agrupado por fornecedor/obra
+        </p>
       </div>
 
       <div className="flex flex-wrap gap-4 items-end">
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleExportPDF}><FileDown className="h-4 w-4 mr-1" />PDF</Button>
-          <Button variant="outline" size="sm" onClick={() => exportEspelhoXLSX(items, filterDate ? formatDateBR(filterDate) : '', observation)}><FileSpreadsheet className="h-4 w-4 mr-1" />Excel</Button>
+          <Button variant="outline" size="sm" onClick={handleExportPDF}>
+            <FileDown className="h-4 w-4 mr-1" />PDF
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => exportEspelhoXLSX(items, formatPeriodoLabel(), observation)}
+          >
+            <FileSpreadsheet className="h-4 w-4 mr-1" />Excel
+          </Button>
         </div>
-        <div>
-          <Label className="text-xs">Data</Label>
-          <Input type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)} className="w-44" />
-        </div>
+
+        <DateRangeFilter
+          dateFrom={dateFrom}
+          dateTo={dateTo}
+          onDateFromChange={setDateFrom}
+          onDateToChange={setDateTo}
+        />
+
         <div>
           <Label className="text-xs">Fonte dos Dados</Label>
           <Select value={fonte} onValueChange={(v: FonteDados) => setFonte(v)}>
@@ -137,9 +235,14 @@ export default function EspelhoGeralPage() {
             </SelectContent>
           </Select>
         </div>
+
         <div className="w-48">
           <EmpresaSelect value={filterEmpresa} onChange={setFilterEmpresa} label="Empresa" allowAll />
         </div>
+      </div>
+
+      <div className="text-sm text-muted-foreground">
+        Período selecionado: <span className="font-medium">{formatPeriodoLabel()}</span>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -149,6 +252,7 @@ export default function EspelhoGeralPage() {
             <p className="text-xl font-bold">{formatCurrencyBR(totalAvista + totalFaturadas)}</p>
           </CardContent>
         </Card>
+
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Compras à Vista</p>
@@ -159,6 +263,7 @@ export default function EspelhoGeralPage() {
             </div>
           </CardContent>
         </Card>
+
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Compras Faturadas</p>
@@ -173,7 +278,12 @@ export default function EspelhoGeralPage() {
 
       <div>
         <Label className="text-xs">Observação do relatório</Label>
-        <Textarea value={observation} onChange={e => setObservation(e.target.value)} rows={2} placeholder="Observação para o relatório..." />
+        <Textarea
+          value={observation}
+          onChange={(e) => setObservation(e.target.value)}
+          rows={2}
+          placeholder="Observação para o relatório..."
+        />
       </div>
 
       <div className="rounded-md border overflow-auto">
@@ -192,30 +302,53 @@ export default function EspelhoGeralPage() {
               <TableHead className="text-right">Total Fornecedor</TableHead>
             </TableRow>
           </TableHeader>
+
           <TableBody>
             {groupedRows.length === 0 && (
-              <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground">Nenhum dado para esta data</TableCell></TableRow>
+              <TableRow>
+                <TableCell colSpan={10} className="text-center text-muted-foreground">
+                  Nenhum dado para o período selecionado
+                </TableCell>
+              </TableRow>
             )}
+
             {groupedRows.map((row, rIdx) => (
               <TableRow key={rIdx}>
                 {row.isFirst && (
                   <>
-                    <TableCell rowSpan={row.groupSize} className="align-middle text-center">{row.item.item}</TableCell>
-                    <TableCell rowSpan={row.groupSize} className="align-middle font-medium">{row.item.fornecedor}</TableCell>
-                    <TableCell rowSpan={row.groupSize} className="align-middle">{row.item.razao_social}</TableCell>
-                    <TableCell rowSpan={row.groupSize} className="align-middle text-center">{row.item.banco}</TableCell>
-                    <TableCell rowSpan={row.groupSize} className="align-middle text-center">{row.item.agencia}</TableCell>
-                    <TableCell rowSpan={row.groupSize} className="align-middle">{row.item.conta}</TableCell>
+                    <TableCell rowSpan={row.groupSize} className="align-middle text-center">
+                      {row.item.item}
+                    </TableCell>
+                    <TableCell rowSpan={row.groupSize} className="align-middle font-medium">
+                      {row.item.fornecedor}
+                    </TableCell>
+                    <TableCell rowSpan={row.groupSize} className="align-middle">
+                      {row.item.razao_social}
+                    </TableCell>
+                    <TableCell rowSpan={row.groupSize} className="align-middle text-center">
+                      {row.item.banco}
+                    </TableCell>
+                    <TableCell rowSpan={row.groupSize} className="align-middle text-center">
+                      {row.item.agencia}
+                    </TableCell>
+                    <TableCell rowSpan={row.groupSize} className="align-middle">
+                      {row.item.conta}
+                    </TableCell>
                   </>
                 )}
+
                 <TableCell>{row.item.obra}</TableCell>
                 <TableCell className="text-center">{row.item.pedido}</TableCell>
                 <TableCell className="text-right">{formatCurrencyBR(row.item.valor_por_obra)}</TableCell>
+
                 {row.isFirst && (
-                  <TableCell rowSpan={row.groupSize} className="align-middle text-right font-bold">{formatCurrencyBR(row.item.total_fornecedor)}</TableCell>
+                  <TableCell rowSpan={row.groupSize} className="align-middle text-right font-bold">
+                    {formatCurrencyBR(row.item.total_fornecedor)}
+                  </TableCell>
                 )}
               </TableRow>
             ))}
+
             {items.length > 0 && (
               <TableRow className="font-bold bg-muted/50">
                 <TableCell colSpan={8} className="text-right">TOTAL GERAL</TableCell>
