@@ -9,16 +9,24 @@ import NewTransactionDialog from '@/components/NewTransactionDialog';
 import DateRangeFilter from '@/components/DateRangeFilter';
 import { useAuth } from '@/lib/auth';
 import {
-  Transaction, TransactionType, Verification,
-  fetchTransactions, saveTransactionToDB, updateTransactionInDB,
-  recalculateAndSave, fetchVerifications, fetchProfiles,
-  getSummary, filterByDateRange,
+  Transaction,
+  TransactionType,
+  Verification,
+  fetchTransactions,
+  saveTransactionToDB,
+  updateTransactionInDB,
+  recalculateAndSave,
+  fetchVerifications,
+  fetchProfiles,
+  getSummary,
+  filterByDateRange,
 } from '@/lib/cashRegister';
 import { exportPDF, exportXLSX } from '@/lib/exportUtils';
 import { toast } from 'sonner';
 
 export default function OperadorPage() {
   const { user, profile, signOut } = useAuth();
+
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [allVerifications, setAllVerifications] = useState<Verification[]>([]);
   const [profileMap, setProfileMap] = useState<Record<string, string>>({});
@@ -31,15 +39,25 @@ export default function OperadorPage() {
 
   const loadData = useCallback(async () => {
     try {
-      const [txs, vfs, profs] = await Promise.all([fetchTransactions(), fetchVerifications(), fetchProfiles()]);
+      const [txs, vfs, profs] = await Promise.all([
+        fetchTransactions(),
+        fetchVerifications(),
+        fetchProfiles(),
+      ]);
+
       setAllTransactions(txs);
       setAllVerifications(vfs);
       setProfileMap(profs);
-    } catch (e: any) { toast.error(e.message); }
-    finally { setLoading(false); }
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const transactions = filterByDateRange(allTransactions, dateFrom, dateTo);
   const verifications = filterByDateRange(allVerifications, dateFrom, dateTo);
@@ -47,16 +65,44 @@ export default function OperadorPage() {
 
   const handleInit = useCallback(async (data: { date: string; value: number; observation: string }) => {
     if (!user) return;
-    try {
-      await saveTransactionToDB({ date: data.date, type: 'inicializacao', value: data.value, observation: data.observation, created_by: user.id }, user.id);
-      await recalculateAndSave();
-      await loadData();
-      toast.success('Inicialização registrada');
-    } catch (e: any) { toast.error(e.message); }
-  }, [user, loadData]);
 
-  const handleNewTransaction = useCallback(async (data: { date: string; type: TransactionType; value: number; gaveta?: number | null; observation: string; obra?: string | null; fornecedor?: string | null; nota_numero?: string | null }) => {
+    try {
+      await saveTransactionToDB(
+        {
+          date: data.date,
+          type: 'inicializacao',
+          value: data.value,
+          observation: data.observation,
+          created_by: user.id,
+        },
+        user.id
+      );
+
+      const updatedTransactions = await recalculateAndSave();
+      setAllTransactions(updatedTransactions);
+
+      const updatedVerifications = await fetchVerifications();
+      setAllVerifications(updatedVerifications);
+
+      toast.success('Inicialização registrada');
+      setShowInit(false);
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  }, [user]);
+
+  const handleNewTransaction = useCallback(async (data: {
+    date: string;
+    type: TransactionType;
+    value: number;
+    gaveta?: number | null;
+    observation: string;
+    obra?: string | null;
+    fornecedor?: string | null;
+    nota_numero?: string | null;
+  }) => {
     if (!user) return;
+
     try {
       if (editingId) {
         const oldTx = allTransactions.find((t) => t.id === editingId);
@@ -65,19 +111,25 @@ export default function OperadorPage() {
       } else {
         await saveTransactionToDB({ ...data, created_by: user.id }, user.id);
       }
-      await recalculateAndSave();
-      await loadData();
+
+      const updatedTransactions = await recalculateAndSave();
+      setAllTransactions(updatedTransactions);
+
       toast.success(editingId ? 'Lançamento atualizado' : 'Lançamento registrado');
-    } catch (e: any) { toast.error(e.message); }
-  }, [user, editingId, allTransactions, loadData]);
+      setShowNew(false);
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  }, [user, editingId, allTransactions]);
 
   const handleEdit = useCallback((id: string) => {
-    // Operador can only edit own transactions
     const tx = allTransactions.find((t) => t.id === id);
+
     if (tx && tx.created_by !== user?.id) {
       toast.error('Você só pode editar lançamentos criados por você.');
       return;
     }
+
     setEditingId(id);
     setShowNew(true);
   }, [allTransactions, user]);
@@ -98,19 +150,24 @@ export default function OperadorPage() {
               {profile?.display_name} • <span className="text-primary font-medium">Operador</span>
             </p>
           </div>
+
           <div className="flex gap-2 flex-wrap justify-end">
             <Button variant="outline" size="sm" onClick={() => exportPDF(transactions, [], profileMap)}>
               <FileDown className="h-4 w-4 mr-1" /> PDF
             </Button>
+
             <Button variant="outline" size="sm" onClick={() => exportXLSX(transactions, [], profileMap)}>
               <FileSpreadsheet className="h-4 w-4 mr-1" /> XLSX
             </Button>
+
             <Button variant="outline" size="sm" onClick={() => setShowInit(true)}>
               <PlayCircle className="h-4 w-4 mr-1" /> Inicialização
             </Button>
+
             <Button size="sm" onClick={() => { setEditingId(null); setShowNew(true); }}>
               <Plus className="h-4 w-4 mr-1" /> Novo Lançamento
             </Button>
+
             <Button variant="ghost" size="sm" onClick={signOut}>
               <LogOut className="h-4 w-4" />
             </Button>
@@ -124,7 +181,14 @@ export default function OperadorPage() {
 
         <div>
           <h2 className="text-lg font-semibold mb-3">Lançamentos</h2>
-          <TransactionTable transactions={transactions} onEdit={handleEdit} profileMap={profileMap} canEdit canDelete={false} currentUserId={user?.id} />
+          <TransactionTable
+            transactions={transactions}
+            onEdit={handleEdit}
+            profileMap={profileMap}
+            canEdit
+            canDelete={false}
+            currentUserId={user?.id}
+          />
         </div>
 
         <div>
@@ -134,14 +198,23 @@ export default function OperadorPage() {
       </main>
 
       <InitBalanceDialog open={showInit} onClose={() => setShowInit(false)} onSubmit={handleInit} />
+
       <NewTransactionDialog
         open={showNew}
-        onClose={() => { setShowNew(false); setEditingId(null); }}
+        onClose={() => {
+          setShowNew(false);
+          setEditingId(null);
+        }}
         onSubmit={handleNewTransaction}
         editData={editingTx ? {
-          date: editingTx.date, type: editingTx.type as TransactionType, value: editingTx.value,
-          gaveta: editingTx.gaveta, observation: editingTx.observation, obra: editingTx.obra,
-          fornecedor: editingTx.fornecedor, nota_numero: editingTx.nota_numero,
+          date: editingTx.date,
+          type: editingTx.type as TransactionType,
+          value: editingTx.value,
+          gaveta: editingTx.gaveta,
+          observation: editingTx.observation,
+          obra: editingTx.obra,
+          fornecedor: editingTx.fornecedor,
+          nota_numero: editingTx.nota_numero,
         } : null}
       />
     </div>
