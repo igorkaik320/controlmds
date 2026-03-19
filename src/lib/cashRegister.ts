@@ -141,88 +141,29 @@ export function filterByDateRange<T extends { date: string }>(items: T[], dateFr
 // ----- DB Operations -----
 
 export async function fetchTransactions(): Promise<Transaction[]> {
-  const { data, error } = await supabase.from('transactions').select('*').order('date').order('created_at');
-  if (error) throw error;
-  return recalculateAll(data || []);
-}
+  const { data, error } = await supabase
+    .from('transactions')
+    .select('*')
+    .order('date')
+    .order('created_at');
 
-export async function saveTransactionToDB(
-  tx: Omit<Transaction, 'id' | 'balance_before' | 'balance_after' | 'difference' | 'created_at' | 'updated_by' | 'updated_at'>,
-  userId: string
-) {
-  const { data, error } = await supabase.from('transactions').insert({
-    date: tx.date,
-    type: tx.type,
-    value: tx.value,
-    gaveta: tx.gaveta,
-    observation: tx.observation,
-    obra: tx.obra,
-    fornecedor: tx.fornecedor,
-    nota_numero: tx.nota_numero,
-    created_by: userId,
-  } as any).select().single();
   if (error) throw error;
 
-  await supabase.from('audit_log').insert({
-    entity_type: 'transaction',
-    entity_id: data.id,
-    action: 'criacao',
-    new_values: data,
-    user_id: userId,
-  } as any);
+  const safeData = (data || []).map((item) => ({
+    ...item,
+    date: item.date ?? '',
+    created_at: item.created_at ?? '',
+    type: item.type ?? 'saida',
+    value: Number(item.value ?? 0),
+    observation: item.observation ?? '',
+    balance_before: Number(item.balance_before ?? 0),
+    balance_after: Number(item.balance_after ?? 0),
+    difference: Number(item.difference ?? 0),
+  }));
 
-  return data;
+  return recalculateAll(safeData);
 }
 
-export async function updateTransactionInDB(
-  id: string,
-  updates: Partial<Omit<Transaction, 'id' | 'created_at' | 'created_by'>>,
-  userId: string,
-  oldValues: any
-) {
-  const { data, error } = await supabase.from('transactions').update({
-    ...updates,
-    updated_by: userId,
-    updated_at: new Date().toISOString(),
-  } as any).eq('id', id).select().single();
-  if (error) throw error;
-
-  await supabase.from('audit_log').insert({
-    entity_type: 'transaction',
-    entity_id: id,
-    action: 'edicao',
-    old_values: oldValues,
-    new_values: data,
-    user_id: userId,
-  } as any);
-
-  return data;
-}
-
-export async function deleteTransactionFromDB(id: string, userId: string, oldValues: any) {
-  const { error } = await supabase.from('transactions').delete().eq('id', id);
-  if (error) throw error;
-
-  await supabase.from('audit_log').insert({
-    entity_type: 'transaction',
-    entity_id: id,
-    action: 'exclusao',
-    old_values: oldValues,
-    user_id: userId,
-  } as any);
-}
-
-export async function recalculateAndSave(): Promise<Transaction[]> {
-  const all = await fetchTransactions();
-  for (const t of all) {
-    await supabase.from('transactions').update({
-      balance_before: t.balance_before,
-      balance_after: t.balance_after,
-      difference: t.difference,
-    } as any).eq('id', t.id);
-  }
-  return all;
-}
 
 // ----- Verifications -----
 
