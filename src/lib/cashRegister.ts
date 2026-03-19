@@ -57,9 +57,42 @@ export function formatCurrency(value: number): string {
 
 export function recalculateAll(transactions: Transaction[]): Transaction[] {
   const sorted = [...transactions].sort((a, b) => {
-    const dc = a.date.localeCompare(b.date);
+    const dateA = a.date ?? '';
+    const dateB = b.date ?? '';
+    const createdAtA = a.created_at ?? '';
+    const createdAtB = b.created_at ?? '';
+
+    const dc = dateA.localeCompare(dateB);
     if (dc !== 0) return dc;
-    return a.created_at.localeCompare(b.created_at);
+    return createdAtA.localeCompare(createdAtB);
+  });
+
+  let currentBalance = 0;
+
+  return sorted.map((t) => {
+    const balanceBefore = currentBalance;
+    let balanceAfter: number;
+
+    if (t.type === 'inicializacao') {
+      balanceAfter = t.value;
+    } else if (t.type === 'entrada') {
+      balanceAfter = balanceBefore + t.value;
+    } else {
+      balanceAfter = balanceBefore - t.value;
+    }
+
+    const difference = t.gaveta != null ? t.gaveta - balanceAfter : 0;
+    currentBalance = balanceAfter;
+
+    return {
+      ...t,
+      balance_before: balanceBefore,
+      balance_after: balanceAfter,
+      difference,
+    };
+  });
+}
+
   });
 
   let currentBalance = 0;
