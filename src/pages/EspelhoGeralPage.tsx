@@ -5,7 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FileDown, FileSpreadsheet } from 'lucide-react';
+import { FileDown, FileSpreadsheet, Search, RotateCcw } from 'lucide-react';
 import {
   fetchComprasAvista,
   fetchComprasFaturadas,
@@ -26,15 +26,29 @@ import { toast } from 'sonner';
 
 type FonteDados = 'avista' | 'faturadas' | 'ambos';
 
+type Filtros = {
+  dateFrom: string;
+  dateTo: string;
+  fonte: FonteDados;
+  empresa: string;
+};
+
 export default function EspelhoGeralPage() {
   const [items, setItems] = useState<EspelhoItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [dateFrom, setDateFrom] = useFormDraft('espelho-dateFrom', '');
-  const [dateTo, setDateTo] = useFormDraft('espelho-dateTo', '');
+  const [draftDateFrom, setDraftDateFrom] = useFormDraft('espelho-dateFrom', '');
+  const [draftDateTo, setDraftDateTo] = useFormDraft('espelho-dateTo', '');
   const [observation, setObservation] = useFormDraft('espelho-obs', '');
-  const [fonte, setFonte] = useFormDraft<FonteDados>('espelho-fonte', 'ambos');
-  const [filterEmpresa, setFilterEmpresa] = useFormDraft('espelho-empresa', '');
+  const [draftFonte, setDraftFonte] = useFormDraft<FonteDados>('espelho-fonte', 'ambos');
+  const [draftEmpresa, setDraftEmpresa] = useFormDraft('espelho-empresa', '');
+
+  const [appliedFilters, setAppliedFilters] = useState<Filtros>({
+    dateFrom: draftDateFrom,
+    dateTo: draftDateTo,
+    fonte: draftFonte,
+    empresa: draftEmpresa,
+  });
 
   const [totalAvista, setTotalAvista] = useState(0);
   const [totalFaturadas, setTotalFaturadas] = useState(0);
@@ -61,14 +75,14 @@ export default function EspelhoGeralPage() {
 
       let allowedObras: Set<string> | null = null;
 
-      if (filterEmpresa) {
+      if (appliedFilters.empresa) {
         allowedObras = new Set(
           obras
-            .filter((o) => o.empresa_id === filterEmpresa)
+            .filter((o) => o.empresa_id === appliedFilters.empresa)
             .map((o) => o.nome.toLowerCase())
         );
 
-        const empresa = empresas.find((e) => e.id === filterEmpresa);
+        const empresa = empresas.find((e) => e.id === appliedFilters.empresa);
         if (empresa) {
           setEmpresaLogos({
             logo_esquerda: empresa.logo_esquerda,
@@ -83,22 +97,21 @@ export default function EspelhoGeralPage() {
         !allowedObras || (c.obra && allowedObras.has(c.obra.toLowerCase()));
 
       const filterByPeriodo = (c: any) => {
-        if (dateFrom && c.data < dateFrom) return false;
-        if (dateTo && c.data > dateTo) return false;
+        if (appliedFilters.dateFrom && c.data < appliedFilters.dateFrom) return false;
+        if (appliedFilters.dateTo && c.data > appliedFilters.dateTo) return false;
         return true;
       };
 
-      const avFiltered = comprasAv
-        .filter(filterByPeriodo)
-        .filter(filterByEmpresa);
-
-      const fatFiltered = comprasFat
-        .filter(filterByPeriodo)
-        .filter(filterByEmpresa);
+      const avFiltered = comprasAv.filter(filterByPeriodo).filter(filterByEmpresa);
+      const fatFiltered = comprasFat.filter(filterByPeriodo).filter(filterByEmpresa);
 
       let comprasParaEspelho: any[] = [];
-      if (fonte === 'avista' || fonte === 'ambos') comprasParaEspelho = [...comprasParaEspelho, ...avFiltered];
-      if (fonte === 'faturadas' || fonte === 'ambos') comprasParaEspelho = [...comprasParaEspelho, ...fatFiltered];
+      if (appliedFilters.fonte === 'avista' || appliedFilters.fonte === 'ambos') {
+        comprasParaEspelho = [...comprasParaEspelho, ...avFiltered];
+      }
+      if (appliedFilters.fonte === 'faturadas' || appliedFilters.fonte === 'ambos') {
+        comprasParaEspelho = [...comprasParaEspelho, ...fatFiltered];
+      }
 
       setItems(buildEspelho(comprasParaEspelho, fornecedores));
 
@@ -109,34 +122,23 @@ export default function EspelhoGeralPage() {
       setTotalFaturadas(fatTotal);
 
       setTotalComPedidoFat(
-        fatFiltered
-          .filter((c) => c.pedido?.trim())
-          .reduce((s, c) => s + c.valor, 0)
+        fatFiltered.filter((c) => c.pedido?.trim()).reduce((s, c) => s + c.valor, 0)
       );
-
       setTotalSemPedidoFat(
-        fatFiltered
-          .filter((c) => !c.pedido?.trim())
-          .reduce((s, c) => s + c.valor, 0)
+        fatFiltered.filter((c) => !c.pedido?.trim()).reduce((s, c) => s + c.valor, 0)
       );
-
       setTotalComPedidoAv(
-        avFiltered
-          .filter((c) => c.pedido?.trim())
-          .reduce((s, c) => s + c.valor, 0)
+        avFiltered.filter((c) => c.pedido?.trim()).reduce((s, c) => s + c.valor, 0)
       );
-
       setTotalSemPedidoAv(
-        avFiltered
-          .filter((c) => !c.pedido?.trim())
-          .reduce((s, c) => s + c.valor, 0)
+        avFiltered.filter((c) => !c.pedido?.trim()).reduce((s, c) => s + c.valor, 0)
       );
     } catch (e: any) {
       toast.error(e.message);
     } finally {
       setLoading(false);
     }
-  }, [dateFrom, dateTo, fonte, filterEmpresa]);
+  }, [appliedFilters]);
 
   useEffect(() => {
     load();
@@ -145,16 +147,41 @@ export default function EspelhoGeralPage() {
   const totalGeral = items.reduce((s, i) => s + i.valor_por_obra, 0);
 
   function formatPeriodoLabel() {
-    if (dateFrom && dateTo) return `${formatDateBR(dateFrom)} a ${formatDateBR(dateTo)}`;
-    if (dateFrom) return `A partir de ${formatDateBR(dateFrom)}`;
-    if (dateTo) return `Até ${formatDateBR(dateTo)}`;
+    if (appliedFilters.dateFrom && appliedFilters.dateTo) {
+      return `${formatDateBR(appliedFilters.dateFrom)} a ${formatDateBR(appliedFilters.dateTo)}`;
+    }
+    if (appliedFilters.dateFrom) return `A partir de ${formatDateBR(appliedFilters.dateFrom)}`;
+    if (appliedFilters.dateTo) return `Até ${formatDateBR(appliedFilters.dateTo)}`;
     return 'Todos os períodos';
+  }
+
+  function handleConsultar() {
+    setAppliedFilters({
+      dateFrom: draftDateFrom,
+      dateTo: draftDateTo,
+      fonte: draftFonte,
+      empresa: draftEmpresa,
+    });
+  }
+
+  function handleLimpar() {
+    setDraftDateFrom('');
+    setDraftDateTo('');
+    setDraftFonte('ambos');
+    setDraftEmpresa('');
+
+    setAppliedFilters({
+      dateFrom: '',
+      dateTo: '',
+      fonte: 'ambos',
+      empresa: '',
+    });
   }
 
   async function handleExportPDF() {
     let config = await fetchConfigRelatorio();
 
-    if (filterEmpresa && (empresaLogos.logo_esquerda || empresaLogos.logo_direita) && config) {
+    if (appliedFilters.empresa && (empresaLogos.logo_esquerda || empresaLogos.logo_direita) && config) {
       config = {
         ...config,
         logo_esquerda: empresaLogos.logo_esquerda || config.logo_esquerda || null,
@@ -216,15 +243,15 @@ export default function EspelhoGeralPage() {
         </div>
 
         <DateRangeFilter
-          dateFrom={dateFrom}
-          dateTo={dateTo}
-          onDateFromChange={setDateFrom}
-          onDateToChange={setDateTo}
+          dateFrom={draftDateFrom}
+          dateTo={draftDateTo}
+          onDateFromChange={setDraftDateFrom}
+          onDateToChange={setDraftDateTo}
         />
 
         <div>
           <Label className="text-xs">Fonte dos Dados</Label>
-          <Select value={fonte} onValueChange={(v: FonteDados) => setFonte(v)}>
+          <Select value={draftFonte} onValueChange={(v: FonteDados) => setDraftFonte(v)}>
             <SelectTrigger className="w-48">
               <SelectValue />
             </SelectTrigger>
@@ -237,12 +264,22 @@ export default function EspelhoGeralPage() {
         </div>
 
         <div className="w-48">
-          <EmpresaSelect value={filterEmpresa} onChange={setFilterEmpresa} label="Empresa" allowAll />
+          <EmpresaSelect value={draftEmpresa} onChange={setDraftEmpresa} label="Empresa" allowAll />
+        </div>
+
+        <div className="flex gap-2">
+          <Button size="sm" onClick={handleConsultar}>
+            <Search className="h-4 w-4 mr-1" />Consultar
+          </Button>
+
+          <Button variant="outline" size="sm" onClick={handleLimpar}>
+            <RotateCcw className="h-4 w-4 mr-1" />Limpar
+          </Button>
         </div>
       </div>
 
       <div className="text-sm text-muted-foreground">
-        Período selecionado: <span className="font-medium">{formatPeriodoLabel()}</span>
+        Período consultado: <span className="font-medium">{formatPeriodoLabel()}</span>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -307,7 +344,7 @@ export default function EspelhoGeralPage() {
             {groupedRows.length === 0 && (
               <TableRow>
                 <TableCell colSpan={10} className="text-center text-muted-foreground">
-                  Nenhum dado para o período selecionado
+                  Nenhum dado para o período consultado
                 </TableCell>
               </TableRow>
             )}
