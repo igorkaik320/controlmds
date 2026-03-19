@@ -22,8 +22,6 @@ import { toast } from 'sonner';
 const emptyForm = {
   tipo: 'veiculo' as 'veiculo' | 'maquina',
   placa: '',
-  modelo: '',
-  marca: '',
   categoria: '',
   categoria_id: '',
 };
@@ -58,9 +56,7 @@ export default function VeiculosMaquinasPage() {
   }, [load]);
 
   const filtered = items.filter((i) =>
-    i.modelo.toLowerCase().includes(search.toLowerCase()) ||
     i.placa.toLowerCase().includes(search.toLowerCase()) ||
-    i.marca.toLowerCase().includes(search.toLowerCase()) ||
     (categorias.find((c) => c.id === i.categoria_id)?.nome || i.categoria || '')
       .toLowerCase()
       .includes(search.toLowerCase())
@@ -83,8 +79,6 @@ export default function VeiculosMaquinasPage() {
     setForm({
       tipo: item.tipo,
       placa: item.placa,
-      modelo: item.modelo,
-      marca: item.marca,
       categoria: item.categoria || '',
       categoria_id: item.categoria_id || '',
     });
@@ -92,8 +86,13 @@ export default function VeiculosMaquinasPage() {
   }
 
   async function handleSubmit() {
-    if (!user || !form.modelo.trim()) {
-      toast.error('Modelo é obrigatório');
+    if (!user) {
+      toast.error('Usuário não encontrado');
+      return;
+    }
+
+    if (!form.placa.trim()) {
+      toast.error('Placa é obrigatória');
       return;
     }
 
@@ -108,8 +107,8 @@ export default function VeiculosMaquinasPage() {
       const payload = {
         tipo: form.tipo,
         placa: form.placa,
-        modelo: form.modelo,
-        marca: form.marca,
+        modelo: form.placa,
+        marca: '',
         categoria_id: form.categoria_id,
         categoria: categoriaSelecionada?.nome || form.categoria || '',
         created_by: user.id,
@@ -158,7 +157,7 @@ export default function VeiculosMaquinasPage() {
       <Input
         value={search}
         onChange={e => setSearch(e.target.value)}
-        placeholder="Buscar por modelo, placa, marca ou categoria..."
+        placeholder="Buscar por placa ou categoria..."
         className="max-w-sm"
       />
 
@@ -168,8 +167,6 @@ export default function VeiculosMaquinasPage() {
             <TableRow>
               <TableHead>Tipo</TableHead>
               <TableHead>Placa</TableHead>
-              <TableHead>Modelo</TableHead>
-              <TableHead>Marca</TableHead>
               <TableHead>Categoria</TableHead>
               <TableHead></TableHead>
             </TableRow>
@@ -177,7 +174,7 @@ export default function VeiculosMaquinasPage() {
           <TableBody>
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground">
+                <TableCell colSpan={4} className="text-center text-muted-foreground">
                   Nenhum registro
                 </TableCell>
               </TableRow>
@@ -193,8 +190,6 @@ export default function VeiculosMaquinasPage() {
                 <TableRow key={i.id}>
                   <TableCell>{i.tipo === 'veiculo' ? 'Veículo' : 'Máquina'}</TableCell>
                   <TableCell>{i.placa}</TableCell>
-                  <TableCell>{i.modelo}</TableCell>
-                  <TableCell>{i.marca}</TableCell>
                   <TableCell>{categoriaNome}</TableCell>
                   <TableCell>
                     <div className="flex gap-1">
@@ -248,27 +243,11 @@ export default function VeiculosMaquinasPage() {
             </div>
 
             <div>
-              <Label>Placa</Label>
+              <Label>Placa *</Label>
               <Input
                 value={form.placa}
                 onChange={e => setForm(p => ({ ...p, placa: e.target.value.toUpperCase() }))}
-                placeholder="ABC-1234"
-              />
-            </div>
-
-            <div>
-              <Label>Modelo *</Label>
-              <Input
-                value={form.modelo}
-                onChange={e => setForm(p => ({ ...p, modelo: e.target.value }))}
-              />
-            </div>
-
-            <div>
-              <Label>Marca</Label>
-              <Input
-                value={form.marca}
-                onChange={e => setForm(p => ({ ...p, marca: e.target.value }))}
+                placeholder="RXE-5D11"
               />
             </div>
 
