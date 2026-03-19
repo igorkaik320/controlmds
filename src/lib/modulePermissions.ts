@@ -10,6 +10,7 @@ export const MODULES = [
   { key: 'fornecedores', label: 'Fornecedores' },
   { key: 'obras', label: 'Obras' },
   { key: 'responsaveis', label: 'Responsáveis' },
+  { key: 'empresas', label: 'Empresas' },
   { key: 'combustivel_dashboard', label: 'Dashboard Combustível' },
   { key: 'abastecimentos', label: 'Abastecimentos' },
   { key: 'veiculos_maquinas', label: 'Veículos/Máquinas' },
