@@ -8,7 +8,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { NavLink } from '@/components/NavLink';
 import {
   Landmark, ShoppingCart, Receipt, Eye, Settings, Users, History, Truck, LogOut, Lock,
-  Building2, ChevronDown, CalendarDays, BarChart3, UserCheck, Fuel, Car, Droplets, LayoutDashboard,
+  Building2, ChevronDown, CalendarDays, BarChart3, UserCheck, Fuel, Car, Droplets, Factory,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ModuleKey } from '@/lib/modulePermissions';
