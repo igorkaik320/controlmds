@@ -104,7 +104,9 @@ export default function EmpresasPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-2xl font-bold">Cadastro de Empresas</h2>
-        <Button size="sm" onClick={openNew}><Plus className="h-4 w-4 mr-1" />Nova Empresa</Button>
+        {canCreate('empresas') && (
+          <Button size="sm" onClick={openNew}><Plus className="h-4 w-4 mr-1" />Nova Empresa</Button>
+        )}
       </div>
 
       <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar por nome ou CNPJ..." className="max-w-sm" />
