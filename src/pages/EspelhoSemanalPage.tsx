@@ -73,10 +73,12 @@ export default function EspelhoSemanalPage() {
           <h2 className="text-xl font-bold">Espelho Semanal</h2>
           <p className="text-sm text-muted-foreground">Resumo da programação semanal agrupado por fornecedor/obra</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleExportPDF}><FileDown className="h-4 w-4 mr-1" />PDF</Button>
-          <Button variant="outline" size="sm" onClick={() => exportEspelhoSemanalXLSX(items, filterDate ? formatDateBR(filterDate) : '', observation)}><FileSpreadsheet className="h-4 w-4 mr-1" />Excel</Button>
-        </div>
+        {canExport('espelho_semanal') && (
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleExportPDF}><FileDown className="h-4 w-4 mr-1" />PDF</Button>
+            <Button variant="outline" size="sm" onClick={() => exportEspelhoSemanalXLSX(items, filterDate ? formatDateBR(filterDate) : '', observation)}><FileSpreadsheet className="h-4 w-4 mr-1" />Excel</Button>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-wrap items-end gap-3">
