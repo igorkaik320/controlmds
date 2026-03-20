@@ -1,8 +1,8 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import type { User, Session } from '@supabase/supabase-js';
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import type { User, Session } from "@supabase/supabase-js";
 
-export type AppRole = 'admin' | 'operador' | 'conferente';
+export type AppRole = "admin" | "operador" | "conferente";
 
 interface Profile {
   display_name: string;
@@ -27,7 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [userRole, setUserRole] = useState<AppRole>('operador');
+  const [userRole, setUserRole] = useState<AppRole>("operador");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -54,7 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (!nextUser) {
           setProfile(null);
-          setUserRole('operador');
+          setUserRole("operador");
           setLoading(false);
           return null;
         }
@@ -62,7 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!currentUserId || currentUserId !== nextUserId) {
           setLoading(true);
           void loadUserData(nextUserId);
-        } else if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
+        } else if (event === "TOKEN_REFRESHED" || event === "SIGNED_IN") {
           void refreshUserDataSilently(nextUserId);
         }
 
@@ -90,28 +90,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function fetchProfile(userId: string) {
-    const { data } = await supabase
-      .from('profiles')
-      .select('display_name, role')
-      .eq('user_id', userId)
-      .single();
+    const { data } = await supabase.from("profiles").select("display_name, role").eq("user_id", userId).single();
 
     if (data) setProfile(data);
   }
 
   async function fetchRole(userId: string) {
-    const { data } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', userId);
+    const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
 
     if (data && data.length > 0) {
       const roles = data.map((r) => r.role as AppRole);
-      if (roles.includes('admin')) setUserRole('admin');
-      else if (roles.includes('conferente')) setUserRole('conferente');
-      else setUserRole('operador');
+      if (roles.includes("admin")) setUserRole("admin");
+      else if (roles.includes("conferente")) setUserRole("conferente");
+      else setUserRole("operador");
     } else {
-      setUserRole('operador');
+      setUserRole("operador");
     }
   }
 
@@ -134,14 +127,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const hasRole = (role: AppRole) => {
-    if (userRole === 'admin') return true;
+    if (userRole === "admin") return true;
     return userRole === role;
   };
 
   return (
-    <AuthContext.Provider
-      value={{ user, session, profile, userRole, loading, signUp, signIn, signOut, hasRole }}
-    >
+    <AuthContext.Provider value={{ user, session, profile, userRole, loading, signUp, signIn, signOut, hasRole }}>
       {children}
     </AuthContext.Provider>
   );
@@ -149,6 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
   return ctx;
 }
+1;
