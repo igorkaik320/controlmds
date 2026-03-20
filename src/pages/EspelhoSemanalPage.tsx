@@ -19,6 +19,7 @@ import { exportEspelhoSemanalPDF, exportEspelhoSemanalXLSX } from '@/lib/compras
 import { fetchObras } from '@/lib/obrasService';
 import { fetchEmpresas } from '@/lib/empresasService';
 import EmpresaSelect from '@/components/compras/EmpresaSelect';
+import ResponsavelSelect from '@/components/compras/ResponsavelSelect';
 import { useFormDraft } from '@/hooks/useFormDraft';
 import { useModulePermissions } from '@/hooks/useModulePermissions';
 import { toast } from 'sonner';
@@ -30,12 +31,12 @@ export default function EspelhoSemanalPage() {
   const [filterDate, setFilterDate] = useFormDraft('espelho-sem-date', new Date().toISOString().split('T')[0]);
   const [observation, setObservation] = useFormDraft('espelho-sem-obs', '');
   const [filterEmpresa, setFilterEmpresa] = useFormDraft('espelho-sem-empresa', '');
+  const [filterResponsavel, setFilterResponsavel] = useFormDraft('espelho-sem-responsavel', '');
   const [totalGeral, setTotalGeral] = useState(0);
   const [empresaLogos, setEmpresaLogos] = useState<{ logo_esquerda: string | null; logo_direita: string | null }>({
     logo_esquerda: null,
     logo_direita: null,
   });
-  const [empresaCorCabecalho, setEmpresaCorCabecalho] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -59,18 +60,16 @@ export default function EspelhoSemanalPage() {
             logo_esquerda: empresa.logo_esquerda,
             logo_direita: empresa.logo_direita,
           });
-          setEmpresaCorCabecalho(empresa.cor_cabecalho || null);
         } else {
           setEmpresaLogos({ logo_esquerda: null, logo_direita: null });
-          setEmpresaCorCabecalho(null);
         }
       } else {
         setEmpresaLogos({ logo_esquerda: null, logo_direita: null });
-        setEmpresaCorCabecalho(null);
       }
 
       const filtered = (filterDate ? compras.filter((c) => c.data === filterDate) : compras)
-        .filter((c) => !allowedObras || (c.obra && allowedObras.has(c.obra.toLowerCase())));
+        .filter((c) => !allowedObras || (c.obra && allowedObras.has(c.obra.toLowerCase())))
+        .filter((c) => !filterResponsavel || (c.responsavel || '') === filterResponsavel);
 
       const espelho = buildEspelhoSemanal(filtered, fornecedores);
       setItems(espelho);
@@ -80,7 +79,7 @@ export default function EspelhoSemanalPage() {
     } finally {
       setLoading(false);
     }
-  }, [filterDate, filterEmpresa]);
+  }, [filterDate, filterEmpresa, filterResponsavel]);
 
   useEffect(() => {
     load();
@@ -89,17 +88,11 @@ export default function EspelhoSemanalPage() {
   async function handleExportPDF() {
     let config = await fetchConfigRelatorio();
 
-    if (filterEmpresa && config) {
+    if (filterEmpresa && (empresaLogos.logo_esquerda || empresaLogos.logo_direita)) {
       config = {
-        ...config,
-        logo_esquerda: empresaLogos.logo_esquerda || config.logo_esquerda || null,
-        logo_direita: empresaLogos.logo_direita || config.logo_direita || null,
-        cor_cabecalho: empresaCorCabecalho || config.cor_cabecalho || '#6b7280',
-      };
-    } else if (config) {
-      config = {
-        ...config,
-        cor_cabecalho: '#6b7280',
+        ...config!,
+        logo_esquerda: empresaLogos.logo_esquerda || config?.logo_esquerda || null,
+        logo_direita: empresaLogos.logo_direita || config?.logo_direita || null,
       };
     }
 
@@ -115,18 +108,24 @@ export default function EspelhoSemanalPage() {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h2 className="text-xl font-bold">Espelho Semanal</h2>
-          <p className="text-sm text-muted-foreground">Resumo da programação semanal agrupado por fornecedor/obra</p>
+          <p className="text-sm text-muted-foreground">
+            Resumo da programação semanal agrupado por fornecedor/obra
+          </p>
         </div>
+
         {canExport('espelho_semanal') && (
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={handleExportPDF}>
               <FileDown className="h-4 w-4 mr-1" />
               PDF
             </Button>
+
             <Button
               variant="outline"
               size="sm"
-              onClick={() => exportEspelhoSemanalXLSX(items, filterDate ? formatDateBR(filterDate) : '', observation)}
+              onClick={() =>
+                exportEspelhoSemanalXLSX(items, filterDate ? formatDateBR(filterDate) : '', observation)
+              }
             >
               <FileSpreadsheet className="h-4 w-4 mr-1" />
               Excel
@@ -138,10 +137,20 @@ export default function EspelhoSemanalPage() {
       <div className="flex flex-wrap items-end gap-3">
         <div>
           <Label className="text-xs">Data</Label>
-          <Input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} className="w-44" />
+          <Input
+            type="date"
+            value={filterDate}
+            onChange={(e) => setFilterDate(e.target.value)}
+            className="w-44"
+          />
         </div>
+
         <div className="w-48">
           <EmpresaSelect value={filterEmpresa} onChange={setFilterEmpresa} label="Empresa" allowAll />
+        </div>
+
+        <div className="w-56">
+          <ResponsavelSelect value={filterResponsavel} onChange={setFilterResponsavel} />
         </div>
       </div>
 
@@ -178,6 +187,7 @@ export default function EspelhoSemanalPage() {
               <TableHead>Total Fornecedor</TableHead>
             </TableRow>
           </TableHeader>
+
           <TableBody>
             {items.length === 0 && (
               <TableRow>
@@ -186,6 +196,7 @@ export default function EspelhoSemanalPage() {
                 </TableCell>
               </TableRow>
             )}
+
             {items.map((i, idx) => (
               <TableRow key={idx}>
                 <TableCell>{i.item}</TableCell>
@@ -200,9 +211,12 @@ export default function EspelhoSemanalPage() {
                 <TableCell className="font-mono">{formatCurrencyBR(i.total_fornecedor)}</TableCell>
               </TableRow>
             ))}
+
             {items.length > 0 && (
               <TableRow className="font-bold bg-muted/50">
-                <TableCell colSpan={8} className="text-right">TOTAL GERAL</TableCell>
+                <TableCell colSpan={8} className="text-right">
+                  TOTAL GERAL
+                </TableCell>
                 <TableCell className="font-mono">{formatCurrencyBR(totalGeral)}</TableCell>
                 <TableCell />
               </TableRow>
