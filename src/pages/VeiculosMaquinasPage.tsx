@@ -151,9 +151,11 @@ export default function VeiculosMaquinasPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-2xl font-bold">Veículos e Máquinas</h2>
-        <Button size="sm" onClick={openNew}>
-          <Plus className="h-4 w-4 mr-1" />Novo
-        </Button>
+        {canCreate('veiculos_maquinas') && (
+          <Button size="sm" onClick={openNew}>
+            <Plus className="h-4 w-4 mr-1" />Novo
+          </Button>
+        )}
       </div>
 
       <Input
