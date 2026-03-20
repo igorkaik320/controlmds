@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 export default function EspelhoSemanalPage() {
   const [items, setItems] = useState<EspelhoItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const { canExport } = useModulePermissions();
   const [filterDate, setFilterDate] = useFormDraft('espelho-sem-date', new Date().toISOString().split('T')[0]);
   const [observation, setObservation] = useFormDraft('espelho-sem-obs', '');
   const [filterEmpresa, setFilterEmpresa] = useFormDraft('espelho-sem-empresa', '');
