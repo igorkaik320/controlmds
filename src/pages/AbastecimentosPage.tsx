@@ -38,6 +38,7 @@ const emptyForm = {
 
 export default function AbastecimentosPage() {
   const { user } = useAuth();
+  const { canCreate, canEdit, canDelete, canExport } = useModulePermissions();
   const [items, setItems] = useState<Abastecimento[]>([]);
   const [veiculos, setVeiculos] = useState<VeiculoMaquina[]>([]);
   const [combustiveis, setCombustiveis] = useState<TipoCombustivel[]>([]);
