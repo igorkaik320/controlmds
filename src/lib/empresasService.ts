@@ -6,6 +6,7 @@ export interface Empresa {
   cnpj: string | null;
   logo_esquerda: string | null;
   logo_direita: string | null;
+  cor_cabecalho: string | null;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -17,23 +18,13 @@ export async function fetchEmpresas(): Promise<Empresa[]> {
   return data || [];
 }
 
-export async function fetchEmpresaById(id: string): Promise<Empresa | null> {
-  const { data, error } = await supabase
-    .from('empresas')
-    .select('*')
-    .eq('id', id)
-    .maybeSingle();
-
-  if (error) throw error;
-  return data || null;
-}
-
 export async function saveEmpresa(
   empresa: {
     nome: string;
     cnpj?: string | null;
     logo_esquerda?: string | null;
     logo_direita?: string | null;
+    cor_cabecalho?: string | null;
   },
   userId: string
 ) {
