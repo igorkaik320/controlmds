@@ -8,7 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { fetchAuditLog, fetchProfiles, deleteAuditEntry, AuditEntry } from '@/lib/cashRegister';
-import { useAuth } from '@/lib/auth';
 import { useModulePermissions } from '@/hooks/useModulePermissions';
 import { toast } from 'sonner';
 
@@ -27,7 +26,6 @@ function actionLabel(action: string) {
 
 export default function AuditLogPage() {
   const navigate = useNavigate();
-  const { userRole } = useAuth();
   const { canDelete } = useModulePermissions();
   const [entries, setEntries] = useState<AuditEntry[]>([]);
   const [profileMap, setProfileMap] = useState<Record<string, string>>({});
@@ -37,7 +35,7 @@ export default function AuditLogPage() {
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
 
-  const allowDelete = userRole === 'admin' || canDelete('auditoria');
+  const allowDelete = canDelete('auditoria');
 
   const load = async () => {
     try {
@@ -50,6 +48,7 @@ export default function AuditLogPage() {
           dateTo: filterDateTo || undefined,
         }),
       ]);
+
       setProfileMap(profiles);
       setEntries(data);
     } catch (e: any) {
@@ -65,6 +64,7 @@ export default function AuditLogPage() {
 
   const handleDelete = async (id: string) => {
     if (!window.confirm('Excluir este registro de auditoria?')) return;
+
     try {
       await deleteAuditEntry(id);
       toast.success('Registro excluído');
@@ -95,7 +95,9 @@ export default function AuditLogPage() {
           <div>
             <Label>Ação</Label>
             <Select value={filterAction} onValueChange={setFilterAction}>
-              <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-36">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas</SelectItem>
                 <SelectItem value="criacao">Criação</SelectItem>
@@ -108,11 +110,15 @@ export default function AuditLogPage() {
           <div>
             <Label>Usuário</Label>
             <Select value={filterUser} onValueChange={setFilterUser}>
-              <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-44">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
                 {userOptions.map(([id, name]) => (
-                  <SelectItem key={id} value={id}>{name}</SelectItem>
+                  <SelectItem key={id} value={id}>
+                    {name}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -158,23 +164,31 @@ export default function AuditLogPage() {
                     {allowDelete && <TableHead className="w-16 text-center">Ações</TableHead>}
                   </TableRow>
                 </TableHeader>
+
                 <TableBody>
                   {entries.map((e) => (
                     <TableRow key={e.id} className="group">
-                      <TableCell className="text-sm font-mono">{new Date(e.created_at).toLocaleString('pt-BR')}</TableCell>
+                      <TableCell className="text-sm font-mono">
+                        {new Date(e.created_at).toLocaleString('pt-BR')}
+                      </TableCell>
                       <TableCell>{actionLabel(e.action)}</TableCell>
                       <TableCell className="text-sm capitalize">{e.entity_type}</TableCell>
                       <TableCell className="text-sm">{profileMap[e.user_id] || e.user_id}</TableCell>
                       <TableCell className="text-xs font-mono max-w-[300px]">
                         {e.old_values ? (
-                          <pre className="whitespace-pre-wrap break-all">{JSON.stringify(e.old_values, null, 1)}</pre>
+                          <pre className="whitespace-pre-wrap break-all">
+                            {JSON.stringify(e.old_values, null, 1)}
+                          </pre>
                         ) : '—'}
                       </TableCell>
                       <TableCell className="text-xs font-mono max-w-[300px]">
                         {e.new_values ? (
-                          <pre className="whitespace-pre-wrap break-all">{JSON.stringify(e.new_values, null, 1)}</pre>
+                          <pre className="whitespace-pre-wrap break-all">
+                            {JSON.stringify(e.new_values, null, 1)}
+                          </pre>
                         ) : '—'}
                       </TableCell>
+
                       {allowDelete && (
                         <TableCell>
                           <div className="flex justify-center opacity-0 group-hover:opacity-100 transition-opacity">
