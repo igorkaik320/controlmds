@@ -55,6 +55,7 @@ function calcularDataLiquidacao(data: string, dias: number) {
 
 export default function ComprasFaturadasPage() {
   const { user } = useAuth();
+  const { canCreate, canEdit, canDelete, canExport } = useModulePermissions();
   const [items, setItems] = useState<CompraFaturada[]>([]);
   const [obras, setObras] = useState<Obra[]>([]);
   const [loading, setLoading] = useState(true);
