@@ -91,9 +91,15 @@ export default function ProgramacaoSemanalPage() {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-2xl font-bold">Programação Semanal</h2>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleExportPDF}><FileDown className="h-4 w-4 mr-1" />PDF</Button>
-          <Button variant="outline" size="sm" onClick={() => exportProgramacaoSemanalXLSX(filtered, observation)}><FileSpreadsheet className="h-4 w-4 mr-1" />Excel</Button>
-          <Button size="sm" onClick={openNew}><Plus className="h-4 w-4 mr-1" />Novo</Button>
+          {canExport('programacao_semanal') && (
+            <>
+              <Button variant="outline" size="sm" onClick={handleExportPDF}><FileDown className="h-4 w-4 mr-1" />PDF</Button>
+              <Button variant="outline" size="sm" onClick={() => exportProgramacaoSemanalXLSX(filtered, observation)}><FileSpreadsheet className="h-4 w-4 mr-1" />Excel</Button>
+            </>
+          )}
+          {canCreate('programacao_semanal') && (
+            <Button size="sm" onClick={openNew}><Plus className="h-4 w-4 mr-1" />Novo</Button>
+          )}
         </div>
       </div>
 
