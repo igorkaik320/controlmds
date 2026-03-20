@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 
 export default function TiposCombustivelPage() {
   const { user, userRole } = useAuth();
+  const { canCreate, canEdit, canDelete } = useModulePermissions();
   const [items, setItems] = useState<TipoCombustivel[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
