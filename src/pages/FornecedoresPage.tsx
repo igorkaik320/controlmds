@@ -8,6 +8,7 @@ import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { Fornecedor, fetchFornecedores, saveFornecedor, updateFornecedor, deleteFornecedor } from '@/lib/comprasService';
 import { formatCPFCNPJ, formatCelular } from '@/lib/formatters';
+import { useModulePermissions } from '@/hooks/useModulePermissions';
 import { toast } from 'sonner';
 
 export default function FornecedoresPage() {
