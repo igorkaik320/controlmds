@@ -39,20 +39,26 @@ export default function AuditLogPage() {
 
   const load = async () => {
     try {
-      const [profiles, data] = await Promise.all([
-        fetchProfiles(),
-        fetchAuditLog({
-          action: filterAction !== 'all' ? filterAction : undefined,
-          userId: filterUser !== 'all' ? filterUser : undefined,
-          dateFrom: filterDateFrom || undefined,
-          dateTo: filterDateTo || undefined,
-        }),
-      ]);
+      setLoading(true);
 
-      setProfileMap(profiles);
-      setEntries(data);
+      const auditData = await fetchAuditLog({
+        action: filterAction !== 'all' ? filterAction : undefined,
+        userId: filterUser !== 'all' ? filterUser : undefined,
+        dateFrom: filterDateFrom || undefined,
+        dateTo: filterDateTo || undefined,
+      });
+
+      setEntries(auditData);
+
+      try {
+        const profiles = await fetchProfiles();
+        setProfileMap(profiles);
+      } catch {
+        setProfileMap({});
+      }
     } catch (e: any) {
-      toast.error(e.message);
+      toast.error(e.message || 'Não foi possível carregar a auditoria.');
+      setEntries([]);
     } finally {
       setLoading(false);
     }
