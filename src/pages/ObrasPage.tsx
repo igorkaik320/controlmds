@@ -82,7 +82,9 @@ export default function ObrasPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-2xl font-bold">Cadastro de Obras</h2>
-        <Button size="sm" onClick={openNew}><Plus className="h-4 w-4 mr-1" />Nova Obra</Button>
+        {canCreate('obras') && (
+          <Button size="sm" onClick={openNew}><Plus className="h-4 w-4 mr-1" />Nova Obra</Button>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-4 items-end">
