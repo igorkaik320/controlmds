@@ -199,11 +199,22 @@ export default function ComprasAvistaPage() {
   async function handleExportPDF() {
     let config = await fetchConfigRelatorio();
 
-    if (filterEmpresa && (empresaLogos.logo_esquerda || empresaLogos.logo_direita) && config) {
+    if (filterEmpresa && config) {
+      const empresas = await fetchEmpresas();
+      const empresa = empresas.find((e) => e.id === filterEmpresa);
+
+      if (empresa) {
+        config = {
+          ...config,
+          logo_esquerda: empresa.logo_esquerda || config.logo_esquerda || null,
+          logo_direita: empresa.logo_direita || config.logo_direita || null,
+          cor_cabecalho: empresa.cor_cabecalho || config.cor_cabecalho || '#6b7280',
+        };
+      }
+    } else if (config) {
       config = {
         ...config,
-        logo_esquerda: empresaLogos.logo_esquerda || config.logo_esquerda || null,
-        logo_direita: empresaLogos.logo_direita || config.logo_direita || null,
+        cor_cabecalho: '#6b7280',
       };
     }
 
@@ -374,7 +385,6 @@ export default function ComprasAvistaPage() {
           <DialogHeader>
             <DialogTitle>{editingId ? 'Editar' : 'Nova'} Compra à Vista</DialogTitle>
           </DialogHeader>
-
           <div className="grid gap-3">
             <div>
               <Label>Data *</Label>
@@ -407,7 +417,6 @@ export default function ComprasAvistaPage() {
                   onChange={(e) => setForm((p: typeof emptyForm) => ({ ...p, banco: e.target.value }))}
                 />
               </div>
-
               <div>
                 <Label>Agência</Label>
                 <Input
@@ -415,7 +424,6 @@ export default function ComprasAvistaPage() {
                   onChange={(e) => setForm((p: typeof emptyForm) => ({ ...p, agencia: e.target.value }))}
                 />
               </div>
-
               <div>
                 <Label>Conta</Label>
                 <Input
@@ -461,7 +469,6 @@ export default function ComprasAvistaPage() {
               />
             </div>
           </div>
-
           <DialogFooter>
             <Button variant="outline" onClick={resetDialogDraft}>
               Cancelar
