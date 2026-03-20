@@ -222,10 +222,6 @@ export default function AdminPage() {
               <History className="h-4 w-4 mr-1" /> Auditoria
             </Button>
 
-            <Button variant="outline" size="sm" onClick={() => navigate('/usuarios')}>
-              <Users className="h-4 w-4 mr-1" /> Usuários
-            </Button>
-
             <Button variant="outline" size="sm" onClick={() => setShowInit(true)}>
               <PlayCircle className="h-4 w-4 mr-1" /> Inicialização
             </Button>
