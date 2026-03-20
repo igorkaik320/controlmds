@@ -29,6 +29,7 @@ import { useFormDraft } from '@/hooks/useFormDraft';
 import { toast } from 'sonner';
 import type { Fornecedor } from '@/lib/comprasService';
 import { fetchObras, Obra } from '@/lib/obrasService';
+import { fetchEmpresas } from '@/lib/empresasService';
 
 const emptyForm = {
   data: '',
@@ -62,18 +63,41 @@ export default function ProgramacaoSemanalPage() {
   const [observation, setObservation] = useFormDraft('ps-observation', '');
 
   const [form, setForm, clearForm] = useFormDraft('ps-form', emptyForm);
+  const [empresaLogos, setEmpresaLogos] = useState<{ logo_esquerda: string | null; logo_direita: string | null }>({
+    logo_esquerda: null,
+    logo_direita: null,
+  });
 
   const load = useCallback(async () => {
     try {
-      const [programacao, obrasData] = await Promise.all([fetchProgramacaoSemanal(), fetchObras()]);
+      const [programacao, obrasData, empresas] = await Promise.all([
+        fetchProgramacaoSemanal(),
+        fetchObras(),
+        fetchEmpresas(),
+      ]);
+
       setItems(programacao);
       setObras(obrasData);
+
+      if (filterEmpresa) {
+        const empresa = empresas.find((e) => e.id === filterEmpresa);
+        if (empresa) {
+          setEmpresaLogos({
+            logo_esquerda: empresa.logo_esquerda,
+            logo_direita: empresa.logo_direita,
+          });
+        } else {
+          setEmpresaLogos({ logo_esquerda: null, logo_direita: null });
+        }
+      } else {
+        setEmpresaLogos({ logo_esquerda: null, logo_direita: null });
+      }
     } catch (e: any) {
       toast.error(e.message);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [filterEmpresa]);
 
   useEffect(() => {
     load();
@@ -179,7 +203,27 @@ export default function ProgramacaoSemanalPage() {
   }
 
   async function handleExportPDF() {
-    const config = await fetchConfigRelatorio();
+    let config = await fetchConfigRelatorio();
+
+    if (filterEmpresa && config) {
+      const empresas = await fetchEmpresas();
+      const empresa = empresas.find((e) => e.id === filterEmpresa);
+
+      if (empresa) {
+        config = {
+          ...config,
+          logo_esquerda: empresa.logo_esquerda || config.logo_esquerda || null,
+          logo_direita: empresa.logo_direita || config.logo_direita || null,
+          cor_cabecalho: empresa.cor_cabecalho || config.cor_cabecalho || '#6b7280',
+        };
+      }
+    } else if (config) {
+      config = {
+        ...config,
+        cor_cabecalho: '#6b7280',
+      };
+    }
+
     exportProgramacaoSemanalPDF(filtered, config, observation);
   }
 
@@ -194,96 +238,65 @@ export default function ProgramacaoSemanalPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p>Carregando...</p>
-      </div>
-    );
+    return <div className="p-6 text-center text-muted-foreground">Carregando...</div>;
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-2xl font-bold">Programação Semanal</h2>
-
         <div className="flex gap-2">
           {canExport('programacao_semanal') && (
             <>
               <Button variant="outline" size="sm" onClick={handleExportPDF}>
-                <FileDown className="mr-1 h-4 w-4" />
+                <FileDown className="h-4 w-4 mr-1" />
                 PDF
               </Button>
-
               <Button variant="outline" size="sm" onClick={() => exportProgramacaoSemanalXLSX(filtered, observation)}>
-                <FileSpreadsheet className="mr-1 h-4 w-4" />
+                <FileSpreadsheet className="h-4 w-4 mr-1" />
                 Excel
               </Button>
             </>
           )}
-
           {canCreate('programacao_semanal') && (
             <Button size="sm" onClick={openNew}>
-              <Plus className="mr-1 h-4 w-4" />
+              <Plus className="h-4 w-4 mr-1" />
               Novo
             </Button>
           )}
         </div>
       </div>
 
-      <div className="flex flex-wrap items-end gap-4">
-        <div>
-          <Label className="text-xs">Fornecedor</Label>
-          <Input
-            value={filterForn}
-            onChange={(e) => setFilterForn(e.target.value)}
-            placeholder="Filtrar..."
-            className="w-40"
-          />
-        </div>
-
-        <div>
-          <Label className="text-xs">Obra</Label>
-          <Input
-            value={filterObra}
-            onChange={(e) => setFilterObra(e.target.value)}
-            placeholder="Filtrar..."
-            className="w-40"
-          />
-        </div>
-
-        <div>
-          <Label className="text-xs">Responsável</Label>
-          <Input
-            value={filterResp}
-            onChange={(e) => setFilterResp(e.target.value)}
-            placeholder="Filtrar..."
-            className="w-40"
-          />
-        </div>
-
-        <div className="w-52">
-          <EmpresaSelect value={filterEmpresa} onChange={setFilterEmpresa} label="Empresa" allowAll />
-        </div>
-
+      <div className="flex flex-wrap items-end gap-3">
         <DateRangeFilter
           dateFrom={dateFrom}
           dateTo={dateTo}
           onDateFromChange={setDateFrom}
           onDateToChange={setDateTo}
         />
-
-        <div className="min-w-[200px] flex-1">
-          <Label className="text-xs">Observação do relatório</Label>
-          <Textarea
-            value={observation}
-            onChange={(e) => setObservation(e.target.value)}
-            rows={1}
-            placeholder="Observação..."
-          />
+        <div>
+          <Label className="text-xs">Fornecedor</Label>
+          <Input value={filterForn} onChange={(e) => setFilterForn(e.target.value)} placeholder="Filtrar..." className="w-40" />
+        </div>
+        <div>
+          <Label className="text-xs">Obra</Label>
+          <Input value={filterObra} onChange={(e) => setFilterObra(e.target.value)} placeholder="Filtrar..." className="w-40" />
+        </div>
+        <div>
+          <Label className="text-xs">Responsável</Label>
+          <Input value={filterResp} onChange={(e) => setFilterResp(e.target.value)} placeholder="Filtrar..." className="w-40" />
+        </div>
+        <div className="w-52">
+          <EmpresaSelect value={filterEmpresa} onChange={setFilterEmpresa} label="Empresa" allowAll />
         </div>
       </div>
 
-      <div className="overflow-auto rounded-md border">
+      <div>
+        <Label className="text-xs">Observação do relatório</Label>
+        <Textarea value={observation} onChange={(e) => setObservation(e.target.value)} rows={2} />
+      </div>
+
+      <div className="rounded-md border overflow-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -294,14 +307,13 @@ export default function ProgramacaoSemanalPage() {
               <TableHead>Agência</TableHead>
               <TableHead>Conta</TableHead>
               <TableHead>CNPJ/CPF</TableHead>
-              <TableHead className="text-right">Valor</TableHead>
+              <TableHead>Valor</TableHead>
               <TableHead>Obra</TableHead>
               <TableHead>Responsável</TableHead>
-              <TableHead>Obs</TableHead>
-              <TableHead></TableHead>
+              <TableHead>Obs.</TableHead>
+              <TableHead>Ações</TableHead>
             </TableRow>
           </TableHeader>
-
           <TableBody>
             {filtered.length === 0 && (
               <TableRow>
@@ -310,7 +322,6 @@ export default function ProgramacaoSemanalPage() {
                 </TableCell>
               </TableRow>
             )}
-
             {filtered.map((i) => (
               <TableRow key={i.id}>
                 <TableCell>{formatDateBR(i.data)}</TableCell>
@@ -320,20 +331,19 @@ export default function ProgramacaoSemanalPage() {
                 <TableCell>{i.agencia}</TableCell>
                 <TableCell>{i.conta}</TableCell>
                 <TableCell>{i.cnpj_cpf}</TableCell>
-                <TableCell className="text-right">{formatCurrencyBR(i.valor)}</TableCell>
+                <TableCell className="font-mono">{formatCurrencyBR(i.valor)}</TableCell>
                 <TableCell>{i.obra}</TableCell>
                 <TableCell>{i.responsavel}</TableCell>
                 <TableCell className="max-w-[120px] truncate">{i.observacao}</TableCell>
                 <TableCell>
                   <div className="flex gap-1">
                     {canEdit('programacao_semanal') && (
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(i)}>
+                      <Button size="icon" variant="ghost" onClick={() => openEdit(i)}>
                         <Pencil className="h-4 w-4" />
                       </Button>
                     )}
-
                     {canDelete('programacao_semanal') && (
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(i.id)}>
+                      <Button size="icon" variant="ghost" onClick={() => handleDelete(i.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     )}
@@ -341,15 +351,10 @@ export default function ProgramacaoSemanalPage() {
                 </TableCell>
               </TableRow>
             ))}
-
             {filtered.length > 0 && (
-              <TableRow className="bg-muted/50 font-bold">
-                <TableCell colSpan={7} className="text-right">
-                  TOTAL
-                </TableCell>
-                <TableCell className="text-right">
-                  {formatCurrencyBR(filtered.reduce((s, i) => s + i.valor, 0))}
-                </TableCell>
+              <TableRow className="font-bold bg-muted/50">
+                <TableCell colSpan={7} className="text-right">TOTAL</TableCell>
+                <TableCell className="font-mono">{formatCurrencyBR(filtered.reduce((s, i) => s + i.valor, 0))}</TableCell>
                 <TableCell colSpan={4} />
               </TableRow>
             )}
@@ -357,117 +362,55 @@ export default function ProgramacaoSemanalPage() {
         </Table>
       </div>
 
-      <Dialog
-        open={showDialog}
-        onOpenChange={(open) => {
-          if (!open) {
-            resetDialogDraft();
-            return;
-          }
-          setShowDialog(true);
-        }}
-      >
-        <DialogContent className="max-h-[90vh] max-w-2xl overflow-auto">
+      <Dialog open={showDialog} onOpenChange={setShowDialog}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-auto">
           <DialogHeader>
-            <DialogTitle>{editingId ? 'Editar' : 'Nova'} Programação Semanal</DialogTitle>
+            <DialogTitle>{editingId ? 'Editar' : 'Novo'} Lançamento</DialogTitle>
           </DialogHeader>
-
-          <div className="grid gap-3">
+          <div className="space-y-3">
             <div>
               <Label>Data *</Label>
-              <Input
-                type="date"
-                value={form.data}
-                onChange={(e) => setForm((p: typeof emptyForm) => ({ ...p, data: e.target.value }))}
-              />
+              <Input type="date" value={form.data} onChange={(e) => setForm((p) => ({ ...p, data: e.target.value }))} />
             </div>
-
-            <FornecedorSelect
-              value={form.fornecedor}
-              onChange={(v) => setForm((p: typeof emptyForm) => ({ ...p, fornecedor: v }))}
-              onFornecedorSelect={handleFornecedorSelect}
-            />
-
+            <FornecedorSelect value={form.fornecedor} onChange={(v) => setForm((p) => ({ ...p, fornecedor: v }))} onFornecedorSelect={handleFornecedorSelect} />
             <div>
               <Label>Pedido</Label>
-              <Input
-                value={form.pedido}
-                onChange={(e) => setForm((p: typeof emptyForm) => ({ ...p, pedido: e.target.value }))}
-              />
+              <Input value={form.pedido} onChange={(e) => setForm((p) => ({ ...p, pedido: e.target.value }))} />
             </div>
-
             <div className="grid grid-cols-3 gap-2">
               <div>
                 <Label>Banco</Label>
-                <Input
-                  value={form.banco}
-                  onChange={(e) => setForm((p: typeof emptyForm) => ({ ...p, banco: e.target.value }))}
-                />
+                <Input value={form.banco} onChange={(e) => setForm((p) => ({ ...p, banco: e.target.value }))} />
               </div>
-
               <div>
                 <Label>Agência</Label>
-                <Input
-                  value={form.agencia}
-                  onChange={(e) => setForm((p: typeof emptyForm) => ({ ...p, agencia: e.target.value }))}
-                />
+                <Input value={form.agencia} onChange={(e) => setForm((p) => ({ ...p, agencia: e.target.value }))} />
               </div>
-
               <div>
                 <Label>Conta</Label>
-                <Input
-                  value={form.conta}
-                  onChange={(e) => setForm((p: typeof emptyForm) => ({ ...p, conta: e.target.value }))}
-                />
+                <Input value={form.conta} onChange={(e) => setForm((p) => ({ ...p, conta: e.target.value }))} />
               </div>
             </div>
-
             <div>
               <Label>CNPJ/CPF</Label>
-              <Input
-                value={form.cnpj_cpf}
-                onChange={(e) =>
-                  setForm((p: typeof emptyForm) => ({ ...p, cnpj_cpf: formatCPFCNPJ(e.target.value) }))
-                }
-                maxLength={18}
-              />
+              <Input value={form.cnpj_cpf} onChange={(e) => setForm((p) => ({ ...p, cnpj_cpf: formatCPFCNPJ(e.target.value) }))} maxLength={18} />
             </div>
-
             <div>
               <Label>Valor *</Label>
-              <Input
-                value={form.valor}
-                onChange={(e) => setForm((p: typeof emptyForm) => ({ ...p, valor: formatCurrencyInput(e.target.value) }))}
-                placeholder="R$ 0,00"
-              />
+              <Input value={form.valor} onChange={(e) => setForm((p) => ({ ...p, valor: formatCurrencyInput(e.target.value) }))} placeholder="R$ 0,00" />
             </div>
-
             <div>
               <Label>Obra</Label>
-              <ObraSelect
-                value={form.obra}
-                onChange={(v) => setForm((p: typeof emptyForm) => ({ ...p, obra: v }))}
-              />
+              <ObraSelect value={form.obra} onChange={(v) => setForm((p) => ({ ...p, obra: v }))} />
             </div>
-
-            <ResponsavelSelect
-              value={form.responsavel}
-              onChange={(v) => setForm((p: typeof emptyForm) => ({ ...p, responsavel: v }))}
-            />
-
+            <ResponsavelSelect value={form.responsavel} onChange={(v) => setForm((p) => ({ ...p, responsavel: v }))} />
             <div>
               <Label>Observação</Label>
-              <Textarea
-                value={form.observacao}
-                onChange={(e) => setForm((p: typeof emptyForm) => ({ ...p, observacao: e.target.value }))}
-              />
+              <Textarea value={form.observacao} onChange={(e) => setForm((p) => ({ ...p, observacao: e.target.value }))} />
             </div>
           </div>
-
           <DialogFooter>
-            <Button variant="outline" onClick={resetDialogDraft}>
-              Cancelar
-            </Button>
+            <Button variant="outline" onClick={() => setShowDialog(false)}>Cancelar</Button>
             <Button onClick={handleSubmit}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
