@@ -101,55 +101,168 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
-            <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+
+            <Route
+              path="/"
+              element={
+                <ModuleRoute module="controle_caixa">
+                  <Index />
+                </ModuleRoute>
+              }
+            />
 
             <Route
               path="/compras/faturadas"
-              element={<ModuleRoute module="compras_faturadas"><ComprasFaturadasPage /></ModuleRoute>}
-            />
-            <Route
-              path="/compras/avista"
-              element={<ModuleRoute module="compras_avista"><ComprasAvistaPage /></ModuleRoute>}
-            />
-            <Route
-              path="/compras/espelho"
-              element={<ModuleRoute module="espelho_geral"><EspelhoGeralPage /></ModuleRoute>}
-            />
-            <Route
-              path="/compras/programacao-semanal"
-              element={<ModuleRoute module="programacao_semanal"><ProgramacaoSemanalPage /></ModuleRoute>}
-            />
-            <Route
-              path="/compras/espelho-semanal"
-              element={<ModuleRoute module="espelho_semanal"><EspelhoSemanalPage /></ModuleRoute>}
+              element={
+                <ModuleRoute module="compras_faturadas">
+                  <ComprasFaturadasPage />
+                </ModuleRoute>
+              }
             />
 
-            <Route path="/empresas" element={<ModuleRoute module="empresas"><EmpresasPage /></ModuleRoute>} />
-            <Route path="/fornecedores" element={<ModuleRoute module="fornecedores"><FornecedoresPage /></ModuleRoute>} />
-            <Route path="/obras" element={<ModuleRoute module="obras"><ObrasPage /></ModuleRoute>} />
-            <Route path="/responsaveis" element={<ModuleRoute module="responsaveis"><ResponsaveisPage /></ModuleRoute>} />
-            <Route path="/veiculos" element={<ModuleRoute module="veiculos_maquinas"><VeiculosMaquinasPage /></ModuleRoute>} />
+            <Route
+              path="/compras/avista"
+              element={
+                <ModuleRoute module="compras_avista">
+                  <ComprasAvistaPage />
+                </ModuleRoute>
+              }
+            />
+
+            <Route
+              path="/compras/espelho"
+              element={
+                <ModuleRoute module="espelho_geral">
+                  <EspelhoGeralPage />
+                </ModuleRoute>
+              }
+            />
+
+            <Route
+              path="/compras/programacao-semanal"
+              element={
+                <ModuleRoute module="programacao_semanal">
+                  <ProgramacaoSemanalPage />
+                </ModuleRoute>
+              }
+            />
+
+            <Route
+              path="/compras/espelho-semanal"
+              element={
+                <ModuleRoute module="espelho_semanal">
+                  <EspelhoSemanalPage />
+                </ModuleRoute>
+              }
+            />
+
+            <Route
+              path="/empresas"
+              element={
+                <ModuleRoute module="empresas">
+                  <EmpresasPage />
+                </ModuleRoute>
+              }
+            />
+
+            <Route
+              path="/fornecedores"
+              element={
+                <ModuleRoute module="fornecedores">
+                  <FornecedoresPage />
+                </ModuleRoute>
+              }
+            />
+
+            <Route
+              path="/obras"
+              element={
+                <ModuleRoute module="obras">
+                  <ObrasPage />
+                </ModuleRoute>
+              }
+            />
+
+            <Route
+              path="/responsaveis"
+              element={
+                <ModuleRoute module="responsaveis">
+                  <ResponsaveisPage />
+                </ModuleRoute>
+              }
+            />
+
+            <Route
+              path="/veiculos"
+              element={
+                <ModuleRoute module="veiculos_maquinas">
+                  <VeiculosMaquinasPage />
+                </ModuleRoute>
+              }
+            />
+
             <Route
               path="/categorias-veiculos"
-              element={<ModuleRoute module="veiculos_maquinas"><CategoriasVeiculosPage /></ModuleRoute>}
+              element={
+                <ModuleRoute module="veiculos_maquinas">
+                  <CategoriasVeiculosPage />
+                </ModuleRoute>
+              }
             />
+
             <Route
               path="/tipos-combustivel"
-              element={<ModuleRoute module="tipos_combustivel"><TiposCombustivelPage /></ModuleRoute>}
+              element={
+                <ModuleRoute module="tipos_combustivel">
+                  <TiposCombustivelPage />
+                </ModuleRoute>
+              }
             />
 
             <Route
               path="/combustivel/abastecimentos"
-              element={<ModuleRoute module="abastecimentos"><AbastecimentosPage /></ModuleRoute>}
-            />
-            <Route
-              path="/combustivel/dashboard"
-              element={<ModuleRoute module="combustivel_dashboard"><DashboardCombustivelPage /></ModuleRoute>}
+              element={
+                <ModuleRoute module="abastecimentos">
+                  <AbastecimentosPage />
+                </ModuleRoute>
+              }
             />
 
-            <Route path="/usuarios" element={<AdminRoute><UserManagement /></AdminRoute>} />
-            <Route path="/auditoria" element={<AdminRoute><AuditLog /></AdminRoute>} />
-            <Route path="/config-relatorio" element={<AdminRoute><ConfigRelatorioPage /></AdminRoute>} />
+            <Route
+              path="/combustivel/dashboard"
+              element={
+                <ModuleRoute module="combustivel_dashboard">
+                  <DashboardCombustivelPage />
+                </ModuleRoute>
+              }
+            />
+
+            <Route
+              path="/usuarios"
+              element={
+                <ModuleRoute module="usuarios">
+                  <UserManagement />
+                </ModuleRoute>
+              }
+            />
+
+            <Route
+              path="/auditoria"
+              element={
+                <ModuleRoute module="auditoria">
+                  <AuditLog />
+                </ModuleRoute>
+              }
+            />
+
+            <Route
+              path="/config-relatorio"
+              element={
+                <ModuleRoute module="config_relatorio">
+                  <ConfigRelatorioPage />
+                </ModuleRoute>
+              }
+            />
 
             <Route path="*" element={<NotFound />} />
           </Routes>
