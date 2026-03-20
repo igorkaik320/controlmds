@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
+import { useModulePermissions } from '@/hooks/useModulePermissions';
 import { TipoCombustivel, fetchTiposCombustivel, saveTipoCombustivel, updateTipoCombustivel, deleteTipoCombustivel } from '@/lib/combustivelService';
 import { toast } from 'sonner';
 
