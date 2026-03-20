@@ -8,10 +8,12 @@ import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { Fornecedor, fetchFornecedores, saveFornecedor, updateFornecedor, deleteFornecedor } from '@/lib/comprasService';
 import { formatCPFCNPJ, formatCelular } from '@/lib/formatters';
+import { useModulePermissions } from '@/hooks/useModulePermissions';
 import { toast } from 'sonner';
 
 export default function FornecedoresPage() {
   const { user, userRole } = useAuth();
+  const { canCreate, canEdit, canDelete } = useModulePermissions();
   const [items, setItems] = useState<Fornecedor[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
@@ -94,7 +96,9 @@ export default function FornecedoresPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-2xl font-bold">Cadastro de Fornecedores</h2>
-        <Button size="sm" onClick={openNew}><Plus className="h-4 w-4 mr-1" />Novo Fornecedor</Button>
+        {canCreate('fornecedores') && (
+          <Button size="sm" onClick={openNew}><Plus className="h-4 w-4 mr-1" />Novo Fornecedor</Button>
+        )}
       </div>
 
       <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar por nome, razão social ou CNPJ/CPF..." className="max-w-md" />
@@ -126,8 +130,10 @@ export default function FornecedoresPage() {
                 <TableCell>{i.conta}</TableCell>
                 <TableCell>
                   <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(i)}><Pencil className="h-4 w-4" /></Button>
-                    {userRole === 'admin' && (
+                    {canEdit('fornecedores') && (
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(i)}><Pencil className="h-4 w-4" /></Button>
+                    )}
+                    {canDelete('fornecedores') && (
                       <Button variant="ghost" size="icon" onClick={() => handleDelete(i.id)}><Trash2 className="h-4 w-4" /></Button>
                     )}
                   </div>

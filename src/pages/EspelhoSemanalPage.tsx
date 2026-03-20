@@ -12,11 +12,13 @@ import { fetchObras } from '@/lib/obrasService';
 import { fetchEmpresas } from '@/lib/empresasService';
 import EmpresaSelect from '@/components/compras/EmpresaSelect';
 import { useFormDraft } from '@/hooks/useFormDraft';
+import { useModulePermissions } from '@/hooks/useModulePermissions';
 import { toast } from 'sonner';
 
 export default function EspelhoSemanalPage() {
   const [items, setItems] = useState<EspelhoItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const { canExport } = useModulePermissions();
   const [filterDate, setFilterDate] = useFormDraft('espelho-sem-date', new Date().toISOString().split('T')[0]);
   const [observation, setObservation] = useFormDraft('espelho-sem-obs', '');
   const [filterEmpresa, setFilterEmpresa] = useFormDraft('espelho-sem-empresa', '');
@@ -71,10 +73,12 @@ export default function EspelhoSemanalPage() {
           <h2 className="text-xl font-bold">Espelho Semanal</h2>
           <p className="text-sm text-muted-foreground">Resumo da programação semanal agrupado por fornecedor/obra</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleExportPDF}><FileDown className="h-4 w-4 mr-1" />PDF</Button>
-          <Button variant="outline" size="sm" onClick={() => exportEspelhoSemanalXLSX(items, filterDate ? formatDateBR(filterDate) : '', observation)}><FileSpreadsheet className="h-4 w-4 mr-1" />Excel</Button>
-        </div>
+        {canExport('espelho_semanal') && (
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleExportPDF}><FileDown className="h-4 w-4 mr-1" />PDF</Button>
+            <Button variant="outline" size="sm" onClick={() => exportEspelhoSemanalXLSX(items, filterDate ? formatDateBR(filterDate) : '', observation)}><FileSpreadsheet className="h-4 w-4 mr-1" />Excel</Button>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-wrap items-end gap-3">

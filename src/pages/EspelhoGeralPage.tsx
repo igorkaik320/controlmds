@@ -22,6 +22,7 @@ import { fetchEmpresas } from '@/lib/empresasService';
 import EmpresaSelect from '@/components/compras/EmpresaSelect';
 import DateRangeFilter from '@/components/DateRangeFilter';
 import { useFormDraft } from '@/hooks/useFormDraft';
+import { useModulePermissions } from '@/hooks/useModulePermissions';
 import { toast } from 'sonner';
 
 type FonteDados = 'avista' | 'faturadas' | 'ambos';
@@ -36,6 +37,7 @@ type Filtros = {
 export default function EspelhoGeralPage() {
   const [items, setItems] = useState<EspelhoItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const { canExport } = useModulePermissions();
 
   const [draftDateFrom, setDraftDateFrom] = useFormDraft('espelho-dateFrom', '');
   const [draftDateTo, setDraftDateTo] = useFormDraft('espelho-dateTo', '');
@@ -228,19 +230,21 @@ export default function EspelhoGeralPage() {
       </div>
 
       <div className="flex flex-wrap gap-4 items-end">
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleExportPDF}>
-            <FileDown className="h-4 w-4 mr-1" />PDF
-          </Button>
+        {canExport('espelho_geral') && (
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleExportPDF}>
+              <FileDown className="h-4 w-4 mr-1" />PDF
+            </Button>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => exportEspelhoXLSX(items, formatPeriodoLabel(), observation)}
-          >
-            <FileSpreadsheet className="h-4 w-4 mr-1" />Excel
-          </Button>
-        </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => exportEspelhoXLSX(items, formatPeriodoLabel(), observation)}
+            >
+              <FileSpreadsheet className="h-4 w-4 mr-1" />Excel
+            </Button>
+          </div>
+        )}
 
         <DateRangeFilter
           dateFrom={draftDateFrom}

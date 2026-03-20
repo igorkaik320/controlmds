@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, Pencil, Trash2, Upload, X } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
+import { useModulePermissions } from '@/hooks/useModulePermissions';
 import { Empresa, fetchEmpresas, saveEmpresa, updateEmpresa, deleteEmpresa } from '@/lib/empresasService';
 import { formatCNPJ } from '@/lib/formatters';
 import { toast } from 'sonner';
@@ -14,6 +15,7 @@ const emptyForm = { nome: '', cnpj: '', logo_esquerda: '' as string | null, logo
 
 export default function EmpresasPage() {
   const { user, userRole } = useAuth();
+  const { canCreate, canEdit, canDelete } = useModulePermissions();
   const [items, setItems] = useState<Empresa[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
@@ -102,7 +104,9 @@ export default function EmpresasPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-2xl font-bold">Cadastro de Empresas</h2>
-        <Button size="sm" onClick={openNew}><Plus className="h-4 w-4 mr-1" />Nova Empresa</Button>
+        {canCreate('empresas') && (
+          <Button size="sm" onClick={openNew}><Plus className="h-4 w-4 mr-1" />Nova Empresa</Button>
+        )}
       </div>
 
       <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar por nome ou CNPJ..." className="max-w-sm" />
@@ -136,8 +140,10 @@ export default function EmpresasPage() {
                 <TableCell>{new Date(i.created_at).toLocaleDateString('pt-BR')}</TableCell>
                 <TableCell>
                   <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(i)}><Pencil className="h-4 w-4" /></Button>
-                    {(userRole === 'admin') && (
+                    {canEdit('empresas') && (
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(i)}><Pencil className="h-4 w-4" /></Button>
+                    )}
+                    {canDelete('empresas') && (
                       <Button variant="ghost" size="icon" onClick={() => handleDelete(i.id)}><Trash2 className="h-4 w-4" /></Button>
                     )}
                   </div>

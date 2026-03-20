@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, Pencil, Trash2, FileDown, FileSpreadsheet } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
+import { useModulePermissions } from '@/hooks/useModulePermissions';
 import { ProgramacaoSemanal, fetchProgramacaoSemanal, saveProgramacaoSemanal, updateProgramacaoSemanal, deleteProgramacaoSemanal, fetchConfigRelatorio, formatCurrencyBR, formatDateBR } from '@/lib/comprasService';
 import { exportProgramacaoSemanalPDF, exportProgramacaoSemanalXLSX } from '@/lib/comprasExport';
 import { formatCPFCNPJ, formatCurrencyInput, parseCurrencyInput } from '@/lib/formatters';
@@ -22,6 +23,7 @@ const emptyForm = { data: '', fornecedor: '', pedido: '', banco: '', agencia: ''
 
 export default function ProgramacaoSemanalPage() {
   const { user } = useAuth();
+  const { canCreate, canEdit, canDelete, canExport } = useModulePermissions();
   const [items, setItems] = useState<ProgramacaoSemanal[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
@@ -89,9 +91,15 @@ export default function ProgramacaoSemanalPage() {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-2xl font-bold">Programação Semanal</h2>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleExportPDF}><FileDown className="h-4 w-4 mr-1" />PDF</Button>
-          <Button variant="outline" size="sm" onClick={() => exportProgramacaoSemanalXLSX(filtered, observation)}><FileSpreadsheet className="h-4 w-4 mr-1" />Excel</Button>
-          <Button size="sm" onClick={openNew}><Plus className="h-4 w-4 mr-1" />Novo</Button>
+          {canExport('programacao_semanal') && (
+            <>
+              <Button variant="outline" size="sm" onClick={handleExportPDF}><FileDown className="h-4 w-4 mr-1" />PDF</Button>
+              <Button variant="outline" size="sm" onClick={() => exportProgramacaoSemanalXLSX(filtered, observation)}><FileSpreadsheet className="h-4 w-4 mr-1" />Excel</Button>
+            </>
+          )}
+          {canCreate('programacao_semanal') && (
+            <Button size="sm" onClick={openNew}><Plus className="h-4 w-4 mr-1" />Novo</Button>
+          )}
         </div>
       </div>
 
@@ -121,8 +129,12 @@ export default function ProgramacaoSemanalPage() {
                 <TableCell>{i.obra}</TableCell><TableCell>{i.responsavel}</TableCell><TableCell className="max-w-[120px] truncate">{i.observacao}</TableCell>
                 <TableCell>
                   <div className="flex gap-1">
-                    <Button size="icon" variant="ghost" onClick={() => openEdit(i)}><Pencil className="h-4 w-4" /></Button>
-                    <Button size="icon" variant="ghost" onClick={() => handleDelete(i.id)}><Trash2 className="h-4 w-4" /></Button>
+                    {canEdit('programacao_semanal') && (
+                      <Button size="icon" variant="ghost" onClick={() => openEdit(i)}><Pencil className="h-4 w-4" /></Button>
+                    )}
+                    {canDelete('programacao_semanal') && (
+                      <Button size="icon" variant="ghost" onClick={() => handleDelete(i.id)}><Trash2 className="h-4 w-4" /></Button>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>

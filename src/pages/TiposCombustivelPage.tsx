@@ -6,11 +6,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
+import { useModulePermissions } from '@/hooks/useModulePermissions';
 import { TipoCombustivel, fetchTiposCombustivel, saveTipoCombustivel, updateTipoCombustivel, deleteTipoCombustivel } from '@/lib/combustivelService';
 import { toast } from 'sonner';
 
 export default function TiposCombustivelPage() {
   const { user, userRole } = useAuth();
+  const { canCreate, canEdit, canDelete } = useModulePermissions();
   const [items, setItems] = useState<TipoCombustivel[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
@@ -47,7 +49,9 @@ export default function TiposCombustivelPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-2xl font-bold">Tipos de Combustível</h2>
-        <Button size="sm" onClick={openNew}><Plus className="h-4 w-4 mr-1" />Novo</Button>
+        {canCreate('tipos_combustivel') && (
+          <Button size="sm" onClick={openNew}><Plus className="h-4 w-4 mr-1" />Novo</Button>
+        )}
       </div>
 
       <div className="rounded-md border overflow-auto">
@@ -67,8 +71,10 @@ export default function TiposCombustivelPage() {
                 <TableCell>{i.nome}</TableCell>
                 <TableCell>
                   <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(i)}><Pencil className="h-4 w-4" /></Button>
-                    {userRole === 'admin' && (
+                    {canEdit('tipos_combustivel') && (
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(i)}><Pencil className="h-4 w-4" /></Button>
+                    )}
+                    {canDelete('tipos_combustivel') && (
                       <Button variant="ghost" size="icon" onClick={() => handleDelete(i.id)}><Trash2 className="h-4 w-4" /></Button>
                     )}
                   </div>

@@ -6,11 +6,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
+import { useModulePermissions } from '@/hooks/useModulePermissions';
 import { Responsavel, fetchResponsaveis, saveResponsavel, updateResponsavel, deleteResponsavel } from '@/lib/comprasService';
 import { toast } from 'sonner';
 
 export default function ResponsaveisPage() {
   const { user, userRole } = useAuth();
+  const { canCreate, canEdit, canDelete } = useModulePermissions();
   const [items, setItems] = useState<Responsavel[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
@@ -50,7 +52,9 @@ export default function ResponsaveisPage() {
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold">Cadastro de Responsáveis</h2>
-        <Button size="sm" onClick={openNew}><Plus className="h-4 w-4 mr-1" />Novo Responsável</Button>
+        {canCreate('responsaveis') && (
+          <Button size="sm" onClick={openNew}><Plus className="h-4 w-4 mr-1" />Novo Responsável</Button>
+        )}
       </div>
       <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar por nome..." className="max-w-sm" />
       <div className="rounded-md border">
@@ -64,8 +68,12 @@ export default function ResponsaveisPage() {
                 <TableCell>{new Date(i.created_at).toLocaleDateString('pt-BR')}</TableCell>
                 <TableCell>
                   <div className="flex gap-1">
-                    <Button size="icon" variant="ghost" onClick={() => openEdit(i)}><Pencil className="h-4 w-4" /></Button>
-                    {userRole === 'admin' && <Button size="icon" variant="ghost" onClick={() => handleDelete(i.id)}><Trash2 className="h-4 w-4" /></Button>}
+                    {canEdit('responsaveis') && (
+                      <Button size="icon" variant="ghost" onClick={() => openEdit(i)}><Pencil className="h-4 w-4" /></Button>
+                    )}
+                    {canDelete('responsaveis') && (
+                      <Button size="icon" variant="ghost" onClick={() => handleDelete(i.id)}><Trash2 className="h-4 w-4" /></Button>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>

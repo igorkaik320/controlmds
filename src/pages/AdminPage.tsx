@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, PlayCircle, FileDown, FileSpreadsheet, Search, LogOut, History, Users, ImagePlus } from 'lucide-react';
+import { Plus, PlayCircle, FileDown, FileSpreadsheet, Search, LogOut, History, ImagePlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import DashboardCards from '@/components/DashboardCards';
 import TransactionTable from '@/components/TransactionTable';
@@ -220,10 +220,6 @@ export default function AdminPage() {
 
             <Button variant="outline" size="sm" onClick={() => navigate('/auditoria')}>
               <History className="h-4 w-4 mr-1" /> Auditoria
-            </Button>
-
-            <Button variant="outline" size="sm" onClick={() => navigate('/usuarios')}>
-              <Users className="h-4 w-4 mr-1" /> Usuários
             </Button>
 
             <Button variant="outline" size="sm" onClick={() => setShowInit(true)}>

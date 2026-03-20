@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
+import { useModulePermissions } from '@/hooks/useModulePermissions';
 import {
   VeiculoMaquina,
   CategoriaVeiculo,
@@ -28,6 +29,7 @@ const emptyForm = {
 
 export default function VeiculosMaquinasPage() {
   const { user, userRole } = useAuth();
+  const { canCreate, canEdit, canDelete } = useModulePermissions();
   const [items, setItems] = useState<VeiculoMaquina[]>([]);
   const [categorias, setCategorias] = useState<CategoriaVeiculo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -149,9 +151,11 @@ export default function VeiculosMaquinasPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-2xl font-bold">Veículos e Máquinas</h2>
-        <Button size="sm" onClick={openNew}>
-          <Plus className="h-4 w-4 mr-1" />Novo
-        </Button>
+        {canCreate('veiculos_maquinas') && (
+          <Button size="sm" onClick={openNew}>
+            <Plus className="h-4 w-4 mr-1" />Novo
+          </Button>
+        )}
       </div>
 
       <Input
@@ -193,10 +197,12 @@ export default function VeiculosMaquinasPage() {
                   <TableCell>{categoriaNome}</TableCell>
                   <TableCell>
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(i)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      {userRole === 'admin' && (
+                      {canEdit('veiculos_maquinas') && (
+                        <Button variant="ghost" size="icon" onClick={() => openEdit(i)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {canDelete('veiculos_maquinas') && (
                         <Button variant="ghost" size="icon" onClick={() => handleDelete(i.id)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>

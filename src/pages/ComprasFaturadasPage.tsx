@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, Pencil, Trash2, FileDown, FileSpreadsheet } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
+import { useModulePermissions } from '@/hooks/useModulePermissions';
 import {
   CompraFaturada,
   fetchComprasFaturadas,
@@ -54,6 +55,7 @@ function calcularDataLiquidacao(data: string, dias: number) {
 
 export default function ComprasFaturadasPage() {
   const { user } = useAuth();
+  const { canCreate, canEdit, canDelete, canExport } = useModulePermissions();
   const [items, setItems] = useState<CompraFaturada[]>([]);
   const [obras, setObras] = useState<Obra[]>([]);
   const [loading, setLoading] = useState(true);
@@ -208,15 +210,21 @@ export default function ComprasFaturadasPage() {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-2xl font-bold">Compras Faturadas</h2>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleExportPDF}>
-            <FileDown className="h-4 w-4 mr-1" />PDF
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => exportFaturadasXLSX(filtered, observation)}>
-            <FileSpreadsheet className="h-4 w-4 mr-1" />Excel
-          </Button>
-          <Button size="sm" onClick={openNew}>
-            <Plus className="h-4 w-4 mr-1" />Novo
-          </Button>
+          {canExport('compras_faturadas') && (
+            <>
+              <Button variant="outline" size="sm" onClick={handleExportPDF}>
+                <FileDown className="h-4 w-4 mr-1" />PDF
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => exportFaturadasXLSX(filtered, observation)}>
+                <FileSpreadsheet className="h-4 w-4 mr-1" />Excel
+              </Button>
+            </>
+          )}
+          {canCreate('compras_faturadas') && (
+            <Button size="sm" onClick={openNew}>
+              <Plus className="h-4 w-4 mr-1" />Novo
+            </Button>
+          )}
         </div>
       </div>
 
@@ -272,8 +280,12 @@ export default function ComprasFaturadasPage() {
                 <TableCell className="max-w-[120px] truncate">{i.observacao}</TableCell>
                 <TableCell>
                   <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(i)}><Pencil className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(i.id)}><Trash2 className="h-4 w-4" /></Button>
+                    {canEdit('compras_faturadas') && (
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(i)}><Pencil className="h-4 w-4" /></Button>
+                    )}
+                    {canDelete('compras_faturadas') && (
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(i.id)}><Trash2 className="h-4 w-4" /></Button>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>

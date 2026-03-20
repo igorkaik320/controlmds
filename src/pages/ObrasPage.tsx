@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
+import { useModulePermissions } from '@/hooks/useModulePermissions';
 import { Obra, fetchObras, saveObra, updateObra, deleteObra } from '@/lib/obrasService';
 import { fetchEmpresas, Empresa } from '@/lib/empresasService';
 import EmpresaSelect from '@/components/compras/EmpresaSelect';
@@ -14,6 +15,7 @@ import { toast } from 'sonner';
 
 export default function ObrasPage() {
   const { user, userRole } = useAuth();
+  const { canCreate, canEdit, canDelete } = useModulePermissions();
   const [items, setItems] = useState<Obra[]>([]);
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
   const [loading, setLoading] = useState(true);
@@ -80,7 +82,9 @@ export default function ObrasPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-2xl font-bold">Cadastro de Obras</h2>
-        <Button size="sm" onClick={openNew}><Plus className="h-4 w-4 mr-1" />Nova Obra</Button>
+        {canCreate('obras') && (
+          <Button size="sm" onClick={openNew}><Plus className="h-4 w-4 mr-1" />Nova Obra</Button>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-4 items-end">
@@ -113,8 +117,10 @@ export default function ObrasPage() {
                 <TableCell>{new Date(i.created_at).toLocaleDateString('pt-BR')}</TableCell>
                 <TableCell>
                   <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(i)}><Pencil className="h-4 w-4" /></Button>
-                    {(userRole === 'admin' || i.created_by === user?.id) && (
+                    {canEdit('obras') && (
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(i)}><Pencil className="h-4 w-4" /></Button>
+                    )}
+                    {canDelete('obras') && (
                       <Button variant="ghost" size="icon" onClick={() => handleDelete(i.id)}><Trash2 className="h-4 w-4" /></Button>
                     )}
                   </div>
