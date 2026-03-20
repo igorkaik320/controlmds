@@ -103,6 +103,30 @@ export default function EspelhoSemanalPage() {
     return <div className="p-6 text-center text-muted-foreground">Carregando...</div>;
   }
 
+  const groupedRows: { item: EspelhoItem; isFirst: boolean; groupSize: number }[] = [];
+  let idx = 0;
+
+  while (idx < items.length) {
+    const fornecedor = items[idx].fornecedor;
+    let j = idx;
+
+    while (j < items.length && items[j].fornecedor === fornecedor) {
+      j++;
+    }
+
+    const groupSize = j - idx;
+
+    for (let k = idx; k < j; k++) {
+      groupedRows.push({
+        item: items[k],
+        isFirst: k === idx,
+        groupSize,
+      });
+    }
+
+    idx = j;
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
@@ -149,7 +173,7 @@ export default function EspelhoSemanalPage() {
           <EmpresaSelect value={filterEmpresa} onChange={setFilterEmpresa} label="Empresa" allowAll />
         </div>
 
-        <div className="w-56">
+        <div className="w-48">
           <ResponsavelSelect value={filterResponsavel} onChange={setFilterResponsavel} />
         </div>
       </div>
@@ -189,7 +213,7 @@ export default function EspelhoSemanalPage() {
           </TableHeader>
 
           <TableBody>
-            {items.length === 0 && (
+            {groupedRows.length === 0 && (
               <TableRow>
                 <TableCell colSpan={10} className="text-center text-muted-foreground">
                   Nenhum dado
@@ -197,18 +221,40 @@ export default function EspelhoSemanalPage() {
               </TableRow>
             )}
 
-            {items.map((i, idx) => (
-              <TableRow key={idx}>
-                <TableCell>{i.item}</TableCell>
-                <TableCell>{i.fornecedor}</TableCell>
-                <TableCell>{i.razao_social}</TableCell>
-                <TableCell>{i.banco}</TableCell>
-                <TableCell>{i.agencia}</TableCell>
-                <TableCell>{i.conta}</TableCell>
-                <TableCell>{i.obra}</TableCell>
-                <TableCell className="text-center">{i.pedido}</TableCell>
-                <TableCell className="font-mono">{formatCurrencyBR(i.valor_por_obra)}</TableCell>
-                <TableCell className="font-mono">{formatCurrencyBR(i.total_fornecedor)}</TableCell>
+            {groupedRows.map((row, rIdx) => (
+              <TableRow key={rIdx}>
+                {row.isFirst && (
+                  <>
+                    <TableCell rowSpan={row.groupSize} className="align-middle text-center">
+                      {row.item.item}
+                    </TableCell>
+                    <TableCell rowSpan={row.groupSize} className="align-middle font-medium">
+                      {row.item.fornecedor}
+                    </TableCell>
+                    <TableCell rowSpan={row.groupSize} className="align-middle">
+                      {row.item.razao_social}
+                    </TableCell>
+                    <TableCell rowSpan={row.groupSize} className="align-middle">
+                      {row.item.banco}
+                    </TableCell>
+                    <TableCell rowSpan={row.groupSize} className="align-middle">
+                      {row.item.agencia}
+                    </TableCell>
+                    <TableCell rowSpan={row.groupSize} className="align-middle">
+                      {row.item.conta}
+                    </TableCell>
+                  </>
+                )}
+
+                <TableCell>{row.item.obra}</TableCell>
+                <TableCell className="text-center">{row.item.pedido}</TableCell>
+                <TableCell className="font-mono">{formatCurrencyBR(row.item.valor_por_obra)}</TableCell>
+
+                {row.isFirst && (
+                  <TableCell rowSpan={row.groupSize} className="align-middle font-mono font-bold">
+                    {formatCurrencyBR(row.item.total_fornecedor)}
+                  </TableCell>
+                )}
               </TableRow>
             ))}
 
