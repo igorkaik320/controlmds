@@ -28,7 +28,6 @@ interface Props {
 }
 
 export default function NewTransactionDialog({ open, onClose, onSubmit, editData }: Props) {
-
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [type, setType] = useState<TransactionType>('entrada');
   const [value, setValue] = useState('');
@@ -39,39 +38,28 @@ export default function NewTransactionDialog({ open, onClose, onSubmit, editData
   const [notaNumero, setNotaNumero] = useState('');
 
   useEffect(() => {
-
     if (editData) {
-
       setDate(editData.date);
       setType(editData.type);
       setValue(editData.value?.toString() || '');
       setGaveta(editData.gaveta?.toString() || '');
       setObservation(editData.observation || '');
-
       setObra(editData.obra || '');
       setFornecedor(editData.fornecedor || '');
-
       setNotaNumero(editData.nota_numero || '');
-
     } else {
-
       setDate(new Date().toISOString().slice(0, 10));
       setType('entrada');
       setValue('');
       setGaveta('');
       setObservation('');
-
       setObra('');
       setFornecedor('');
-
       setNotaNumero('');
-
     }
-
   }, [editData, open]);
 
   const handleSubmit = (e: React.FormEvent) => {
-
     e.preventDefault();
 
     if (!value) return;
@@ -82,15 +70,12 @@ export default function NewTransactionDialog({ open, onClose, onSubmit, editData
       value: parseFloat(value),
       gaveta: gaveta ? parseFloat(gaveta) : undefined,
       observation: observation.trim(),
-
       obra: obra?.trim() || null,
       fornecedor: fornecedor?.trim() || null,
-
       nota_numero: notaNumero?.trim() || null,
     });
 
     onClose();
-
   };
 
   function handleFornecedorSelect(f: Fornecedor) {
@@ -98,19 +83,13 @@ export default function NewTransactionDialog({ open, onClose, onSubmit, editData
   }
 
   return (
-
     <Dialog open={open} onOpenChange={onClose}>
-
-      <DialogContent className="sm:max-w-md">
-
+      <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>
-            {editData ? 'Editar Lançamento' : 'Novo Lançamento'}
-          </DialogTitle>
+          <DialogTitle>{editData ? 'Editar Lançamento' : 'Novo Lançamento'}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-
           <div>
             <Label htmlFor="tx-date">Data</Label>
             <Input
@@ -124,15 +103,11 @@ export default function NewTransactionDialog({ open, onClose, onSubmit, editData
 
           <div>
             <Label>Tipo</Label>
-
-            <div className="flex gap-2 mt-1">
-
+            <div className="mt-1 flex gap-2">
               <Button
                 type="button"
                 variant={type === 'entrada' ? 'default' : 'outline'}
-                className={type === 'entrada'
-                  ? 'bg-entrada hover:bg-entrada/90 text-entrada-foreground'
-                  : ''}
+                className={type === 'entrada' ? 'bg-entrada hover:bg-entrada/90 text-entrada-foreground' : ''}
                 onClick={() => setType('entrada')}
               >
                 ↑ Entrada
@@ -141,20 +116,16 @@ export default function NewTransactionDialog({ open, onClose, onSubmit, editData
               <Button
                 type="button"
                 variant={type === 'saida' ? 'default' : 'outline'}
-                className={type === 'saida'
-                  ? 'bg-saida hover:bg-saida/90 text-saida-foreground'
-                  : ''}
+                className={type === 'saida' ? 'bg-saida hover:bg-saida/90 text-saida-foreground' : ''}
                 onClick={() => setType('saida')}
               >
                 ↓ Saída
               </Button>
-
             </div>
           </div>
 
           <div>
             <Label htmlFor="tx-value">Valor (R$)</Label>
-
             <Input
               id="tx-value"
               type="number"
@@ -170,7 +141,6 @@ export default function NewTransactionDialog({ open, onClose, onSubmit, editData
 
           <div>
             <Label htmlFor="tx-gaveta">Gaveta / Físico (opcional)</Label>
-
             <Input
               id="tx-gaveta"
               type="number"
@@ -182,19 +152,12 @@ export default function NewTransactionDialog({ open, onClose, onSubmit, editData
             />
           </div>
 
-         
           <div>
             <Label>Obra / Centro de Custo</Label>
-
-            <ObraSelect
-              value={obra || ''}
-              onChange={setObra}
-            />
+            <ObraSelect value={obra || ''} onChange={setObra} />
           </div>
 
           <div>
-            <Label>Fornecedor</Label>
-
             <FornecedorSelect
               value={fornecedor || ''}
               onChange={(v: string) => setFornecedor(v)}
@@ -204,7 +167,6 @@ export default function NewTransactionDialog({ open, onClose, onSubmit, editData
 
           <div>
             <Label htmlFor="tx-nota">Nº da Nota</Label>
-
             <Input
               id="tx-nota"
               placeholder="Opcional"
@@ -215,7 +177,6 @@ export default function NewTransactionDialog({ open, onClose, onSubmit, editData
 
           <div>
             <Label htmlFor="tx-obs">Observações</Label>
-
             <Textarea
               id="tx-obs"
               placeholder="Detalhes do lançamento..."
@@ -225,28 +186,16 @@ export default function NewTransactionDialog({ open, onClose, onSubmit, editData
           </div>
 
           <DialogFooter>
-
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onClose}
-            >
+            <Button type="button" variant="outline" onClick={onClose}>
               Cancelar
             </Button>
 
-            <Button
-              type="submit"
-              disabled={!value}
-            >
+            <Button type="submit" disabled={!value}>
               {editData ? 'Salvar' : 'Lançar'}
             </Button>
-
           </DialogFooter>
-
         </form>
-
       </DialogContent>
-
     </Dialog>
   );
 }
