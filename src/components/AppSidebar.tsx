@@ -59,17 +59,14 @@ export function AppSidebar() {
 
   const groups: MenuGroup[] = [];
 
-  if (isAdmin) {
-    groups.push({
-      label: 'Administração',
-      defaultOpen: true,
-      items: [
-        { title: 'Usuários', url: '/usuarios', icon: Users },
-        { title: 'Auditoria', url: '/auditoria', icon: History },
-        { title: 'Config. Relatório', url: '/config-relatorio', icon: Settings },
-      ],
-    });
-  }
+  groups.push({
+    label: 'Administração',
+    defaultOpen: true,
+    items: [
+      { title: 'Usuários', url: '/usuarios', icon: Users, module: 'usuarios' },
+      { title: 'Auditoria', url: '/auditoria', icon: History, module: 'auditoria' },
+    ],
+  });
 
   groups.push({
     label: 'Financeiro',
@@ -156,25 +153,16 @@ export function AppSidebar() {
   }
 
   return (
-    <Sidebar
-      collapsible="icon"
-      className="border-r border-slate-700/40 bg-[#233247]"
-    >
+    <Sidebar collapsible="icon" className="border-r border-slate-700/40 bg-[#233247]">
       <SidebarContent className="bg-[#233247]">
         {!collapsed && (
           <div className="border-b border-white/10 bg-[#1d2a3c] px-4 py-5">
             <div className="space-y-1">
-              <h2 className="text-lg font-bold tracking-tight text-white">
-                ControlMDS
-              </h2>
+              <h2 className="text-lg font-bold tracking-tight text-white">ControlMDS</h2>
               <p className="text-sm text-white/75">{profile?.display_name}</p>
               <div className="pt-1">
                 <span className="inline-flex rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium text-white/90">
-                  {userRole === 'admin'
-                    ? 'Administrador'
-                    : userRole === 'conferente'
-                    ? 'Conferente'
-                    : 'Operador'}
+                  {isAdmin ? 'Administrador' : userRole === 'conferente' ? 'Conferente' : 'Operador'}
                 </span>
               </div>
             </div>
