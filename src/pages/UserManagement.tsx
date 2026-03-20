@@ -1,6 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, Shield, ShieldCheck, CheckSquare, XSquare } from 'lucide-react';
+import {
+  ArrowLeft,
+  Search,
+  Shield,
+  ShieldCheck,
+  CheckSquare,
+  XSquare,
+  Users,
+  KeyRound,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -16,7 +25,6 @@ import {
   ACTIONS,
   ACTION_LABELS,
   ActionKey,
-  ModuleKey,
   fetchAllActionPermissions,
   setUserActionPermission,
   UserActionPermission,
@@ -32,14 +40,6 @@ function roleBadge(role: string) {
       return <Badge className="bg-amber-500 text-white">Conferente</Badge>;
     default:
       return <Badge className="bg-primary text-primary-foreground">Operador</Badge>;
-  }
-}
-
-function roleLabel(role: string) {
-  switch (role) {
-    case 'admin': return 'Administrador';
-    case 'conferente': return 'Conferente';
-    default: return 'Operador';
   }
 }
 
@@ -59,8 +59,13 @@ export default function UserManagement() {
         fetchAllUsersWithRoles(),
         fetchAllActionPermissions(),
       ]);
+
       setUsers(usersData);
       setPermissions(permsData);
+
+      if (!selectedUserId && usersData.length > 0) {
+        setSelectedUserId(usersData[0].user_id);
+      }
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -68,7 +73,9 @@ export default function UserManagement() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   const filteredUsers = users.filter((u) => {
     if (searchQuery && !u.display_name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
@@ -76,7 +83,10 @@ export default function UserManagement() {
     return true;
   });
 
-  const selectedUser = users.find((u) => u.user_id === selectedUserId);
+  const selectedUser =
+    filteredUsers.find((u) => u.user_id === selectedUserId) ||
+    users.find((u) => u.user_id === selectedUserId);
+
   const isSelectedAdmin = selectedUser?.role === 'admin';
 
   const handleRoleChange = async (userId: string, newRole: string) => {
@@ -101,6 +111,7 @@ export default function UserManagement() {
 
   async function toggleAction(userId: string, module: string, action: ActionKey, current: boolean) {
     if (!user) return;
+
     try {
       await setUserActionPermission(userId, module, { [action]: !current }, user.id);
       toast.success('Permissão atualizada');
@@ -112,14 +123,20 @@ export default function UserManagement() {
 
   async function setAllForModule(userId: string, module: string, value: boolean) {
     if (!user) return;
+
     try {
-      await setUserActionPermission(userId, module, {
-        can_view: value,
-        can_create: value,
-        can_edit: value,
-        can_delete: value,
-        can_export: value,
-      }, user.id);
+      await setUserActionPermission(
+        userId,
+        module,
+        {
+          can_view: value,
+          can_create: value,
+          can_edit: value,
+          can_delete: value,
+          can_export: value,
+        },
+        user.id
+      );
       toast.success(value ? 'Todas permissões habilitadas' : 'Todas permissões removidas');
       await load();
     } catch (e: any) {
@@ -135,138 +152,227 @@ export default function UserManagement() {
     return count;
   };
 
+  const countTotalActions = (userId: string): number => {
+    let count = 0;
+    for (const m of MODULES) {
+      for (const action of ACTIONS) {
+        if (getAction(userId, m.key, action)) count++;
+      }
+    }
+    return count;
+  };
+
   if (loading) {
-    return <div className="flex min-h-screen items-center justify-center"><p className="text-muted-foreground">Carregando...</p></div>;
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p className="text-muted-foreground">Carregando...</p>
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-5 flex items-center gap-4">
+      <header className="border-b bg-card/80 backdrop-blur">
+        <div className="container mx-auto flex items-center gap-4 px-4 py-5">
           <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <div>
+          <div className="min-w-0">
             <h1 className="text-2xl font-bold tracking-tight">Gerenciamento de Usuários</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">Perfis, permissões e acesso por ação em cada módulo</p>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              Perfis, permissões e acesso por ação em cada módulo
+            </p>
           </div>
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-6">
-        <div className="flex gap-6 min-h-[calc(100vh-140px)]">
-          {/* Left panel - User list */}
-          <div className="w-80 shrink-0 space-y-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar usuário..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-
-            <Select value={filterRole} onValueChange={setFilterRole}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Todos os perfis" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os perfis</SelectItem>
-                <SelectItem value="admin">Administrador</SelectItem>
-                <SelectItem value="conferente">Conferente</SelectItem>
-                <SelectItem value="operador">Operador</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <ScrollArea className="h-[calc(100vh-280px)]">
-              <div className="space-y-1 pr-2">
-                {filteredUsers.map((u) => (
-                  <button
-                    key={u.user_id}
-                    onClick={() => setSelectedUserId(u.user_id)}
-                    className={`w-full text-left rounded-lg p-3 transition-colors ${
-                      selectedUserId === u.user_id
-                        ? 'bg-primary/10 border border-primary/30'
-                        : 'hover:bg-muted/50 border border-transparent'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium text-sm truncate">{u.display_name}</span>
-                      {roleBadge(u.role)}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {u.role === 'admin'
-                        ? 'Acesso total'
-                        : `${countModulesGranted(u.user_id)}/${MODULES.length} módulos`}
-                    </p>
-                  </button>
-                ))}
-                {filteredUsers.length === 0 && (
-                  <p className="text-center text-sm text-muted-foreground py-8">Nenhum usuário encontrado</p>
-                )}
+        <div className="mb-6 grid gap-4 md:grid-cols-3">
+          <Card className="border-primary/10 bg-gradient-to-br from-card to-card/70">
+            <CardContent className="flex items-center gap-3 p-5">
+              <div className="rounded-xl bg-primary/10 p-3 text-primary">
+                <Users className="h-5 w-5" />
               </div>
-            </ScrollArea>
-          </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Usuários</p>
+                <p className="text-2xl font-bold">{users.length}</p>
+              </div>
+            </CardContent>
+          </Card>
 
-          {/* Right panel - User details + permissions */}
-          <div className="flex-1 min-w-0">
+          <Card className="border-primary/10 bg-gradient-to-br from-card to-card/70">
+            <CardContent className="flex items-center gap-3 p-5">
+              <div className="rounded-xl bg-primary/10 p-3 text-primary">
+                <Shield className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Administradores</p>
+                <p className="text-2xl font-bold">{users.filter((u) => u.role === 'admin').length}</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-primary/10 bg-gradient-to-br from-card to-card/70">
+            <CardContent className="flex items-center gap-3 p-5">
+              <div className="rounded-xl bg-primary/10 p-3 text-primary">
+                <KeyRound className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Módulos</p>
+                <p className="text-2xl font-bold">{MODULES.length}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="flex min-h-[calc(100vh-250px)] flex-col gap-6 xl:flex-row">
+          <Card className="w-full shrink-0 border-primary/10 xl:w-80">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Usuários</CardTitle>
+            </CardHeader>
+
+            <CardContent className="space-y-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar usuário..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+
+              <Select value={filterRole} onValueChange={setFilterRole}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Todos os perfis" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos os perfis</SelectItem>
+                  <SelectItem value="admin">Administrador</SelectItem>
+                  <SelectItem value="conferente">Conferente</SelectItem>
+                  <SelectItem value="operador">Operador</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <ScrollArea className="h-[calc(100vh-360px)]">
+                <div className="space-y-2 pr-2">
+                  {filteredUsers.map((u) => (
+                    <button
+                      key={u.user_id}
+                      onClick={() => setSelectedUserId(u.user_id)}
+                      className={`w-full rounded-xl border p-3 text-left transition-all ${
+                        selectedUserId === u.user_id
+                          ? 'border-primary/30 bg-primary/10 shadow-sm'
+                          : 'border-transparent hover:bg-muted/50'
+                      }`}
+                    >
+                      <div className="flex min-w-0 items-start gap-2">
+                        <div className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-semibold">{u.display_name}</span>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {u.role === 'admin'
+                              ? 'Acesso total'
+                              : `${countModulesGranted(u.user_id)}/${MODULES.length} módulos`}
+                          </p>
+                        </div>
+                        <div className="shrink-0">{roleBadge(u.role)}</div>
+                      </div>
+                    </button>
+                  ))}
+
+                  {filteredUsers.length === 0 && (
+                    <p className="py-8 text-center text-sm text-muted-foreground">
+                      Nenhum usuário encontrado
+                    </p>
+                  )}
+                </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+
+          <div className="min-w-0 flex-1">
             {!selectedUser ? (
-              <div className="flex items-center justify-center h-full">
+              <div className="flex h-full items-center justify-center">
                 <div className="text-center text-muted-foreground">
-                  <Shield className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                  <Shield className="mx-auto mb-3 h-12 w-12 opacity-30" />
                   <p className="text-lg font-medium">Selecione um usuário</p>
-                  <p className="text-sm">Clique em um usuário na lista para gerenciar suas permissões</p>
+                  <p className="text-sm">
+                    Clique em um usuário na lista para gerenciar suas permissões
+                  </p>
                 </div>
               </div>
             ) : (
-              <ScrollArea className="h-[calc(100vh-180px)]">
+              <ScrollArea className="h-[calc(100vh-300px)]">
                 <div className="space-y-6 pr-4">
-                  {/* User info card */}
-                  <Card>
+                  <Card className="border-primary/10">
                     <CardContent className="p-5">
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-1">
-                          <h3 className="text-lg font-semibold">{selectedUser.display_name}</h3>
+                      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                        <div className="min-w-0 space-y-1">
+                          <h3 className="truncate text-xl font-bold">{selectedUser.display_name}</h3>
                           <p className="text-sm text-muted-foreground">
                             Cadastro: {new Date(selectedUser.created_at).toLocaleDateString('pt-BR')}
                           </p>
                         </div>
-                        <div>{roleBadge(selectedUser.role)}</div>
+                        <div className="shrink-0">{roleBadge(selectedUser.role)}</div>
                       </div>
 
                       <Separator className="my-4" />
 
-                      <div className="flex items-center gap-4">
-                        <Label className="text-sm font-medium">Perfil:</Label>
-                        {selectedUser.user_id === user?.id ? (
-                          <span className="text-sm text-muted-foreground">Você (não pode alterar seu próprio perfil)</span>
-                        ) : (
-                          <Select
-                            value={selectedUser.role}
-                            onValueChange={(v) => handleRoleChange(selectedUser.user_id, v)}
-                          >
-                            <SelectTrigger className="w-48">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="operador">Operador</SelectItem>
-                              <SelectItem value="conferente">Conferente</SelectItem>
-                              <SelectItem value="admin">Administrador</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        )}
+                      <div className="grid gap-4 md:grid-cols-3">
+                        <Card className="border-border/60 shadow-none">
+                          <CardContent className="p-4">
+                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Perfil</p>
+                            <div className="mt-3">
+                              {selectedUser.user_id === user?.id ? (
+                                <span className="text-sm text-muted-foreground">
+                                  Você não pode alterar seu próprio perfil
+                                </span>
+                              ) : (
+                                <Select
+                                  value={selectedUser.role}
+                                  onValueChange={(v) => handleRoleChange(selectedUser.user_id, v)}
+                                >
+                                  <SelectTrigger className="w-full">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="operador">Operador</SelectItem>
+                                    <SelectItem value="conferente">Conferente</SelectItem>
+                                    <SelectItem value="admin">Administrador</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+
+                        <Card className="border-border/60 shadow-none">
+                          <CardContent className="p-4">
+                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Módulos com acesso</p>
+                            <p className="mt-3 text-2xl font-bold">
+                              {isSelectedAdmin ? 'Todos' : countModulesGranted(selectedUser.user_id)}
+                            </p>
+                          </CardContent>
+                        </Card>
+
+                        <Card className="border-border/60 shadow-none">
+                          <CardContent className="p-4">
+                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Ações liberadas</p>
+                            <p className="mt-3 text-2xl font-bold">
+                              {isSelectedAdmin ? 'Todas' : countTotalActions(selectedUser.user_id)}
+                            </p>
+                          </CardContent>
+                        </Card>
                       </div>
                     </CardContent>
                   </Card>
 
-                  {/* Admin notice */}
                   {isSelectedAdmin && (
                     <Card className="border-primary/30 bg-primary/5">
-                      <CardContent className="p-5 flex items-center gap-3">
-                        <ShieldCheck className="h-6 w-6 text-primary shrink-0" />
+                      <CardContent className="flex items-center gap-3 p-5">
+                        <ShieldCheck className="h-6 w-6 shrink-0 text-primary" />
                         <div>
-                          <p className="font-medium text-sm">Administrador — Acesso Total</p>
+                          <p className="text-sm font-semibold">Administrador - Acesso Total</p>
                           <p className="text-xs text-muted-foreground">
                             Administradores têm acesso total a todos os módulos e ações automaticamente.
                             As permissões abaixo não se aplicam.
@@ -276,29 +382,32 @@ export default function UserManagement() {
                     </Card>
                   )}
 
-                  {/* Permissions grid */}
                   {!isSelectedAdmin && (
                     <>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="text-base font-semibold">Permissões por Módulo</h3>
-                          <p className="text-xs text-muted-foreground">
-                            {countModulesGranted(selectedUser.user_id)} de {MODULES.length} módulos com visualização
-                          </p>
-                        </div>
+                      <div>
+                        <h3 className="text-base font-semibold">Permissões por Módulo</h3>
+                        <p className="text-xs text-muted-foreground">
+                          Configure visualização, criação, edição, exclusão e exportação por tela.
+                        </p>
                       </div>
 
-                      <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
                         {MODULES.map((m) => {
                           const hasAny = ACTIONS.some((a) => getAction(selectedUser.user_id, m.key, a));
                           const hasAll = ACTIONS.every((a) => getAction(selectedUser.user_id, m.key, a));
 
                           return (
-                            <Card key={m.key} className={`transition-colors ${hasAny ? 'border-primary/20' : ''}`}>
-                              <CardHeader className="pb-2 pt-3 px-4">
-                                <div className="flex items-center justify-between">
-                                  <CardTitle className="text-sm font-medium">{m.label}</CardTitle>
-                                  <div className="flex gap-1">
+                            <Card
+                              key={m.key}
+                              className={`border-border/70 transition-all ${
+                                hasAny ? 'border-primary/20 bg-primary/[0.03]' : ''
+                              }`}
+                            >
+                              <CardHeader className="px-4 pb-2 pt-4">
+                                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                  <CardTitle className="pr-2 text-sm font-semibold">{m.label}</CardTitle>
+
+                                  <div className="flex flex-wrap gap-1 sm:justify-end">
                                     <Button
                                       variant="ghost"
                                       size="sm"
@@ -306,9 +415,10 @@ export default function UserManagement() {
                                       onClick={() => setAllForModule(selectedUser.user_id, m.key, true)}
                                       disabled={hasAll}
                                     >
-                                      <CheckSquare className="h-3 w-3 mr-1" />
+                                      <CheckSquare className="mr-1 h-3 w-3" />
                                       Tudo
                                     </Button>
+
                                     <Button
                                       variant="ghost"
                                       size="sm"
@@ -316,20 +426,26 @@ export default function UserManagement() {
                                       onClick={() => setAllForModule(selectedUser.user_id, m.key, false)}
                                       disabled={!hasAny}
                                     >
-                                      <XSquare className="h-3 w-3 mr-1" />
+                                      <XSquare className="mr-1 h-3 w-3" />
                                       Limpar
                                     </Button>
                                   </div>
                                 </div>
                               </CardHeader>
-                              <CardContent className="px-4 pb-3">
-                                <div className="flex flex-wrap gap-x-4 gap-y-2">
+
+                              <CardContent className="px-4 pb-4">
+                                <div className="grid grid-cols-2 gap-2 lg:grid-cols-3">
                                   {ACTIONS.map((action) => {
                                     const granted = getAction(selectedUser.user_id, m.key, action);
+
                                     return (
                                       <label
                                         key={action}
-                                        className="flex items-center gap-2 cursor-pointer"
+                                        className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 transition-colors ${
+                                          granted
+                                            ? 'border-primary/20 bg-primary/5'
+                                            : 'border-border/70 bg-background'
+                                        }`}
                                       >
                                         <Switch
                                           checked={granted}
@@ -338,7 +454,7 @@ export default function UserManagement() {
                                           }
                                           className="scale-75"
                                         />
-                                        <span className="text-xs">{ACTION_LABELS[action]}</span>
+                                        <span className="text-xs font-medium">{ACTION_LABELS[action]}</span>
                                       </label>
                                     );
                                   })}
