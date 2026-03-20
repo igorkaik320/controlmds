@@ -14,7 +14,7 @@ import {
   buildEspelho,
   formatCurrencyBR,
   formatDateBR,
-  EspelhoItem
+  EspelhoItem,
 } from '@/lib/comprasService';
 import { exportEspelhoPDF, exportEspelhoXLSX } from '@/lib/comprasExport';
 import { fetchObras } from '@/lib/obrasService';
@@ -62,6 +62,7 @@ export default function EspelhoGeralPage() {
     logo_esquerda: null,
     logo_direita: null,
   });
+  const [empresaCorCabecalho, setEmpresaCorCabecalho] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -90,9 +91,14 @@ export default function EspelhoGeralPage() {
             logo_esquerda: empresa.logo_esquerda,
             logo_direita: empresa.logo_direita,
           });
+          setEmpresaCorCabecalho(empresa.cor_cabecalho || null);
+        } else {
+          setEmpresaLogos({ logo_esquerda: null, logo_direita: null });
+          setEmpresaCorCabecalho(null);
         }
       } else {
         setEmpresaLogos({ logo_esquerda: null, logo_direita: null });
+        setEmpresaCorCabecalho(null);
       }
 
       const filterByEmpresa = (c: any) =>
@@ -183,11 +189,17 @@ export default function EspelhoGeralPage() {
   async function handleExportPDF() {
     let config = await fetchConfigRelatorio();
 
-    if (appliedFilters.empresa && (empresaLogos.logo_esquerda || empresaLogos.logo_direita) && config) {
+    if (appliedFilters.empresa && config) {
       config = {
         ...config,
         logo_esquerda: empresaLogos.logo_esquerda || config.logo_esquerda || null,
         logo_direita: empresaLogos.logo_direita || config.logo_direita || null,
+        cor_cabecalho: empresaCorCabecalho || config.cor_cabecalho || '#6b7280',
+      };
+    } else if (config) {
+      config = {
+        ...config,
+        cor_cabecalho: '#6b7280',
       };
     }
 
@@ -233,7 +245,8 @@ export default function EspelhoGeralPage() {
         {canExport('espelho_geral') && (
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={handleExportPDF}>
-              <FileDown className="h-4 w-4 mr-1" />PDF
+              <FileDown className="h-4 w-4 mr-1" />
+              PDF
             </Button>
 
             <Button
@@ -241,7 +254,8 @@ export default function EspelhoGeralPage() {
               size="sm"
               onClick={() => exportEspelhoXLSX(items, formatPeriodoLabel(), observation)}
             >
-              <FileSpreadsheet className="h-4 w-4 mr-1" />Excel
+              <FileSpreadsheet className="h-4 w-4 mr-1" />
+              Excel
             </Button>
           </div>
         )}
@@ -273,11 +287,13 @@ export default function EspelhoGeralPage() {
 
         <div className="flex gap-2">
           <Button size="sm" onClick={handleConsultar}>
-            <Search className="h-4 w-4 mr-1" />Consultar
+            <Search className="h-4 w-4 mr-1" />
+            Consultar
           </Button>
 
           <Button variant="outline" size="sm" onClick={handleLimpar}>
-            <RotateCcw className="h-4 w-4 mr-1" />Limpar
+            <RotateCcw className="h-4 w-4 mr-1" />
+            Limpar
           </Button>
         </div>
       </div>
