@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, PlayCircle, FileDown, FileSpreadsheet, Search, LogOut, History, Users, ImagePlus } from 'lucide-react';
+import { Plus, PlayCircle, FileDown, FileSpreadsheet, Search, LogOut, History, ImagePlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import DashboardCards from '@/components/DashboardCards';
 import TransactionTable from '@/components/TransactionTable';
