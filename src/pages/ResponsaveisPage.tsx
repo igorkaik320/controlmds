@@ -52,7 +52,9 @@ export default function ResponsaveisPage() {
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold">Cadastro de Responsáveis</h2>
-        <Button size="sm" onClick={openNew}><Plus className="h-4 w-4 mr-1" />Novo Responsável</Button>
+        {canCreate('responsaveis') && (
+          <Button size="sm" onClick={openNew}><Plus className="h-4 w-4 mr-1" />Novo Responsável</Button>
+        )}
       </div>
       <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar por nome..." className="max-w-sm" />
       <div className="rounded-md border">
