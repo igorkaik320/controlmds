@@ -1,26 +1,17 @@
-import { useState, useCallback, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import {
-  Plus,
-  PlayCircle,
-  FileDown,
-  FileSpreadsheet,
-  Search,
-  LogOut,
-  History,
-  ImagePlus,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import DashboardCards from '@/components/DashboardCards';
-import TransactionTable from '@/components/TransactionTable';
-import VerificationTable from '@/components/VerificationTable';
-import InitBalanceDialog from '@/components/InitBalanceDialog';
-import NewTransactionDialog from '@/components/NewTransactionDialog';
-import VerificationDialog from '@/components/VerificationDialog';
-import DateRangeFilter from '@/components/DateRangeFilter';
-import LogoSettings from '@/components/LogoSettings';
-import { useAuth } from '@/lib/auth';
-import { useModulePermissions } from '@/hooks/useModulePermissions';
+import { useState, useCallback, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Plus, PlayCircle, FileDown, FileSpreadsheet, Search, LogOut, History, ImagePlus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import DashboardCards from "@/components/DashboardCards";
+import TransactionTable from "@/components/TransactionTable";
+import VerificationTable from "@/components/VerificationTable";
+import InitBalanceDialog from "@/components/InitBalanceDialog";
+import NewTransactionDialog from "@/components/NewTransactionDialog";
+import VerificationDialog from "@/components/VerificationDialog";
+import DateRangeFilter from "@/components/DateRangeFilter";
+import LogoSettings from "@/components/LogoSettings";
+import { useAuth } from "@/lib/auth";
+import { useModulePermissions } from "@/hooks/useModulePermissions";
 import {
   Transaction,
   TransactionType,
@@ -37,9 +28,9 @@ import {
   saveVerification,
   deleteVerificationFromDB,
   filterByDateRange,
-} from '@/lib/cashRegister';
-import { exportPDF, exportXLSX } from '@/lib/exportUtils';
-import { toast } from 'sonner';
+} from "@/lib/cashRegister";
+import { exportPDF, exportXLSX } from "@/lib/exportUtils";
+import { toast } from "sonner";
 
 export default function Index() {
   const { user, profile, signOut, userRole } = useAuth();
@@ -55,24 +46,20 @@ export default function Index() {
   const [showVerify, setShowVerify] = useState(false);
   const [showLogo, setShowLogo] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
-  const canViewCash = canView('controle_caixa');
-  const canCreateCash = canCreate('controle_caixa');
-  const canEditCash = canEdit('controle_caixa');
-  const canDeleteCash = canDelete('controle_caixa');
-  const canExportCash = canExport('controle_caixa');
-  const canViewAudit = canView('auditoria');
-  const canViewConfig = canView('config_relatorio');
+  const canViewCash = canView("controle_caixa");
+  const canCreateCash = canCreate("controle_caixa");
+  const canEditCash = canEdit("controle_caixa");
+  const canDeleteCash = canDelete("controle_caixa");
+  const canExportCash = canExport("controle_caixa");
+  const canViewAudit = canView("auditoria");
+  const canViewConfig = canView("config_relatorio");
 
   const loadData = useCallback(async () => {
     try {
-      const [txs, vfs, profs] = await Promise.all([
-        fetchTransactions(),
-        fetchVerifications(),
-        fetchProfiles(),
-      ]);
+      const [txs, vfs, profs] = await Promise.all([fetchTransactions(), fetchVerifications(), fetchProfiles()]);
 
       setAllTransactions(txs);
       setAllVerifications(vfs);
@@ -93,134 +80,152 @@ export default function Index() {
   const summary = getSummary(transactions, verifications);
   const currentBalance = getCurrentBalance(allTransactions);
 
-  const handleInit = useCallback(async (data: { date: string; value: number; observation: string }) => {
-    if (!user || !canCreateCash) return;
+  const handleInit = useCallback(
+    async (data: { date: string; value: number; observation: string }) => {
+      if (!user || !canCreateCash) return;
 
-    try {
-      await saveTransactionToDB(
-        {
-          date: data.date,
-          type: 'inicializacao',
-          value: data.value,
-          observation: data.observation,
-          created_by: user.id,
-        },
-        user.id
-      );
+      try {
+        await saveTransactionToDB(
+          {
+            date: data.date,
+            type: "inicializacao",
+            value: data.value,
+            observation: data.observation,
+            created_by: user.id,
+          },
+          user.id,
+        );
 
-      const updatedTransactions = await recalculateAndSave();
-      setAllTransactions(updatedTransactions);
+        const updatedTransactions = await recalculateAndSave();
+        setAllTransactions(updatedTransactions);
 
-      const updatedVerifications = await fetchVerifications();
-      setAllVerifications(updatedVerifications);
+        const updatedVerifications = await fetchVerifications();
+        setAllVerifications(updatedVerifications);
 
-      toast.success('Inicialização registrada');
-      setShowInit(false);
-    } catch (e: any) {
-      toast.error(e.message);
-    }
-  }, [user, canCreateCash]);
+        toast.success("Inicialização registrada");
+        setShowInit(false);
+      } catch (e: any) {
+        toast.error(e.message);
+      }
+    },
+    [user, canCreateCash],
+  );
 
-  const handleNewTransaction = useCallback(async (data: {
-    date: string;
-    type: TransactionType;
-    value: number;
-    gaveta?: number | null;
-    observation: string;
-    obra?: string | null;
-    fornecedor?: string | null;
-    nota_numero?: string | null;
-  }) => {
-    if (!user) return;
+  const handleNewTransaction = useCallback(
+    async (data: {
+      date: string;
+      type: TransactionType;
+      value: number;
+      gaveta?: number | null;
+      observation: string;
+      obra?: string | null;
+      fornecedor?: string | null;
+      nota_numero?: string | null;
+    }) => {
+      if (!user) return;
 
-    try {
-      if (editingId) {
-        if (!canEditCash) {
-          toast.error('Você não tem permissão para editar lançamentos.');
-          return;
+      try {
+        if (editingId) {
+          if (!canEditCash) {
+            toast.error("Você não tem permissão para editar lançamentos.");
+            return;
+          }
+
+          const oldTx = allTransactions.find((t) => t.id === editingId);
+          await updateTransactionInDB(editingId, data, user.id, oldTx);
+          setEditingId(null);
+        } else {
+          if (!canCreateCash) {
+            toast.error("Você não tem permissão para criar lançamentos.");
+            return;
+          }
+
+          await saveTransactionToDB({ ...data, created_by: user.id }, user.id);
         }
 
-        const oldTx = allTransactions.find((t) => t.id === editingId);
-        await updateTransactionInDB(editingId, data, user.id, oldTx);
-        setEditingId(null);
-      } else {
-        if (!canCreateCash) {
-          toast.error('Você não tem permissão para criar lançamentos.');
-          return;
-        }
+        const updatedTransactions = await recalculateAndSave();
+        setAllTransactions(updatedTransactions);
 
-        await saveTransactionToDB({ ...data, created_by: user.id }, user.id);
+        toast.success(editingId ? "Lançamento atualizado" : "Lançamento registrado");
+        setShowNew(false);
+      } catch (e: any) {
+        toast.error(e.message);
+      }
+    },
+    [user, editingId, allTransactions, canCreateCash, canEditCash],
+  );
+
+  const handleEdit = useCallback(
+    (id: string) => {
+      if (!canEditCash) {
+        toast.error("Você não tem permissão para editar lançamentos.");
+        return;
       }
 
-      const updatedTransactions = await recalculateAndSave();
-      setAllTransactions(updatedTransactions);
+      setEditingId(id);
+      setShowNew(true);
+    },
+    [canEditCash],
+  );
 
-      toast.success(editingId ? 'Lançamento atualizado' : 'Lançamento registrado');
-      setShowNew(false);
-    } catch (e: any) {
-      toast.error(e.message);
-    }
-  }, [user, editingId, allTransactions, canCreateCash, canEditCash]);
+  const handleDelete = useCallback(
+    async (id: string) => {
+      if (!user || !canDeleteCash) return;
+      if (!window.confirm("Tem certeza que deseja excluir este lançamento?")) return;
 
-  const handleEdit = useCallback((id: string) => {
-    if (!canEditCash) {
-      toast.error('Você não tem permissão para editar lançamentos.');
-      return;
-    }
+      try {
+        const oldTx = allTransactions.find((t) => t.id === id);
+        await deleteTransactionFromDB(id, user.id, oldTx);
 
-    setEditingId(id);
-    setShowNew(true);
-  }, [canEditCash]);
+        const updatedTransactions = await recalculateAndSave();
+        setAllTransactions(updatedTransactions);
 
-  const handleDelete = useCallback(async (id: string) => {
-    if (!user || !canDeleteCash) return;
-    if (!window.confirm('Tem certeza que deseja excluir este lançamento?')) return;
+        toast.success("Lançamento excluído");
+      } catch (e: any) {
+        toast.error(e.message);
+      }
+    },
+    [user, canDeleteCash, allTransactions],
+  );
 
-    try {
-      const oldTx = allTransactions.find((t) => t.id === id);
-      await deleteTransactionFromDB(id, user.id, oldTx);
+  const handleDeleteVerification = useCallback(
+    async (id: string) => {
+      if (!user || !canDeleteCash) return;
+      if (!window.confirm("Tem certeza que deseja excluir esta conferência?")) return;
 
-      const updatedTransactions = await recalculateAndSave();
-      setAllTransactions(updatedTransactions);
+      try {
+        const oldV = allVerifications.find((v) => v.id === id);
+        await deleteVerificationFromDB(id, user.id, oldV);
 
-      toast.success('Lançamento excluído');
-    } catch (e: any) {
-      toast.error(e.message);
-    }
-  }, [user, canDeleteCash, allTransactions]);
+        const updatedVerifications = await fetchVerifications();
+        setAllVerifications(updatedVerifications);
 
-  const handleDeleteVerification = useCallback(async (id: string) => {
-    if (!user || !canDeleteCash) return;
-    if (!window.confirm('Tem certeza que deseja excluir esta conferência?')) return;
+        toast.success("Conferência excluída");
+      } catch (e: any) {
+        toast.error(e.message);
+      }
+    },
+    [user, canDeleteCash, allVerifications],
+  );
 
-    try {
-      const oldV = allVerifications.find((v) => v.id === id);
-      await deleteVerificationFromDB(id, user.id, oldV);
+  const handleVerification = useCallback(
+    async (data: { date: string; gaveta_value: number; observation: string }) => {
+      if (!user || !canCreateCash) return;
 
-      const updatedVerifications = await fetchVerifications();
-      setAllVerifications(updatedVerifications);
+      try {
+        await saveVerification(data, currentBalance, user.id);
 
-      toast.success('Conferência excluída');
-    } catch (e: any) {
-      toast.error(e.message);
-    }
-  }, [user, canDeleteCash, allVerifications]);
+        const updatedVerifications = await fetchVerifications();
+        setAllVerifications(updatedVerifications);
 
-  const handleVerification = useCallback(async (data: { date: string; gaveta_value: number; observation: string }) => {
-    if (!user || !canCreateCash) return;
-
-    try {
-      await saveVerification(data, currentBalance, user.id);
-
-      const updatedVerifications = await fetchVerifications();
-      setAllVerifications(updatedVerifications);
-
-      toast.success('Conferência registrada');
-      setShowVerify(false);
-    } catch (e: any) {
-      toast.error(e.message);
-    }
-  }, [user, currentBalance, canCreateCash]);
+        toast.success("Conferência registrada");
+        setShowVerify(false);
+      } catch (e: any) {
+        toast.error(e.message);
+      }
+    },
+    [user, currentBalance, canCreateCash],
+  );
 
   const editingTx = editingId ? allTransactions.find((t) => t.id === editingId) : null;
 
@@ -271,7 +276,7 @@ export default function Index() {
             )}
 
             {canViewAudit && (
-              <Button variant="outline" size="sm" onClick={() => navigate('/auditoria')}>
+              <Button variant="outline" size="sm" onClick={() => navigate("/auditoria")}>
                 <History className="h-4 w-4 mr-1" /> Auditoria
               </Button>
             )}
@@ -286,7 +291,13 @@ export default function Index() {
                   <Search className="h-4 w-4 mr-1" /> Conferir Caixa
                 </Button>
 
-                <Button size="sm" onClick={() => { setEditingId(null); setShowNew(true); }}>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setEditingId(null);
+                    setShowNew(true);
+                  }}
+                >
                   <Plus className="h-4 w-4 mr-1" /> Novo Lançamento
                 </Button>
               </>
@@ -341,16 +352,20 @@ export default function Index() {
           setEditingId(null);
         }}
         onSubmit={handleNewTransaction}
-        editData={editingTx ? {
-          date: editingTx.date,
-          type: editingTx.type as TransactionType,
-          value: editingTx.value,
-          gaveta: editingTx.gaveta,
-          observation: editingTx.observation,
-          obra: editingTx.obra,
-          fornecedor: editingTx.fornecedor,
-          nota_numero: editingTx.nota_numero,
-        } : null}
+        editData={
+          editingTx
+            ? {
+                date: editingTx.date,
+                type: editingTx.type as TransactionType,
+                value: editingTx.value,
+                gaveta: editingTx.gaveta,
+                observation: editingTx.observation,
+                obra: editingTx.obra,
+                fornecedor: editingTx.fornecedor,
+                nota_numero: editingTx.nota_numero,
+              }
+            : null
+        }
       />
 
       <VerificationDialog
@@ -364,3 +379,4 @@ export default function Index() {
     </div>
   );
 }
+1;
