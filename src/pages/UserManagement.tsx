@@ -16,7 +16,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { fetchAllUsersWithRoles, updateUserRole, UserWithRole } from '@/lib/cashRegister';
@@ -260,23 +259,25 @@ export default function UserManagement() {
                     <button
                       key={u.user_id}
                       onClick={() => setSelectedUserId(u.user_id)}
-                      className={`w-full rounded-xl border p-3 text-left transition-all ${
+                      className={`w-full overflow-hidden rounded-xl border p-3 text-left transition-all ${
                         selectedUserId === u.user_id
                           ? 'border-primary/30 bg-primary/10 shadow-sm'
                           : 'border-transparent hover:bg-muted/50'
                       }`}
                     >
-                      <div className="flex min-w-0 items-start gap-2">
-                        <div className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-semibold">{u.display_name}</span>
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            {u.role === 'admin'
-                              ? 'Acesso total'
-                              : `${countModulesGranted(u.user_id)}/${MODULES.length} módulos`}
-                          </p>
-                        </div>
-                        <div className="shrink-0">{roleBadge(u.role)}</div>
+                      <div className="min-w-0">
+                        <span className="block truncate text-sm font-semibold">{u.display_name}</span>
                       </div>
+
+                      <div className="mt-2">
+                        {roleBadge(u.role)}
+                      </div>
+
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {u.role === 'admin'
+                          ? 'Acesso total'
+                          : `${countModulesGranted(u.user_id)}/${MODULES.length} módulos`}
+                      </p>
                     </button>
                   ))}
 
