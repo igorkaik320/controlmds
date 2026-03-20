@@ -230,11 +230,22 @@ export default function ComprasFaturadasPage() {
   async function handleExportPDF() {
     let config = await fetchConfigRelatorio();
 
-    if (filterEmpresa && (empresaLogos.logo_esquerda || empresaLogos.logo_direita) && config) {
+    if (filterEmpresa && config) {
+      const empresas = await fetchEmpresas();
+      const empresa = empresas.find((e) => e.id === filterEmpresa);
+
+      if (empresa) {
+        config = {
+          ...config,
+          logo_esquerda: empresa.logo_esquerda || config.logo_esquerda || null,
+          logo_direita: empresa.logo_direita || config.logo_direita || null,
+          cor_cabecalho: empresa.cor_cabecalho || config.cor_cabecalho || '#6b7280',
+        };
+      }
+    } else if (config) {
       config = {
         ...config,
-        logo_esquerda: empresaLogos.logo_esquerda || config.logo_esquerda || null,
-        logo_direita: empresaLogos.logo_direita || config.logo_direita || null,
+        cor_cabecalho: '#6b7280',
       };
     }
 
