@@ -129,8 +129,12 @@ export default function ProgramacaoSemanalPage() {
                 <TableCell>{i.obra}</TableCell><TableCell>{i.responsavel}</TableCell><TableCell className="max-w-[120px] truncate">{i.observacao}</TableCell>
                 <TableCell>
                   <div className="flex gap-1">
-                    <Button size="icon" variant="ghost" onClick={() => openEdit(i)}><Pencil className="h-4 w-4" /></Button>
-                    <Button size="icon" variant="ghost" onClick={() => handleDelete(i.id)}><Trash2 className="h-4 w-4" /></Button>
+                    {canEdit('programacao_semanal') && (
+                      <Button size="icon" variant="ghost" onClick={() => openEdit(i)}><Pencil className="h-4 w-4" /></Button>
+                    )}
+                    {canDelete('programacao_semanal') && (
+                      <Button size="icon" variant="ghost" onClick={() => handleDelete(i.id)}><Trash2 className="h-4 w-4" /></Button>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>
