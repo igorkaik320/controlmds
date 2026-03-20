@@ -126,6 +126,22 @@ export function filterByDateRange<T extends { date: string }>(items: T[], dateFr
   return filtered;
 }
 
+async function insertAuditLog(entry: {
+  entity_type: string;
+  entity_id: string;
+  action: string;
+  old_values?: any;
+  new_values?: any;
+  user_id: string;
+}) {
+  const { error } = await supabase.from('audit_log').insert(entry as any);
+
+  if (error) {
+    console.error('Erro ao gravar auditoria:', error);
+    throw new Error(`Falha ao gravar auditoria: ${error.message}`);
+  }
+}
+
 export async function fetchTransactions(): Promise<Transaction[]> {
   const { data, error } = await supabase
     .from('transactions')
@@ -179,13 +195,13 @@ export async function saveTransactionToDB(
 
   if (error) throw error;
 
-  await supabase.from('audit_log').insert({
+  await insertAuditLog({
     entity_type: 'transaction',
     entity_id: data.id,
     action: 'criacao',
     new_values: data,
     user_id: userId,
-  } as any);
+  });
 
   return data;
 }
@@ -209,14 +225,14 @@ export async function updateTransactionInDB(
 
   if (error) throw error;
 
-  await supabase.from('audit_log').insert({
+  await insertAuditLog({
     entity_type: 'transaction',
     entity_id: id,
     action: 'edicao',
     old_values: oldValues,
     new_values: data,
     user_id: userId,
-  } as any);
+  });
 
   return data;
 }
@@ -225,13 +241,13 @@ export async function deleteTransactionFromDB(id: string, userId: string, oldVal
   const { error } = await supabase.from('transactions').delete().eq('id', id);
   if (error) throw error;
 
-  await supabase.from('audit_log').insert({
+  await insertAuditLog({
     entity_type: 'transaction',
     entity_id: id,
     action: 'exclusao',
     old_values: oldValues,
     user_id: userId,
-  } as any);
+  });
 }
 
 export async function recalculateAndSave(): Promise<Transaction[]> {
@@ -249,12 +265,7 @@ export async function recalculateAndSave(): Promise<Transaction[]> {
 }
 
 export async function fetchVerifications(): Promise<Verification[]> {
-  const { data, error } = await supabase
-    .from('verifications')
-    .select('*')
-    .order('date')
-    .order('created_at');
-
+  const { data, error } = await supabase.from('verifications').select('*').order('date').order('created_at');
   if (error) throw error;
 
   return (data || []).map((item: any) => ({
@@ -291,13 +302,13 @@ export async function saveVerification(
 
   if (error) throw error;
 
-  await supabase.from('audit_log').insert({
+  await insertAuditLog({
     entity_type: 'verification',
     entity_id: data.id,
     action: 'criacao',
     new_values: data,
     user_id: userId,
-  } as any);
+  });
 
   return data;
 }
@@ -306,13 +317,13 @@ export async function deleteVerificationFromDB(id: string, userId: string, oldVa
   const { error } = await supabase.from('verifications').delete().eq('id', id);
   if (error) throw error;
 
-  await supabase.from('audit_log').insert({
+  await insertAuditLog({
     entity_type: 'verification',
     entity_id: id,
     action: 'exclusao',
     old_values: oldValues,
     user_id: userId,
-  } as any);
+  });
 }
 
 export async function fetchAuditLog(filters?: {
