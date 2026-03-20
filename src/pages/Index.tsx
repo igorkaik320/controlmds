@@ -379,4 +379,3 @@ export default function Index() {
     </div>
   );
 }
-1;
