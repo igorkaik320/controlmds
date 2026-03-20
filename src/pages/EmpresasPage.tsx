@@ -15,6 +15,7 @@ const emptyForm = { nome: '', cnpj: '', logo_esquerda: '' as string | null, logo
 
 export default function EmpresasPage() {
   const { user, userRole } = useAuth();
+  const { canCreate, canEdit, canDelete } = useModulePermissions();
   const [items, setItems] = useState<Empresa[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
