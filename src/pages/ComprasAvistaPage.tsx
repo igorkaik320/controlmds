@@ -44,6 +44,7 @@ const emptyForm = {
 
 export default function ComprasAvistaPage() {
   const { user } = useAuth();
+  const { canCreate, canEdit, canDelete, canExport } = useModulePermissions();
   const [items, setItems] = useState<CompraAvista[]>([]);
   const [obras, setObras] = useState<Obra[]>([]);
   const [loading, setLoading] = useState(true);
