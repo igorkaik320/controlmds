@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/auth';
 import { useModulePermissions } from '@/hooks/useModulePermissions';
 import {
@@ -17,7 +18,6 @@ import {
   ShoppingCart,
   Receipt,
   Eye,
-  Settings,
   Users,
   History,
   Truck,
@@ -45,10 +45,13 @@ interface MenuItem {
 }
 
 interface MenuGroup {
+  id: string;
   label: string;
   items: MenuItem[];
   defaultOpen?: boolean;
 }
+
+const GROUP_STORAGE_KEY = 'controlmds-sidebar-groups';
 
 export function AppSidebar() {
   const { state } = useSidebar();
@@ -57,59 +60,84 @@ export function AppSidebar() {
   const { canAccess, loading: permLoading } = useModulePermissions();
   const isAdmin = userRole === 'admin';
 
-  const groups: MenuGroup[] = [];
+  const groups: MenuGroup[] = [
+    {
+      id: 'administracao',
+      label: 'Administração',
+      defaultOpen: true,
+      items: [
+        { title: 'Usuários', url: '/usuarios', icon: Users, module: 'usuarios' },
+        { title: 'Auditoria', url: '/auditoria', icon: History, module: 'auditoria' },
+      ],
+    },
+    {
+      id: 'financeiro',
+      label: 'Financeiro',
+      defaultOpen: true,
+      items: [
+        { title: 'Controle de Caixa', url: '/', icon: Landmark, module: 'controle_caixa' },
+      ],
+    },
+    {
+      id: 'compras',
+      label: 'Previsão de Compras',
+      defaultOpen: true,
+      items: [
+        { title: 'Compras Faturadas', url: '/compras/faturadas', icon: Receipt, module: 'compras_faturadas' },
+        { title: 'Compras à Vista', url: '/compras/avista', icon: ShoppingCart, module: 'compras_avista' },
+        { title: 'Espelho Geral', url: '/compras/espelho', icon: Eye, module: 'espelho_geral' },
+        { title: 'Programação Semanal', url: '/compras/programacao-semanal', icon: CalendarDays, module: 'programacao_semanal' },
+        { title: 'Espelho Semanal', url: '/compras/espelho-semanal', icon: BarChart3, module: 'espelho_semanal' },
+      ],
+    },
+    {
+      id: 'combustivel',
+      label: 'Controle de Combustível',
+      defaultOpen: false,
+      items: [
+        { title: 'Dashboard', url: '/combustivel/dashboard', icon: Fuel, module: 'combustivel_dashboard' },
+        { title: 'Abastecimentos', url: '/combustivel/abastecimentos', icon: Droplets, module: 'abastecimentos' },
+      ],
+    },
+    {
+      id: 'cadastros',
+      label: 'Cadastros',
+      defaultOpen: false,
+      items: [
+        { title: 'Empresas', url: '/empresas', icon: Factory, module: 'empresas' },
+        { title: 'Fornecedores', url: '/fornecedores', icon: Truck, module: 'fornecedores' },
+        { title: 'Obras', url: '/obras', icon: Building2, module: 'obras' },
+        { title: 'Responsáveis', url: '/responsaveis', icon: UserCheck, module: 'responsaveis' },
+        { title: 'Veículos/Máquinas', url: '/veiculos', icon: Car, module: 'veiculos_maquinas' },
+        { title: 'Categorias de Veículos', url: '/categorias-veiculos', icon: Tags, module: 'veiculos_maquinas' },
+        { title: 'Tipos de Combustível', url: '/tipos-combustivel', icon: Droplets, module: 'tipos_combustivel' },
+      ],
+    },
+  ];
 
-  groups.push({
-    label: 'Administração',
-    defaultOpen: true,
-    items: [
-      { title: 'Usuários', url: '/usuarios', icon: Users, module: 'usuarios' },
-      { title: 'Auditoria', url: '/auditoria', icon: History, module: 'auditoria' },
-    ],
-  });
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(groups.map((group) => [group.id, group.defaultOpen ?? false]))
+  );
 
-  groups.push({
-    label: 'Financeiro',
-    defaultOpen: true,
-    items: [
-      { title: 'Controle de Caixa', url: '/', icon: Landmark, module: 'controle_caixa' },
-    ],
-  });
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(GROUP_STORAGE_KEY);
+      if (!raw) return;
 
-  groups.push({
-    label: 'Previsão de Compras',
-    defaultOpen: true,
-    items: [
-      { title: 'Compras Faturadas', url: '/compras/faturadas', icon: Receipt, module: 'compras_faturadas' },
-      { title: 'Compras à Vista', url: '/compras/avista', icon: ShoppingCart, module: 'compras_avista' },
-      { title: 'Espelho Geral', url: '/compras/espelho', icon: Eye, module: 'espelho_geral' },
-      { title: 'Programação Semanal', url: '/compras/programacao-semanal', icon: CalendarDays, module: 'programacao_semanal' },
-      { title: 'Espelho Semanal', url: '/compras/espelho-semanal', icon: BarChart3, module: 'espelho_semanal' },
-    ],
-  });
+      const parsed = JSON.parse(raw) as Record<string, boolean>;
+      setOpenGroups((current) => ({ ...current, ...parsed }));
+    } catch {
+      // ignore invalid persisted state
+    }
+  }, []);
 
-  groups.push({
-    label: 'Controle de Combustível',
-    defaultOpen: false,
-    items: [
-      { title: 'Dashboard', url: '/combustivel/dashboard', icon: Fuel, module: 'combustivel_dashboard' },
-      { title: 'Abastecimentos', url: '/combustivel/abastecimentos', icon: Droplets, module: 'abastecimentos' },
-    ],
-  });
+  useEffect(() => {
+    window.localStorage.setItem(GROUP_STORAGE_KEY, JSON.stringify(openGroups));
+  }, [openGroups]);
 
-  groups.push({
-    label: 'Cadastros',
-    defaultOpen: false,
-    items: [
-      { title: 'Empresas', url: '/empresas', icon: Factory, module: 'empresas' },
-      { title: 'Fornecedores', url: '/fornecedores', icon: Truck, module: 'fornecedores' },
-      { title: 'Obras', url: '/obras', icon: Building2, module: 'obras' },
-      { title: 'Responsáveis', url: '/responsaveis', icon: UserCheck, module: 'responsaveis' },
-      { title: 'Veículos/Máquinas', url: '/veiculos', icon: Car, module: 'veiculos_maquinas' },
-      { title: 'Categorias de Veículos', url: '/categorias-veiculos', icon: Tags, module: 'veiculos_maquinas' },
-      { title: 'Tipos de Combustível', url: '/tipos-combustivel', icon: Droplets, module: 'tipos_combustivel' },
-    ],
-  });
+  function setGroupOpen(groupId: string, nextOpen: boolean) {
+    setOpenGroups((current) => ({ ...current, [groupId]: nextOpen }));
+  }
 
   function renderMenuItem(item: MenuItem) {
     const hasAccess = !item.module || canAccess(item.module);
@@ -118,8 +146,11 @@ export function AppSidebar() {
     if (locked) {
       return (
         <SidebarMenuItem key={item.url}>
-          <SidebarMenuButton className="cursor-not-allowed rounded-xl px-3 py-2 text-white/35 opacity-45">
-            <item.icon className="h-4 w-4" />
+          <SidebarMenuButton
+            title={item.title}
+            className="cursor-not-allowed rounded-xl px-3 py-2 text-white/35 opacity-45"
+          >
+            <item.icon className="h-4 w-4 shrink-0" />
             {!collapsed && (
               <>
                 <span>{item.title}</span>
@@ -134,13 +165,13 @@ export function AppSidebar() {
 
     return (
       <SidebarMenuItem key={item.url}>
-        <SidebarMenuButton asChild>
+        <SidebarMenuButton asChild title={item.title}>
           <NavLink
             to={item.url}
             className="rounded-xl px-3 py-2 text-[14px] text-white/78 transition-all duration-200 hover:bg-white/8 hover:text-white"
             activeClassName="bg-blue-500 text-white font-semibold shadow-[0_6px_18px_rgba(59,130,246,0.35)]"
           >
-            <item.icon className="h-4 w-4" />
+            <item.icon className="h-4 w-4 shrink-0" />
             {!collapsed && <span>{item.title}</span>}
           </NavLink>
         </SidebarMenuButton>
@@ -171,7 +202,7 @@ export function AppSidebar() {
 
         <SidebarGroup className="px-3 py-3">
           {groups.map((group) => (
-            <div key={group.label} className="mb-3">
+            <div key={group.id} className="mb-3">
               {collapsed ? (
                 <SidebarGroupContent>
                   <SidebarMenu className="space-y-1">
@@ -179,11 +210,19 @@ export function AppSidebar() {
                   </SidebarMenu>
                 </SidebarGroupContent>
               ) : (
-                <Collapsible defaultOpen={group.defaultOpen}>
+                <Collapsible
+                  open={openGroups[group.id] ?? !!group.defaultOpen}
+                  onOpenChange={(nextOpen) => setGroupOpen(group.id, nextOpen)}
+                >
                   <CollapsibleTrigger className="flex w-full items-center justify-between px-2 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/55 transition-colors hover:text-white/85">
                     <span>{group.label}</span>
-                    <ChevronDown className="h-3.5 w-3.5" />
+                    <ChevronDown
+                      className={`h-3.5 w-3.5 transition-transform ${
+                        openGroups[group.id] ? 'rotate-180' : ''
+                      }`}
+                    />
                   </CollapsibleTrigger>
+
                   <CollapsibleContent>
                     <SidebarGroupContent>
                       <SidebarMenu className="space-y-1">
@@ -202,6 +241,7 @@ export function AppSidebar() {
             variant="ghost"
             className="w-full justify-start rounded-xl text-white/72 hover:bg-white/8 hover:text-white"
             onClick={handleSignOut}
+            title="Sair"
           >
             <LogOut className="mr-2 h-4 w-4" />
             {!collapsed && 'Sair'}
