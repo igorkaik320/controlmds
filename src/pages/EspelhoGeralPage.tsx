@@ -37,6 +37,7 @@ type Filtros = {
 export default function EspelhoGeralPage() {
   const [items, setItems] = useState<EspelhoItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const { canExport } = useModulePermissions();
 
   const [draftDateFrom, setDraftDateFrom] = useFormDraft('espelho-dateFrom', '');
   const [draftDateTo, setDraftDateTo] = useFormDraft('espelho-dateTo', '');
