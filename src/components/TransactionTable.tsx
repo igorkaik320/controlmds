@@ -32,7 +32,15 @@ function formatDate(iso: string) {
   return `${d}/${m}/${y}`;
 }
 
-export default function TransactionTable({ transactions, onEdit, onDelete, profileMap, canEdit = false, canDelete = false, currentUserId }: Props) {
+export default function TransactionTable({
+  transactions,
+  onEdit,
+  onDelete,
+  profileMap,
+  canEdit = false,
+  canDelete = false,
+  currentUserId,
+}: Props) {
   if (transactions.length === 0) {
     return (
       <div className="text-center py-16 text-muted-foreground">
@@ -61,31 +69,50 @@ export default function TransactionTable({ transactions, onEdit, onDelete, profi
               <TableHead>Fornecedor</TableHead>
               <TableHead>Nº Nota</TableHead>
               <TableHead>Observação</TableHead>
-              <TableHead>Usuário</TableHead>
+              <TableHead>Criado por</TableHead>
               {showActions && <TableHead className="w-20 text-center">Ações</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {transactions.map((t) => {
               const canEditThis = canEdit && (!currentUserId || t.created_by === currentUserId);
+
               return (
                 <TableRow key={t.id} className="group">
                   <TableCell className="font-mono text-sm">{formatDate(t.date)}</TableCell>
                   <TableCell>{typeLabel(t.type)}</TableCell>
-                  <TableCell className={`text-right font-mono font-medium ${t.type === 'entrada' ? 'text-entrada' : t.type === 'saida' ? 'text-saida' : ''}`}>
-                    {t.type === 'entrada' ? '+' : t.type === 'saida' ? '-' : ''}{formatCurrency(t.value)}
+                  <TableCell
+                    className={`text-right font-mono font-medium ${
+                      t.type === 'entrada' ? 'text-entrada' : t.type === 'saida' ? 'text-saida' : ''
+                    }`}
+                  >
+                    {t.type === 'entrada' ? '+' : t.type === 'saida' ? '-' : ''}
+                    {formatCurrency(t.value)}
                   </TableCell>
-                  <TableCell className="text-right font-mono text-sm text-muted-foreground">{formatCurrency(t.balance_before)}</TableCell>
-                  <TableCell className="text-right font-mono font-semibold">{formatCurrency(t.balance_after)}</TableCell>
-                  <TableCell className="text-right font-mono text-sm">{t.gaveta != null ? formatCurrency(t.gaveta) : '—'}</TableCell>
-                  <TableCell className={`text-right font-mono text-sm font-medium ${Math.abs(t.difference) > 0.01 ? 'text-warning' : 'text-muted-foreground'}`}>
+                  <TableCell className="text-right font-mono text-sm text-muted-foreground">
+                    {formatCurrency(t.balance_before)}
+                  </TableCell>
+                  <TableCell className="text-right font-mono font-semibold">
+                    {formatCurrency(t.balance_after)}
+                  </TableCell>
+                  <TableCell className="text-right font-mono text-sm">
+                    {t.gaveta != null ? formatCurrency(t.gaveta) : '—'}
+                  </TableCell>
+                  <TableCell
+                    className={`text-right font-mono text-sm font-medium ${
+                      Math.abs(t.difference) > 0.01 ? 'text-warning' : 'text-muted-foreground'
+                    }`}
+                  >
                     {formatCurrency(t.difference)}
                   </TableCell>
                   <TableCell className="text-sm">{t.obra || '—'}</TableCell>
                   <TableCell className="text-sm">{t.fornecedor || '—'}</TableCell>
                   <TableCell className="text-sm">{t.nota_numero || '—'}</TableCell>
                   <TableCell className="text-sm max-w-[200px] truncate">{t.observation || '—'}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{profileMap[t.created_by] || '—'}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {profileMap[t.created_by] || '—'}
+                  </TableCell>
+
                   {showActions && (
                     <TableCell>
                       <div className="flex gap-1 justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -94,8 +121,14 @@ export default function TransactionTable({ transactions, onEdit, onDelete, profi
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
                         )}
+
                         {canDelete && onDelete && (
-                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => onDelete(t.id)}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 text-destructive hover:text-destructive"
+                            onClick={() => onDelete(t.id)}
+                          >
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         )}
