@@ -28,6 +28,7 @@ import { useFormDraft } from '@/hooks/useFormDraft';
 import { toast } from 'sonner';
 import type { Fornecedor } from '@/lib/comprasService';
 import { fetchObras, Obra } from '@/lib/obrasService';
+import { fetchEmpresas } from '@/lib/empresasService';
 
 const emptyForm = {
   data: '',
@@ -91,18 +92,41 @@ export default function ComprasFaturadasPage() {
   const [observation, setObservation] = useFormDraft('fat-observation', '');
 
   const [form, setForm, clearForm] = useFormDraft('fat-form', emptyForm);
+  const [empresaLogos, setEmpresaLogos] = useState<{ logo_esquerda: string | null; logo_direita: string | null }>({
+    logo_esquerda: null,
+    logo_direita: null,
+  });
 
   const load = useCallback(async () => {
     try {
-      const [compras, obrasData] = await Promise.all([fetchComprasFaturadas(), fetchObras()]);
+      const [compras, obrasData, empresas] = await Promise.all([
+        fetchComprasFaturadas(),
+        fetchObras(),
+        fetchEmpresas(),
+      ]);
+
       setItems(compras);
       setObras(obrasData);
+
+      if (filterEmpresa) {
+        const empresa = empresas.find((e) => e.id === filterEmpresa);
+        if (empresa) {
+          setEmpresaLogos({
+            logo_esquerda: empresa.logo_esquerda,
+            logo_direita: empresa.logo_direita,
+          });
+        } else {
+          setEmpresaLogos({ logo_esquerda: null, logo_direita: null });
+        }
+      } else {
+        setEmpresaLogos({ logo_esquerda: null, logo_direita: null });
+      }
     } catch (e: any) {
       toast.error(e.message);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [filterEmpresa]);
 
   useEffect(() => {
     load();
@@ -204,7 +228,16 @@ export default function ComprasFaturadasPage() {
   }
 
   async function handleExportPDF() {
-    const config = await fetchConfigRelatorio();
+    let config = await fetchConfigRelatorio();
+
+    if (filterEmpresa && (empresaLogos.logo_esquerda || empresaLogos.logo_direita) && config) {
+      config = {
+        ...config,
+        logo_esquerda: empresaLogos.logo_esquerda || config.logo_esquerda || null,
+        logo_direita: empresaLogos.logo_direita || config.logo_direita || null,
+      };
+    }
+
     exportFaturadasPDF(filtered, config, observation);
   }
 
