@@ -28,6 +28,7 @@ import { useFormDraft } from '@/hooks/useFormDraft';
 import { toast } from 'sonner';
 import type { Fornecedor } from '@/lib/comprasService';
 import { fetchObras, Obra } from '@/lib/obrasService';
+import { fetchEmpresaById } from '@/lib/empresasService';
 
 const emptyForm = {
   data: '',
@@ -173,8 +174,26 @@ export default function ComprasAvistaPage() {
   }
 
   async function handleExportPDF() {
-    const config = await fetchConfigRelatorio();
-    exportAvistaPDF(filtered, config, observation);
+    try {
+      const config = await fetchConfigRelatorio();
+
+      if (!filterEmpresa) {
+        exportAvistaPDF(filtered, config, observation);
+        return;
+      }
+
+      const empresa = await fetchEmpresaById(filterEmpresa);
+
+      const configComLogoDaEmpresa = {
+        ...config,
+        logo_esquerda: empresa?.logo_esquerda || config?.logo_esquerda || null,
+        logo_direita: empresa?.logo_direita || config?.logo_direita || null,
+      };
+
+      exportAvistaPDF(filtered, configComLogoDaEmpresa, observation);
+    } catch (e: any) {
+      toast.error(e.message);
+    }
   }
 
   function handleFornecedorSelect(f: Fornecedor) {
@@ -197,34 +216,31 @@ export default function ComprasAvistaPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-2xl font-bold">Compras à Vista por Obra</h2>
-
         <div className="flex gap-2">
           {canExport('compras_avista') && (
             <>
               <Button variant="outline" size="sm" onClick={handleExportPDF}>
-                <FileDown className="mr-1 h-4 w-4" />
+                <FileDown className="h-4 w-4 mr-1" />
                 PDF
               </Button>
-
               <Button variant="outline" size="sm" onClick={() => exportAvistaXLSX(filtered, observation)}>
-                <FileSpreadsheet className="mr-1 h-4 w-4" />
+                <FileSpreadsheet className="h-4 w-4 mr-1" />
                 Excel
               </Button>
             </>
           )}
-
           {canCreate('compras_avista') && (
             <Button size="sm" onClick={openNew}>
-              <Plus className="mr-1 h-4 w-4" />
+              <Plus className="h-4 w-4 mr-1" />
               Novo
             </Button>
           )}
         </div>
       </div>
 
-      <div className="flex flex-wrap items-end gap-4">
+      <div className="flex flex-wrap gap-4 items-end">
         <div>
           <Label className="text-xs">Fornecedor</Label>
           <Input
@@ -256,7 +272,7 @@ export default function ComprasAvistaPage() {
           onDateToChange={setDateTo}
         />
 
-        <div className="min-w-[200px] flex-1">
+        <div className="flex-1 min-w-[200px]">
           <Label className="text-xs">Observação do relatório</Label>
           <Textarea
             value={observation}
@@ -267,7 +283,7 @@ export default function ComprasAvistaPage() {
         </div>
       </div>
 
-      <div className="overflow-auto rounded-md border">
+      <div className="rounded-md border overflow-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -313,7 +329,6 @@ export default function ComprasAvistaPage() {
                         <Pencil className="h-4 w-4" />
                       </Button>
                     )}
-
                     {canDelete('compras_avista') && (
                       <Button variant="ghost" size="icon" onClick={() => handleDelete(i.id)}>
                         <Trash2 className="h-4 w-4" />
@@ -341,7 +356,7 @@ export default function ComprasAvistaPage() {
           setShowDialog(true);
         }}
       >
-        <DialogContent className="max-h-[90vh] max-w-2xl overflow-auto">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>{editingId ? 'Editar' : 'Nova'} Compra à Vista</DialogTitle>
           </DialogHeader>
@@ -411,7 +426,9 @@ export default function ComprasAvistaPage() {
               <Label>Valor *</Label>
               <Input
                 value={form.valor}
-                onChange={(e) => setForm((p: typeof emptyForm) => ({ ...p, valor: formatCurrencyInput(e.target.value) }))}
+                onChange={(e) =>
+                  setForm((p: typeof emptyForm) => ({ ...p, valor: formatCurrencyInput(e.target.value) }))
+                }
                 placeholder="R$ 0,00"
               />
             </div>
