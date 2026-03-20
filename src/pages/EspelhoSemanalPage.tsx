@@ -12,6 +12,7 @@ import { fetchObras } from '@/lib/obrasService';
 import { fetchEmpresas } from '@/lib/empresasService';
 import EmpresaSelect from '@/components/compras/EmpresaSelect';
 import { useFormDraft } from '@/hooks/useFormDraft';
+import { useModulePermissions } from '@/hooks/useModulePermissions';
 import { toast } from 'sonner';
 
 export default function EspelhoSemanalPage() {
