@@ -42,6 +42,31 @@ const emptyForm = {
   observacao: '',
 };
 
+function parseConditionDays(condicao: string): number[] {
+  const matches = condicao.match(/\d+/g);
+  if (!matches) return [];
+  return matches
+    .map((n) => parseInt(n, 10))
+    .filter((n) => !Number.isNaN(n) && n >= 0);
+}
+
+function addDaysToIsoDate(isoDate: string, days: number): string {
+  const [y, m, d] = isoDate.split('-').map(Number);
+  const base = new Date(y, m - 1, d);
+  base.setDate(base.getDate() + days);
+  const year = base.getFullYear();
+  const month = String(base.getMonth() + 1).padStart(2, '0');
+  const day = String(base.getDate()).padStart(2, '0');
+  return `${day}/${month}/${year}`;
+}
+
+function buildVencimentosFromCondition(data: string, condicao: string): string {
+  if (!data || !condicao.trim()) return '';
+  const days = parseConditionDays(condicao);
+  if (days.length === 0) return '';
+  return days.map((day) => addDaysToIsoDate(data, day)).join(' | ');
+}
+
 function extractFirstDueDateIso(vencimentos: string): string | null {
   const match = vencimentos.match(/(\d{2})\/(\d{2})\/(\d{4})/);
   if (!match) return null;
@@ -93,6 +118,7 @@ export default function ComprasFaturadasPage() {
       const allowedObras = new Set(
         obras.filter((obra) => obra.empresa_id === filterEmpresa).map((obra) => obra.nome.toLowerCase())
       );
+
       if (!i.obra || !allowedObras.has(i.obra.toLowerCase())) return false;
     }
 
@@ -187,6 +213,28 @@ export default function ComprasFaturadasPage() {
       ...prev,
       cnpj_cpf: f.cnpj_cpf || prev.cnpj_cpf,
     }));
+  }
+
+  function handleConditionChange(value: string) {
+    setForm((prev: typeof emptyForm) => {
+      const autoVencimentos = buildVencimentosFromCondition(prev.data, value);
+      return {
+        ...prev,
+        condicao_pagamento: value,
+        vencimentos: autoVencimentos || prev.vencimentos,
+      };
+    });
+  }
+
+  function handleDateChange(value: string) {
+    setForm((prev: typeof emptyForm) => {
+      const autoVencimentos = buildVencimentosFromCondition(value, prev.condicao_pagamento);
+      return {
+        ...prev,
+        data: value,
+        vencimentos: autoVencimentos || prev.vencimentos,
+      };
+    });
   }
 
   if (loading) {
@@ -300,7 +348,9 @@ export default function ComprasFaturadasPage() {
                 <TableCell>{i.pedido}</TableCell>
                 <TableCell>{i.forma_pagamento}</TableCell>
                 <TableCell>{i.condicao_pagamento || ''}</TableCell>
-                <TableCell className="max-w-[220px] whitespace-pre-wrap">{i.vencimentos || ''}</TableCell>
+                <TableCell className="max-w-[220px] whitespace-pre-wrap">
+                  {i.vencimentos || (i.data_liquidacao ? formatDateBR(i.data_liquidacao) : '')}
+                </TableCell>
                 <TableCell>{i.cnpj_cpf}</TableCell>
                 <TableCell className="text-right">{formatCurrencyBR(i.valor)}</TableCell>
                 <TableCell>{i.obra}</TableCell>
@@ -347,11 +397,7 @@ export default function ComprasFaturadasPage() {
           <div className="grid gap-3">
             <div>
               <Label>Data *</Label>
-              <Input
-                type="date"
-                value={form.data}
-                onChange={(e) => setForm((p: typeof emptyForm) => ({ ...p, data: e.target.value }))}
-              />
+              <Input type="date" value={form.data} onChange={(e) => handleDateChange(e.target.value)} />
             </div>
 
             <FornecedorSelect
@@ -383,10 +429,8 @@ export default function ComprasFaturadasPage() {
               <Label>Condição de Pagamento</Label>
               <Input
                 value={form.condicao_pagamento}
-                onChange={(e) =>
-                  setForm((p: typeof emptyForm) => ({ ...p, condicao_pagamento: e.target.value }))
-                }
-                placeholder="Ex: 30/60/90, entrada + 2x, 28/35, 7/14/21"
+                onChange={(e) => handleConditionChange(e.target.value)}
+                placeholder="Ex: 30/60/90, 28/35, entrada + 2x, 7/14/21"
               />
             </div>
 
