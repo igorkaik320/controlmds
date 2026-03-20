@@ -249,7 +249,12 @@ export async function recalculateAndSave(): Promise<Transaction[]> {
 }
 
 export async function fetchVerifications(): Promise<Verification[]> {
-  const { data, error } = await supabase.from('verifications').select('*').order('date').order('created_at');
+  const { data, error } = await supabase
+    .from('verifications')
+    .select('*')
+    .order('date')
+    .order('created_at');
+
   if (error) throw error;
 
   return (data || []).map((item: any) => ({
@@ -271,14 +276,18 @@ export async function saveVerification(
 ) {
   const difference = v.gaveta_value - systemBalance;
 
-  const { data, error } = await supabase.from('verifications').insert({
-    date: v.date,
-    gaveta_value: v.gaveta_value,
-    system_balance: systemBalance,
-    difference,
-    observation: v.observation || '',
-    created_by: userId,
-  } as any).select().single();
+  const { data, error } = await supabase
+    .from('verifications')
+    .insert({
+      date: v.date,
+      gaveta_value: v.gaveta_value,
+      system_balance: systemBalance,
+      difference,
+      observation: v.observation || '',
+      created_by: userId,
+    } as any)
+    .select()
+    .single();
 
   if (error) throw error;
 
@@ -331,7 +340,10 @@ export async function deleteAuditEntry(id: string) {
 }
 
 export async function fetchProfiles(): Promise<Record<string, string>> {
-  const { data } = await supabase.from('profiles').select('user_id, display_name');
+  const { data, error } = await supabase.from('profiles').select('user_id, display_name');
+
+  if (error) throw error;
+
   const map: Record<string, string> = {};
 
   for (const p of data || []) {
