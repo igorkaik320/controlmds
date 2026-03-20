@@ -1,12 +1,16 @@
-import { CompraFaturada, CompraAvista, EspelhoItem, ConfigRelatorio, ProgramacaoSemanal, formatCurrencyBR, formatDateBR } from './comprasService';
+import {
+  CompraFaturada,
+  CompraAvista,
+  EspelhoItem,
+  ConfigRelatorio,
+  ProgramacaoSemanal,
+  formatCurrencyBR,
+  formatDateBR,
+} from './comprasService';
 
 function hexToRgb(hex: string): [number, number, number] {
   const h = hex.replace('#', '');
-  return [
-    parseInt(h.substring(0, 2), 16),
-    parseInt(h.substring(2, 4), 16),
-    parseInt(h.substring(4, 6), 16)
-  ];
+  return [parseInt(h.substring(0, 2), 16), parseInt(h.substring(2, 4), 16), parseInt(h.substring(4, 6), 16)];
 }
 
 function getImageFormat(dataUrl: string): 'PNG' | 'JPEG' {
@@ -113,14 +117,14 @@ function buildGroupedEspelhoRows(items: EspelhoItem[]) {
           {
             content: formatCurrencyBR(totalFornecedor),
             rowSpan: grupo.length,
-            styles: { halign: 'center', valign: 'middle', fontStyle: 'bold' }
-          }
+            styles: { halign: 'center', valign: 'middle', fontStyle: 'bold' },
+          },
         ]);
       } else {
         rows.push([
           item.obra,
           { content: item.pedido || '', styles: { halign: 'center' } },
-          { content: formatCurrencyBR(item.valor_por_obra), styles: { halign: 'right' } }
+          { content: formatCurrencyBR(item.valor_por_obra), styles: { halign: 'right' } },
         ]);
       }
     });
@@ -174,7 +178,7 @@ export async function exportFaturadasPDF(items: CompraFaturada[], config?: Confi
   const { default: autoTable } = await import('jspdf-autotable');
   const doc = new jsPDF({ orientation: 'landscape' });
   const pageWidth = doc.internal.pageSize.getWidth();
-  const headerColor = config ? hexToRgb(config.cor_cabecalho) : [30, 55, 100] as [number, number, number];
+  const headerColor = config ? hexToRgb(config.cor_cabecalho) : ([30, 55, 100] as [number, number, number]);
   const fontSize = config?.tamanho_fonte || 8;
 
   await addLogos(doc, config || null, pageWidth);
@@ -184,24 +188,36 @@ export async function exportFaturadasPDF(items: CompraFaturada[], config?: Confi
   doc.setFontSize(10);
   doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, 28);
 
-  const rows = items.map(i => [
+  const rows = items.map((i) => [
     formatDateBR(i.data),
     i.fornecedor,
     i.pedido || '',
     i.forma_pagamento || '',
-    i.data_liquidacao ? formatDateBR(i.data_liquidacao) : '',
+    i.condicao_pagamento || '',
+    i.vencimentos || (i.data_liquidacao ? formatDateBR(i.data_liquidacao) : ''),
     i.cnpj_cpf || '',
     formatCurrencyBR(i.valor),
     i.obra || '',
-    i.observacao || ''
+    i.observacao || '',
   ]);
 
   const total = items.reduce((s, i) => s + i.valor, 0);
-  rows.push(['', '', '', '', '', 'TOTAL', formatCurrencyBR(total), '', '']);
+  rows.push(['', '', '', '', '', '', 'TOTAL', formatCurrencyBR(total), '', '']);
 
   autoTable(doc, {
     startY: 34,
-    head: [['Data', 'Fornecedor', 'Nº Pedido', 'Forma Pgto', 'Dt. Liquidação', 'CNPJ/CPF', 'Valor', 'Obra', 'Observação']],
+    head: [[
+      'Data',
+      'Fornecedor',
+      'Nº Pedido',
+      'Forma Pgto',
+      'Condição',
+      'Vencimentos',
+      'CNPJ/CPF',
+      'Valor',
+      'Obra',
+      'Observação',
+    ]],
     body: rows,
     tableWidth: 'auto',
     margin: { left: 10, right: 10 },
@@ -210,19 +226,19 @@ export async function exportFaturadasPDF(items: CompraFaturada[], config?: Confi
       fontStyle: config?.negrito ? 'bold' : 'normal',
       overflow: 'linebreak',
       lineWidth: 0.3,
-      lineColor: [0, 0, 0]
+      lineColor: [0, 0, 0],
     },
     headStyles: {
       fillColor: headerColor,
       lineWidth: 0.3,
-      lineColor: [0, 0, 0]
+      lineColor: [0, 0, 0],
     },
     footStyles: {
       lineWidth: 0.3,
-      lineColor: [0, 0, 0]
+      lineColor: [0, 0, 0],
     },
     tableLineWidth: 0.3,
-    tableLineColor: [0, 0, 0]
+    tableLineColor: [0, 0, 0],
   });
 
   addObservation(doc, observation);
@@ -235,19 +251,20 @@ export async function exportFaturadasXLSX(items: CompraFaturada[], observation?:
   const wb = XLSX.utils.book_new();
 
   const data: any[][] = [
-    ['Data', 'Fornecedor', 'Nº Pedido', 'Forma Pgto', 'Dt. Liquidação', 'CNPJ/CPF', 'Valor', 'Obra', 'Observação'],
-    ...items.map(i => [
+    ['Data', 'Fornecedor', 'Nº Pedido', 'Forma Pgto', 'Condição', 'Vencimentos', 'CNPJ/CPF', 'Valor', 'Obra', 'Observação'],
+    ...items.map((i) => [
       formatDateBR(i.data),
       i.fornecedor,
       i.pedido || '',
       i.forma_pagamento || '',
-      i.data_liquidacao ? formatDateBR(i.data_liquidacao) : '',
+      i.condicao_pagamento || '',
+      i.vencimentos || (i.data_liquidacao ? formatDateBR(i.data_liquidacao) : ''),
       i.cnpj_cpf || '',
       i.valor,
       i.obra || '',
-      i.observacao || ''
+      i.observacao || '',
     ]),
-    ['', '', '', '', '', 'TOTAL', items.reduce((s, i) => s + i.valor, 0), '', ''],
+    ['', '', '', '', '', '', 'TOTAL', items.reduce((s, i) => s + i.valor, 0), '', ''],
   ];
 
   if (observation?.trim()) {
@@ -256,7 +273,7 @@ export async function exportFaturadasXLSX(items: CompraFaturada[], observation?:
   }
 
   const ws = XLSX.utils.aoa_to_sheet(data);
-  applySheetColumns(ws, [12, 28, 16, 16, 16, 18, 14, 22, 28]);
+  applySheetColumns(ws, [12, 28, 16, 16, 18, 28, 18, 14, 22, 28]);
 
   XLSX.utils.book_append_sheet(wb, ws, 'Faturadas');
   XLSX.writeFile(wb, 'previsao-compras-faturado.xlsx');
@@ -268,7 +285,7 @@ export async function exportAvistaPDF(items: CompraAvista[], config?: ConfigRela
   const { default: autoTable } = await import('jspdf-autotable');
   const doc = new jsPDF({ orientation: 'landscape' });
   const pageWidth = doc.internal.pageSize.getWidth();
-  const headerColor = config ? hexToRgb(config.cor_cabecalho) : [30, 55, 100] as [number, number, number];
+  const headerColor = config ? hexToRgb(config.cor_cabecalho) : ([30, 55, 100] as [number, number, number]);
   const fontSize = config?.tamanho_fonte || 8;
 
   await addLogos(doc, config || null, pageWidth);
@@ -278,7 +295,7 @@ export async function exportAvistaPDF(items: CompraAvista[], config?: ConfigRela
   doc.setFontSize(10);
   doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, 28);
 
-  const rows = items.map(i => [
+  const rows = items.map((i) => [
     formatDateBR(i.data),
     i.fornecedor,
     i.pedido || '',
@@ -288,7 +305,7 @@ export async function exportAvistaPDF(items: CompraAvista[], config?: ConfigRela
     i.cnpj_cpf || '',
     formatCurrencyBR(i.valor),
     i.obra || '',
-    i.observacao || ''
+    i.observacao || '',
   ]);
 
   const total = items.reduce((s, i) => s + i.valor, 0);
@@ -305,19 +322,19 @@ export async function exportAvistaPDF(items: CompraAvista[], config?: ConfigRela
       fontStyle: config?.negrito ? 'bold' : 'normal',
       overflow: 'linebreak',
       lineWidth: 0.3,
-      lineColor: [0, 0, 0]
+      lineColor: [0, 0, 0],
     },
     headStyles: {
       fillColor: headerColor,
       lineWidth: 0.3,
-      lineColor: [0, 0, 0]
+      lineColor: [0, 0, 0],
     },
     footStyles: {
       lineWidth: 0.3,
-      lineColor: [0, 0, 0]
+      lineColor: [0, 0, 0],
     },
     tableLineWidth: 0.3,
-    tableLineColor: [0, 0, 0]
+    tableLineColor: [0, 0, 0],
   });
 
   addObservation(doc, observation);
@@ -331,7 +348,7 @@ export async function exportAvistaXLSX(items: CompraAvista[], observation?: stri
 
   const data: any[][] = [
     ['Data', 'Fornecedor', 'Pedido', 'Banco', 'Agência', 'Conta', 'CNPJ/CPF', 'Valor', 'Obra', 'Observação'],
-    ...items.map(i => [
+    ...items.map((i) => [
       formatDateBR(i.data),
       i.fornecedor,
       i.pedido || '',
@@ -341,7 +358,7 @@ export async function exportAvistaXLSX(items: CompraAvista[], observation?: stri
       i.cnpj_cpf || '',
       i.valor,
       i.obra || '',
-      i.observacao || ''
+      i.observacao || '',
     ]),
     ['', '', '', '', '', '', 'TOTAL', items.reduce((s, i) => s + i.valor, 0), '', ''],
   ];
@@ -359,19 +376,12 @@ export async function exportAvistaXLSX(items: CompraAvista[], observation?: stri
 }
 
 // ---- Espelho Geral PDF ----
-export async function exportEspelhoPDF(
-  items: EspelhoItem[],
-  dateStr: string,
-  config?: ConfigRelatorio | null,
-  observation?: string
-) {
+export async function exportEspelhoPDF(items: EspelhoItem[], dateStr: string, config?: ConfigRelatorio | null, observation?: string) {
   const { default: jsPDF } = await import('jspdf');
   const { default: autoTable } = await import('jspdf-autotable');
   const doc = new jsPDF({ orientation: 'landscape' });
   const pageWidth = doc.internal.pageSize.getWidth();
-  const headerColor = config
-    ? hexToRgb(config.cor_cabecalho)
-    : [30, 55, 100] as [number, number, number];
+  const headerColor = config ? hexToRgb(config.cor_cabecalho) : ([30, 55, 100] as [number, number, number]);
   const fontSize = config?.tamanho_fonte || 8;
 
   await addLogos(doc, config || null, pageWidth);
@@ -386,12 +396,7 @@ export async function exportEspelhoPDF(
   const rows = buildGroupedEspelhoRows(items);
   const totalGeral = items.reduce((s, i) => s + i.valor_por_obra, 0);
 
-  rows.push([
-    '', '', '', '', '', '', '',
-    'TOTAL GERAL',
-    formatCurrencyBR(totalGeral),
-    ''
-  ]);
+  rows.push(['', '', '', '', '', '', '', 'TOTAL GERAL', formatCurrencyBR(totalGeral), '']);
 
   autoTable(doc, {
     startY: 36,
@@ -405,7 +410,7 @@ export async function exportEspelhoPDF(
       'OBRA',
       'Nº PEDIDO',
       'VALOR POR OBRA',
-      'TOTAL FORNECEDOR'
+      'TOTAL FORNECEDOR',
     ]],
     body: rows,
     tableWidth: 'auto',
@@ -416,18 +421,18 @@ export async function exportEspelhoPDF(
       overflow: 'linebreak',
       cellPadding: 2,
       lineWidth: 0.3,
-      lineColor: [0, 0, 0]
+      lineColor: [0, 0, 0],
     },
     columnStyles: {
       0: { halign: 'center' },
       7: { halign: 'center' },
       8: { halign: 'right' },
-      9: { halign: 'center' }
+      9: { halign: 'center' },
     },
     headStyles: {
       fillColor: headerColor,
       lineWidth: 0.3,
-      lineColor: [0, 0, 0]
+      lineColor: [0, 0, 0],
     },
     didParseCell(data) {
       const text = data.cell.text?.[0] || '';
@@ -436,7 +441,7 @@ export async function exportEspelhoPDF(
       }
     },
     tableLineWidth: 0.3,
-    tableLineColor: [0, 0, 0]
+    tableLineColor: [0, 0, 0],
   });
 
   addObservation(doc, observation);
@@ -469,7 +474,7 @@ export async function exportProgramacaoSemanalPDF(items: ProgramacaoSemanal[], c
   const { default: autoTable } = await import('jspdf-autotable');
   const doc = new jsPDF({ orientation: 'landscape' });
   const pageWidth = doc.internal.pageSize.getWidth();
-  const headerColor = config ? hexToRgb(config.cor_cabecalho) : [30, 55, 100] as [number, number, number];
+  const headerColor = config ? hexToRgb(config.cor_cabecalho) : ([30, 55, 100] as [number, number, number]);
   const fontSize = config?.tamanho_fonte || 8;
 
   await addLogos(doc, config || null, pageWidth);
@@ -479,7 +484,7 @@ export async function exportProgramacaoSemanalPDF(items: ProgramacaoSemanal[], c
   doc.setFontSize(10);
   doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, 28);
 
-  const rows = items.map(i => [
+  const rows = items.map((i) => [
     formatDateBR(i.data),
     i.fornecedor,
     i.pedido || '',
@@ -490,7 +495,7 @@ export async function exportProgramacaoSemanalPDF(items: ProgramacaoSemanal[], c
     formatCurrencyBR(i.valor),
     i.obra || '',
     i.responsavel || '',
-    i.observacao || ''
+    i.observacao || '',
   ]);
 
   const total = items.reduce((s, i) => s + i.valor, 0);
@@ -507,19 +512,19 @@ export async function exportProgramacaoSemanalPDF(items: ProgramacaoSemanal[], c
       fontStyle: config?.negrito ? 'bold' : 'normal',
       overflow: 'linebreak',
       lineWidth: 0.3,
-      lineColor: [0, 0, 0]
+      lineColor: [0, 0, 0],
     },
     headStyles: {
       fillColor: headerColor,
       lineWidth: 0.3,
-      lineColor: [0, 0, 0]
+      lineColor: [0, 0, 0],
     },
     footStyles: {
       lineWidth: 0.3,
-      lineColor: [0, 0, 0]
+      lineColor: [0, 0, 0],
     },
     tableLineWidth: 0.3,
-    tableLineColor: [0, 0, 0]
+    tableLineColor: [0, 0, 0],
   });
 
   addObservation(doc, observation);
@@ -533,7 +538,7 @@ export async function exportProgramacaoSemanalXLSX(items: ProgramacaoSemanal[], 
 
   const data: any[][] = [
     ['Data', 'Fornecedor', 'Pedido', 'Banco', 'Agência', 'Conta', 'CNPJ/CPF', 'Valor', 'Obra', 'Responsável', 'Observação'],
-    ...items.map(i => [
+    ...items.map((i) => [
       formatDateBR(i.data),
       i.fornecedor,
       i.pedido || '',
@@ -544,7 +549,7 @@ export async function exportProgramacaoSemanalXLSX(items: ProgramacaoSemanal[], 
       i.valor,
       i.obra || '',
       i.responsavel || '',
-      i.observacao || ''
+      i.observacao || '',
     ]),
     ['', '', '', '', '', '', 'TOTAL', items.reduce((s, i) => s + i.valor, 0), '', '', ''],
   ];
@@ -567,7 +572,7 @@ export async function exportEspelhoSemanalPDF(items: EspelhoItem[], dateStr: str
   const { default: autoTable } = await import('jspdf-autotable');
   const doc = new jsPDF({ orientation: 'landscape' });
   const pageWidth = doc.internal.pageSize.getWidth();
-  const headerColor = config ? hexToRgb(config.cor_cabecalho) : [30, 55, 100] as [number, number, number];
+  const headerColor = config ? hexToRgb(config.cor_cabecalho) : ([30, 55, 100] as [number, number, number]);
   const fontSize = config?.tamanho_fonte || 8;
 
   await addLogos(doc, config || null, pageWidth);
@@ -596,25 +601,25 @@ export async function exportEspelhoSemanalPDF(items: EspelhoItem[], dateStr: str
       overflow: 'linebreak',
       cellPadding: 2,
       lineWidth: 0.3,
-      lineColor: [0, 0, 0]
+      lineColor: [0, 0, 0],
     },
     columnStyles: {
       0: { halign: 'center' },
       7: { halign: 'center' },
       8: { halign: 'right' },
-      9: { halign: 'center' }
+      9: { halign: 'center' },
     },
     headStyles: {
       fillColor: headerColor,
       lineWidth: 0.3,
-      lineColor: [0, 0, 0]
+      lineColor: [0, 0, 0],
     },
     didParseCell(data) {
       const text = data.cell.text?.[0] || '';
       if (text === 'TOTAL GERAL') data.cell.styles.fontStyle = 'bold';
     },
     tableLineWidth: 0.3,
-    tableLineColor: [0, 0, 0]
+    tableLineColor: [0, 0, 0],
   });
 
   addObservation(doc, observation);
