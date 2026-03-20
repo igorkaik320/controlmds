@@ -23,6 +23,7 @@ const emptyForm = { data: '', fornecedor: '', pedido: '', banco: '', agencia: ''
 
 export default function ProgramacaoSemanalPage() {
   const { user } = useAuth();
+  const { canCreate, canEdit, canDelete, canExport } = useModulePermissions();
   const [items, setItems] = useState<ProgramacaoSemanal[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
