@@ -9,20 +9,26 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { fetchAuditLog, fetchProfiles, deleteAuditEntry, AuditEntry } from '@/lib/cashRegister';
 import { useAuth } from '@/lib/auth';
+import { useModulePermissions } from '@/hooks/useModulePermissions';
 import { toast } from 'sonner';
 
 function actionLabel(action: string) {
   switch (action) {
-    case 'criacao': return <Badge className="bg-entrada text-entrada-foreground">Criação</Badge>;
-    case 'edicao': return <Badge className="bg-warning text-warning-foreground">Edição</Badge>;
-    case 'exclusao': return <Badge className="bg-saida text-saida-foreground">Exclusão</Badge>;
-    default: return <Badge variant="outline">{action}</Badge>;
+    case 'criacao':
+      return <Badge className="bg-entrada text-entrada-foreground">Criação</Badge>;
+    case 'edicao':
+      return <Badge className="bg-warning text-warning-foreground">Edição</Badge>;
+    case 'exclusao':
+      return <Badge className="bg-saida text-saida-foreground">Exclusão</Badge>;
+    default:
+      return <Badge variant="outline">{action}</Badge>;
   }
 }
 
 export default function AuditLogPage() {
   const navigate = useNavigate();
   const { userRole } = useAuth();
+  const { canDelete } = useModulePermissions();
   const [entries, setEntries] = useState<AuditEntry[]>([]);
   const [profileMap, setProfileMap] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -30,6 +36,8 @@ export default function AuditLogPage() {
   const [filterUser, setFilterUser] = useState<string>('all');
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
+
+  const allowDelete = userRole === 'admin' || canDelete('auditoria');
 
   const load = async () => {
     try {
@@ -44,11 +52,16 @@ export default function AuditLogPage() {
       ]);
       setProfileMap(profiles);
       setEntries(data);
-    } catch (e: any) { toast.error(e.message); }
-    finally { setLoading(false); }
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  useEffect(() => { load(); }, [filterAction, filterUser, filterDateFrom, filterDateTo]);
+  useEffect(() => {
+    load();
+  }, [filterAction, filterUser, filterDateFrom, filterDateTo]);
 
   const handleDelete = async (id: string) => {
     if (!window.confirm('Excluir este registro de auditoria?')) return;
@@ -56,7 +69,9 @@ export default function AuditLogPage() {
       await deleteAuditEntry(id);
       toast.success('Registro excluído');
       await load();
-    } catch (e: any) { toast.error(e.message); }
+    } catch (e: any) {
+      toast.error(e.message);
+    }
   };
 
   const userOptions = Object.entries(profileMap);
@@ -89,6 +104,7 @@ export default function AuditLogPage() {
               </SelectContent>
             </Select>
           </div>
+
           <div>
             <Label>Usuário</Label>
             <Select value={filterUser} onValueChange={setFilterUser}>
@@ -101,13 +117,25 @@ export default function AuditLogPage() {
               </SelectContent>
             </Select>
           </div>
+
           <div>
             <Label>De</Label>
-            <Input type="date" value={filterDateFrom} onChange={(e) => setFilterDateFrom(e.target.value)} className="w-40" />
+            <Input
+              type="date"
+              value={filterDateFrom}
+              onChange={(e) => setFilterDateFrom(e.target.value)}
+              className="w-40"
+            />
           </div>
+
           <div>
             <Label>Até</Label>
-            <Input type="date" value={filterDateTo} onChange={(e) => setFilterDateTo(e.target.value)} className="w-40" />
+            <Input
+              type="date"
+              value={filterDateTo}
+              onChange={(e) => setFilterDateTo(e.target.value)}
+              className="w-40"
+            />
           </div>
         </div>
 
@@ -127,7 +155,7 @@ export default function AuditLogPage() {
                     <TableHead>Usuário</TableHead>
                     <TableHead>Valores Antigos</TableHead>
                     <TableHead>Valores Novos</TableHead>
-                    {userRole === 'admin' && <TableHead className="w-16 text-center">Ações</TableHead>}
+                    {allowDelete && <TableHead className="w-16 text-center">Ações</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -147,10 +175,15 @@ export default function AuditLogPage() {
                           <pre className="whitespace-pre-wrap break-all">{JSON.stringify(e.new_values, null, 1)}</pre>
                         ) : '—'}
                       </TableCell>
-                      {userRole === 'admin' && (
+                      {allowDelete && (
                         <TableCell>
                           <div className="flex justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDelete(e.id)}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-destructive hover:text-destructive"
+                              onClick={() => handleDelete(e.id)}
+                            >
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </div>
