@@ -29,6 +29,7 @@ const emptyForm = {
 
 export default function VeiculosMaquinasPage() {
   const { user, userRole } = useAuth();
+  const { canCreate, canEdit, canDelete } = useModulePermissions();
   const [items, setItems] = useState<VeiculoMaquina[]>([]);
   const [categorias, setCategorias] = useState<CategoriaVeiculo[]>([]);
   const [loading, setLoading] = useState(true);
