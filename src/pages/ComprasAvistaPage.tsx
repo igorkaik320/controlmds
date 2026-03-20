@@ -28,7 +28,7 @@ import { useFormDraft } from '@/hooks/useFormDraft';
 import { toast } from 'sonner';
 import type { Fornecedor } from '@/lib/comprasService';
 import { fetchObras, Obra } from '@/lib/obrasService';
-import { fetchEmpresaById } from '@/lib/empresasService';
+import { fetchEmpresas } from '@/lib/empresasService';
 
 const emptyForm = {
   data: '',
@@ -60,18 +60,41 @@ export default function ComprasAvistaPage() {
   const [observation, setObservation] = useFormDraft('av-observation', '');
 
   const [form, setForm, clearForm] = useFormDraft('av-form', emptyForm);
+  const [empresaLogos, setEmpresaLogos] = useState<{ logo_esquerda: string | null; logo_direita: string | null }>({
+    logo_esquerda: null,
+    logo_direita: null,
+  });
 
   const load = useCallback(async () => {
     try {
-      const [compras, obrasData] = await Promise.all([fetchComprasAvista(), fetchObras()]);
+      const [compras, obrasData, empresas] = await Promise.all([
+        fetchComprasAvista(),
+        fetchObras(),
+        fetchEmpresas(),
+      ]);
+
       setItems(compras);
       setObras(obrasData);
+
+      if (filterEmpresa) {
+        const empresa = empresas.find((e) => e.id === filterEmpresa);
+        if (empresa) {
+          setEmpresaLogos({
+            logo_esquerda: empresa.logo_esquerda,
+            logo_direita: empresa.logo_direita,
+          });
+        } else {
+          setEmpresaLogos({ logo_esquerda: null, logo_direita: null });
+        }
+      } else {
+        setEmpresaLogos({ logo_esquerda: null, logo_direita: null });
+      }
     } catch (e: any) {
       toast.error(e.message);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [filterEmpresa]);
 
   useEffect(() => {
     load();
@@ -174,26 +197,17 @@ export default function ComprasAvistaPage() {
   }
 
   async function handleExportPDF() {
-    try {
-      const config = await fetchConfigRelatorio();
+    let config = await fetchConfigRelatorio();
 
-      if (!filterEmpresa) {
-        exportAvistaPDF(filtered, config, observation);
-        return;
-      }
-
-      const empresa = await fetchEmpresaById(filterEmpresa);
-
-      const configComLogoDaEmpresa = {
+    if (filterEmpresa && (empresaLogos.logo_esquerda || empresaLogos.logo_direita) && config) {
+      config = {
         ...config,
-        logo_esquerda: empresa?.logo_esquerda || config?.logo_esquerda || null,
-        logo_direita: empresa?.logo_direita || config?.logo_direita || null,
+        logo_esquerda: empresaLogos.logo_esquerda || config.logo_esquerda || null,
+        logo_direita: empresaLogos.logo_direita || config.logo_direita || null,
       };
-
-      exportAvistaPDF(filtered, configComLogoDaEmpresa, observation);
-    } catch (e: any) {
-      toast.error(e.message);
     }
+
+    exportAvistaPDF(filtered, config, observation);
   }
 
   function handleFornecedorSelect(f: Fornecedor) {
@@ -426,9 +440,7 @@ export default function ComprasAvistaPage() {
               <Label>Valor *</Label>
               <Input
                 value={form.valor}
-                onChange={(e) =>
-                  setForm((p: typeof emptyForm) => ({ ...p, valor: formatCurrencyInput(e.target.value) }))
-                }
+                onChange={(e) => setForm((p: typeof emptyForm) => ({ ...p, valor: formatCurrencyInput(e.target.value) }))}
                 placeholder="R$ 0,00"
               />
             </div>
