@@ -39,6 +39,15 @@ function LoadingScreen() {
   );
 }
 
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+
+  if (!user && loading) return <LoadingScreen />;
+  if (!user) return <Navigate to="/auth" />;
+
+  return <AppLayout>{children}</AppLayout>;
+}
+
 function ModuleRoute({ children, module }: { children: React.ReactNode; module: ModuleKey }) {
   const { user, loading } = useAuth();
   const { canAccess, loading: permLoading } = useModulePermissions();
@@ -64,6 +73,16 @@ function ModuleRoute({ children, module }: { children: React.ReactNode; module: 
   return <AppLayout>{children}</AppLayout>;
 }
 
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { user, loading, userRole } = useAuth();
+
+  if (!user && loading) return <LoadingScreen />;
+  if (!user) return <Navigate to="/auth" />;
+  if (userRole !== "admin") return <Navigate to="/" />;
+
+  return <AppLayout>{children}</AppLayout>;
+}
+
 function AuthRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
 
@@ -82,15 +101,7 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
-
-            <Route
-              path="/"
-              element={
-                <ModuleRoute module="controle_caixa">
-                  <Index />
-                </ModuleRoute>
-              }
-            />
+            <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
 
             <Route
               path="/compras/faturadas"
@@ -126,7 +137,6 @@ const App = () => (
               path="/tipos-combustivel"
               element={<ModuleRoute module="tipos_combustivel"><TiposCombustivelPage /></ModuleRoute>}
             />
-
             <Route
               path="/combustivel/abastecimentos"
               element={<ModuleRoute module="abastecimentos"><AbastecimentosPage /></ModuleRoute>}
@@ -136,18 +146,12 @@ const App = () => (
               element={<ModuleRoute module="combustivel_dashboard"><DashboardCombustivelPage /></ModuleRoute>}
             />
 
-            <Route
-              path="/usuarios"
-              element={<ModuleRoute module="usuarios"><UserManagement /></ModuleRoute>}
-            />
+            <Route path="/usuarios" element={<AdminRoute><UserManagement /></AdminRoute>} />
             <Route
               path="/auditoria"
               element={<ModuleRoute module="auditoria"><AuditLog /></ModuleRoute>}
             />
-            <Route
-              path="/config-relatorio"
-              element={<ModuleRoute module="config_relatorio"><ConfigRelatorioPage /></ModuleRoute>}
-            />
+            <Route path="/config-relatorio" element={<AdminRoute><ConfigRelatorioPage /></AdminRoute>} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>
