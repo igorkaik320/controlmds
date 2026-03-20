@@ -37,6 +37,7 @@ export default function EspelhoSemanalPage() {
     logo_esquerda: null,
     logo_direita: null,
   });
+  const [empresaCorCabecalho, setEmpresaCorCabecalho] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -60,11 +61,14 @@ export default function EspelhoSemanalPage() {
             logo_esquerda: empresa.logo_esquerda,
             logo_direita: empresa.logo_direita,
           });
+          setEmpresaCorCabecalho(empresa.cor_cabecalho || null);
         } else {
           setEmpresaLogos({ logo_esquerda: null, logo_direita: null });
+          setEmpresaCorCabecalho(null);
         }
       } else {
         setEmpresaLogos({ logo_esquerda: null, logo_direita: null });
+        setEmpresaCorCabecalho(null);
       }
 
       const filtered = (filterDate ? compras.filter((c) => c.data === filterDate) : compras)
@@ -88,11 +92,17 @@ export default function EspelhoSemanalPage() {
   async function handleExportPDF() {
     let config = await fetchConfigRelatorio();
 
-    if (filterEmpresa && (empresaLogos.logo_esquerda || empresaLogos.logo_direita)) {
+    if (filterEmpresa && config) {
       config = {
-        ...config!,
-        logo_esquerda: empresaLogos.logo_esquerda || config?.logo_esquerda || null,
-        logo_direita: empresaLogos.logo_direita || config?.logo_direita || null,
+        ...config,
+        logo_esquerda: empresaLogos.logo_esquerda || config.logo_esquerda || null,
+        logo_direita: empresaLogos.logo_direita || config.logo_direita || null,
+        cor_cabecalho: empresaCorCabecalho || config.cor_cabecalho || '#6b7280',
+      };
+    } else if (config) {
+      config = {
+        ...config,
+        cor_cabecalho: '#6b7280',
       };
     }
 
