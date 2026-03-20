@@ -22,6 +22,7 @@ import { fetchEmpresas } from '@/lib/empresasService';
 import EmpresaSelect from '@/components/compras/EmpresaSelect';
 import DateRangeFilter from '@/components/DateRangeFilter';
 import { useFormDraft } from '@/hooks/useFormDraft';
+import { useModulePermissions } from '@/hooks/useModulePermissions';
 import { toast } from 'sonner';
 
 type FonteDados = 'avista' | 'faturadas' | 'ambos';
