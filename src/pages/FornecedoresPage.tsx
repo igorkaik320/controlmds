@@ -96,7 +96,9 @@ export default function FornecedoresPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-2xl font-bold">Cadastro de Fornecedores</h2>
-        <Button size="sm" onClick={openNew}><Plus className="h-4 w-4 mr-1" />Novo Fornecedor</Button>
+        {canCreate('fornecedores') && (
+          <Button size="sm" onClick={openNew}><Plus className="h-4 w-4 mr-1" />Novo Fornecedor</Button>
+        )}
       </div>
 
       <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar por nome, razão social ou CNPJ/CPF..." className="max-w-md" />
