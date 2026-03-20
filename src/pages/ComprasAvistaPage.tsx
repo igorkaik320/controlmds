@@ -16,7 +16,7 @@ import {
   deleteCompraAvista,
   fetchConfigRelatorio,
   formatCurrencyBR,
-  formatDateBR
+  formatDateBR,
 } from '@/lib/comprasService';
 import { exportAvistaPDF, exportAvistaXLSX } from '@/lib/comprasExport';
 import { formatCPFCNPJ, formatCurrencyInput, parseCurrencyInput } from '@/lib/formatters';
@@ -39,7 +39,7 @@ const emptyForm = {
   cnpj_cpf: '',
   valor: '',
   obra: '',
-  observacao: ''
+  observacao: '',
 };
 
 export default function ComprasAvistaPage() {
@@ -62,10 +62,7 @@ export default function ComprasAvistaPage() {
 
   const load = useCallback(async () => {
     try {
-      const [compras, obrasData] = await Promise.all([
-        fetchComprasAvista(),
-        fetchObras()
-      ]);
+      const [compras, obrasData] = await Promise.all([fetchComprasAvista(), fetchObras()]);
       setItems(compras);
       setObras(obrasData);
     } catch (e: any) {
@@ -75,9 +72,11 @@ export default function ComprasAvistaPage() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
-  const filtered = items.filter(i => {
+  const filtered = items.filter((i) => {
     if (dateFrom && i.data < dateFrom) return false;
     if (dateTo && i.data > dateTo) return false;
     if (filterForn && !i.fornecedor.toLowerCase().includes(filterForn.toLowerCase())) return false;
@@ -120,7 +119,7 @@ export default function ComprasAvistaPage() {
       cnpj_cpf: item.cnpj_cpf || '',
       valor: formatCurrencyInput(String(Math.round(item.valor * 100))),
       obra: item.obra || '',
-      observacao: item.observacao || ''
+      observacao: item.observacao || '',
     });
     setShowDialog(true);
   }
@@ -132,7 +131,19 @@ export default function ComprasAvistaPage() {
     }
 
     try {
-      const payload = { ...form, valor: parseCurrencyInput(form.valor), created_by: user.id };
+      const payload = {
+        data: form.data,
+        fornecedor: form.fornecedor,
+        pedido: form.pedido || null,
+        banco: form.banco || null,
+        agencia: form.agencia || null,
+        conta: form.conta || null,
+        cnpj_cpf: form.cnpj_cpf || null,
+        valor: parseCurrencyInput(form.valor),
+        obra: form.obra || null,
+        observacao: form.observacao || null,
+        created_by: user.id,
+      };
 
       if (editingId) {
         await updateCompraAvista(editingId, payload);
@@ -176,51 +187,87 @@ export default function ComprasAvistaPage() {
     }));
   }
 
-  if (loading) return <div className="flex min-h-screen items-center justify-center"><p>Carregando...</p></div>;
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p>Carregando...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-2xl font-bold">Compras à Vista por Obra</h2>
+
         <div className="flex gap-2">
           {canExport('compras_avista') && (
             <>
               <Button variant="outline" size="sm" onClick={handleExportPDF}>
-                <FileDown className="h-4 w-4 mr-1" />PDF
+                <FileDown className="mr-1 h-4 w-4" />
+                PDF
               </Button>
+
               <Button variant="outline" size="sm" onClick={() => exportAvistaXLSX(filtered, observation)}>
-                <FileSpreadsheet className="h-4 w-4 mr-1" />Excel
+                <FileSpreadsheet className="mr-1 h-4 w-4" />
+                Excel
               </Button>
             </>
           )}
+
           {canCreate('compras_avista') && (
             <Button size="sm" onClick={openNew}>
-              <Plus className="h-4 w-4 mr-1" />Novo
+              <Plus className="mr-1 h-4 w-4" />
+              Novo
             </Button>
           )}
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-4 items-end">
+      <div className="flex flex-wrap items-end gap-4">
         <div>
           <Label className="text-xs">Fornecedor</Label>
-          <Input value={filterForn} onChange={e => setFilterForn(e.target.value)} placeholder="Filtrar..." className="w-40" />
+          <Input
+            value={filterForn}
+            onChange={(e) => setFilterForn(e.target.value)}
+            placeholder="Filtrar..."
+            className="w-40"
+          />
         </div>
+
         <div>
           <Label className="text-xs">Obra</Label>
-          <Input value={filterObra} onChange={e => setFilterObra(e.target.value)} placeholder="Filtrar..." className="w-40" />
+          <Input
+            value={filterObra}
+            onChange={(e) => setFilterObra(e.target.value)}
+            placeholder="Filtrar..."
+            className="w-40"
+          />
         </div>
+
         <div className="w-52">
           <EmpresaSelect value={filterEmpresa} onChange={setFilterEmpresa} label="Empresa" allowAll />
         </div>
-        <DateRangeFilter dateFrom={dateFrom} dateTo={dateTo} onDateFromChange={setDateFrom} onDateToChange={setDateTo} />
-        <div className="flex-1 min-w-[200px]">
+
+        <DateRangeFilter
+          dateFrom={dateFrom}
+          dateTo={dateTo}
+          onDateFromChange={setDateFrom}
+          onDateToChange={setDateTo}
+        />
+
+        <div className="min-w-[200px] flex-1">
           <Label className="text-xs">Observação do relatório</Label>
-          <Textarea value={observation} onChange={e => setObservation(e.target.value)} rows={1} placeholder="Observação..." />
+          <Textarea
+            value={observation}
+            onChange={(e) => setObservation(e.target.value)}
+            rows={1}
+            placeholder="Observação..."
+          />
         </div>
       </div>
 
-      <div className="rounded-md border overflow-auto">
+      <div className="overflow-auto rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -237,11 +284,17 @@ export default function ComprasAvistaPage() {
               <TableHead></TableHead>
             </TableRow>
           </TableHeader>
+
           <TableBody>
             {filtered.length === 0 && (
-              <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground">Nenhum registro</TableCell></TableRow>
+              <TableRow>
+                <TableCell colSpan={11} className="text-center text-muted-foreground">
+                  Nenhum registro
+                </TableCell>
+              </TableRow>
             )}
-            {filtered.map(i => (
+
+            {filtered.map((i) => (
               <TableRow key={i.id}>
                 <TableCell>{formatDateBR(i.data)}</TableCell>
                 <TableCell>{i.fornecedor}</TableCell>
@@ -256,10 +309,15 @@ export default function ComprasAvistaPage() {
                 <TableCell>
                   <div className="flex gap-1">
                     {canEdit('compras_avista') && (
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(i)}><Pencil className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(i)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
                     )}
+
                     {canDelete('compras_avista') && (
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(i.id)}><Trash2 className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(i.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     )}
                   </div>
                 </TableCell>
@@ -283,24 +341,102 @@ export default function ComprasAvistaPage() {
           setShowDialog(true);
         }}
       >
-        <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>{editingId ? 'Editar' : 'Nova'} Compra à Vista</DialogTitle></DialogHeader>
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-auto">
+          <DialogHeader>
+            <DialogTitle>{editingId ? 'Editar' : 'Nova'} Compra à Vista</DialogTitle>
+          </DialogHeader>
+
           <div className="grid gap-3">
-            <div><Label>Data *</Label><Input type="date" value={form.data} onChange={e => setForm((p: typeof emptyForm) => ({ ...p, data: e.target.value }))} /></div>
-            <FornecedorSelect value={form.fornecedor} onChange={v => setForm((p: typeof emptyForm) => ({ ...p, fornecedor: v }))} onFornecedorSelect={handleFornecedorSelect} />
-            <div><Label>Pedido</Label><Input value={form.pedido} onChange={e => setForm((p: typeof emptyForm) => ({ ...p, pedido: e.target.value }))} /></div>
-            <div className="grid grid-cols-3 gap-2">
-              <div><Label>Banco</Label><Input value={form.banco} onChange={e => setForm((p: typeof emptyForm) => ({ ...p, banco: e.target.value }))} /></div>
-              <div><Label>Agência</Label><Input value={form.agencia} onChange={e => setForm((p: typeof emptyForm) => ({ ...p, agencia: e.target.value }))} /></div>
-              <div><Label>Conta</Label><Input value={form.conta} onChange={e => setForm((p: typeof emptyForm) => ({ ...p, conta: e.target.value }))} /></div>
+            <div>
+              <Label>Data *</Label>
+              <Input
+                type="date"
+                value={form.data}
+                onChange={(e) => setForm((p: typeof emptyForm) => ({ ...p, data: e.target.value }))}
+              />
             </div>
-            <div><Label>CNPJ/CPF</Label><Input value={form.cnpj_cpf} onChange={e => setForm((p: typeof emptyForm) => ({ ...p, cnpj_cpf: formatCPFCNPJ(e.target.value) }))} maxLength={18} /></div>
-            <div><Label>Valor *</Label><Input value={form.valor} onChange={e => setForm((p: typeof emptyForm) => ({ ...p, valor: formatCurrencyInput(e.target.value) }))} placeholder="R$ 0,00" /></div>
-            <div><Label>Obra</Label><ObraSelect value={form.obra} onChange={v => setForm((p: typeof emptyForm) => ({ ...p, obra: v }))} /></div>
-            <div><Label>Observação</Label><Textarea value={form.observacao} onChange={e => setForm((p: typeof emptyForm) => ({ ...p, observacao: e.target.value }))} /></div>
+
+            <FornecedorSelect
+              value={form.fornecedor}
+              onChange={(v) => setForm((p: typeof emptyForm) => ({ ...p, fornecedor: v }))}
+              onFornecedorSelect={handleFornecedorSelect}
+            />
+
+            <div>
+              <Label>Pedido</Label>
+              <Input
+                value={form.pedido}
+                onChange={(e) => setForm((p: typeof emptyForm) => ({ ...p, pedido: e.target.value }))}
+              />
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <Label>Banco</Label>
+                <Input
+                  value={form.banco}
+                  onChange={(e) => setForm((p: typeof emptyForm) => ({ ...p, banco: e.target.value }))}
+                />
+              </div>
+
+              <div>
+                <Label>Agência</Label>
+                <Input
+                  value={form.agencia}
+                  onChange={(e) => setForm((p: typeof emptyForm) => ({ ...p, agencia: e.target.value }))}
+                />
+              </div>
+
+              <div>
+                <Label>Conta</Label>
+                <Input
+                  value={form.conta}
+                  onChange={(e) => setForm((p: typeof emptyForm) => ({ ...p, conta: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label>CNPJ/CPF</Label>
+              <Input
+                value={form.cnpj_cpf}
+                onChange={(e) =>
+                  setForm((p: typeof emptyForm) => ({ ...p, cnpj_cpf: formatCPFCNPJ(e.target.value) }))
+                }
+                maxLength={18}
+              />
+            </div>
+
+            <div>
+              <Label>Valor *</Label>
+              <Input
+                value={form.valor}
+                onChange={(e) => setForm((p: typeof emptyForm) => ({ ...p, valor: formatCurrencyInput(e.target.value) }))}
+                placeholder="R$ 0,00"
+              />
+            </div>
+
+            <div>
+              <Label>Obra</Label>
+              <ObraSelect
+                value={form.obra}
+                onChange={(v) => setForm((p: typeof emptyForm) => ({ ...p, obra: v }))}
+              />
+            </div>
+
+            <div>
+              <Label>Observação</Label>
+              <Textarea
+                value={form.observacao}
+                onChange={(e) => setForm((p: typeof emptyForm) => ({ ...p, observacao: e.target.value }))}
+              />
+            </div>
           </div>
+
           <DialogFooter>
-            <Button variant="outline" onClick={resetDialogDraft}>Cancelar</Button>
+            <Button variant="outline" onClick={resetDialogDraft}>
+              Cancelar
+            </Button>
             <Button onClick={handleSubmit}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
