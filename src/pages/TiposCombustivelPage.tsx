@@ -49,7 +49,9 @@ export default function TiposCombustivelPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-2xl font-bold">Tipos de Combustível</h2>
-        <Button size="sm" onClick={openNew}><Plus className="h-4 w-4 mr-1" />Novo</Button>
+        {canCreate('tipos_combustivel') && (
+          <Button size="sm" onClick={openNew}><Plus className="h-4 w-4 mr-1" />Novo</Button>
+        )}
       </div>
 
       <div className="rounded-md border overflow-auto">
