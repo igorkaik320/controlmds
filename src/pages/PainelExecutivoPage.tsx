@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
+import { Progress } from '@/components/ui/progress';
 import {
   AlertTriangle,
   ArrowRight,
@@ -13,14 +11,11 @@ import {
   CarFront,
   DollarSign,
   Droplets,
+  FileBarChart,
   Fuel,
-  Landmark,
   PackageSearch,
   ShoppingCart,
-  TrendingDown,
   TrendingUp,
-  Users,
-  Wallet,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -30,6 +25,9 @@ import {
   XAxis,
   YAxis,
   Tooltip,
+  PieChart,
+  Pie,
+  Cell,
 } from 'recharts';
 import {
   fetchComprasAvista,
@@ -37,9 +35,10 @@ import {
   fetchProgramacaoSemanal,
   formatCurrencyBR,
 } from '@/lib/comprasService';
-import { fetchTransactions, fetchVerifications, getSummary, fetchAllUsersWithRoles } from '@/lib/cashRegister';
 import { fetchAbastecimentos } from '@/lib/combustivelService';
 import { toast } from 'sonner';
+
+const COLORS = ['#0f172a', '#2563eb', '#f97316', '#ef4444', '#0ea5e9'];
 
 type ExecutiveAlert = {
   id: string;
@@ -64,35 +63,20 @@ export default function PainelExecutivoPage() {
   const [comprasSemPedidoCount, setComprasSemPedidoCount] = useState(0);
   const [programacaoTotal, setProgramacaoTotal] = useState(0);
   const [programacaoSemResponsavel, setProgramacaoSemResponsavel] = useState(0);
-  const [caixaSaldoAtual, setCaixaSaldoAtual] = useState(0);
-  const [caixaDiferenca, setCaixaDiferenca] = useState(0);
   const [combustivelTotal, setCombustivelTotal] = useState(0);
   const [combustivelLitros, setCombustivelLitros] = useState(0);
   const [abastecimentosCount, setAbastecimentosCount] = useState(0);
-  const [usuariosTotal, setUsuariosTotal] = useState(0);
-  const [adminsTotal, setAdminsTotal] = useState(0);
   const [topObras, setTopObras] = useState<Array<{ name: string; value: number }>>([]);
   const [topFornecedores, setTopFornecedores] = useState<Array<{ name: string; value: number }>>([]);
   const [topVeiculos, setTopVeiculos] = useState<Array<{ name: string; value: number }>>([]);
 
   const load = useCallback(async () => {
     try {
-      const [
-        comprasAvista,
-        comprasFaturadas,
-        programacao,
-        transactions,
-        verifications,
-        abastecimentos,
-        usuarios,
-      ] = await Promise.all([
+      const [comprasAvista, comprasFaturadas, programacao, abastecimentos] = await Promise.all([
         fetchComprasAvista(),
         fetchComprasFaturadas(),
         fetchProgramacaoSemanal(),
-        fetchTransactions(),
-        fetchVerifications(),
         fetchAbastecimentos(),
-        fetchAllUsersWithRoles(),
       ]);
 
       const totalAvista = comprasAvista.reduce((sum, item) => sum + item.valor, 0);
@@ -104,7 +88,6 @@ export default function PainelExecutivoPage() {
         semPedidoFaturadas.reduce((sum, item) => sum + item.valor, 0);
 
       const totalProgramacao = programacao.reduce((sum, item) => sum + item.valor, 0);
-      const resumoCaixa = getSummary(transactions, verifications);
       const totalCombustivel = abastecimentos.reduce((sum, item) => sum + item.valor_total, 0);
       const totalLitros = abastecimentos.reduce((sum, item) => sum + item.quantidade_litros, 0);
 
@@ -125,7 +108,7 @@ export default function PainelExecutivoPage() {
         const veiculoNome =
           item.veiculo?.placa?.trim() ||
           item.veiculo?.modelo?.trim() ||
-          'Sem identificação';
+          'Sem identificacao';
         veiculosMap.set(veiculoNome, (veiculosMap.get(veiculoNome) || 0) + item.valor_total);
       });
 
@@ -135,19 +118,15 @@ export default function PainelExecutivoPage() {
       setComprasSemPedidoCount(semPedidoAvista.length + semPedidoFaturadas.length);
       setProgramacaoTotal(totalProgramacao);
       setProgramacaoSemResponsavel(programacao.filter((item) => !item.responsavel?.trim()).length);
-      setCaixaSaldoAtual(resumoCaixa.currentBalance);
-      setCaixaDiferenca(resumoCaixa.totalDifferences);
       setCombustivelTotal(totalCombustivel);
       setCombustivelLitros(totalLitros);
       setAbastecimentosCount(abastecimentos.length);
-      setUsuariosTotal(usuarios.length);
-      setAdminsTotal(usuarios.filter((user) => user.role === 'admin').length);
 
       setTopObras(
         Array.from(obrasMap.entries())
           .map(([name, value]) => ({ name, value }))
           .sort((a, b) => b.value - a.value)
-          .slice(0, 5)
+          .slice(0, 6)
       );
 
       setTopFornecedores(
@@ -164,7 +143,7 @@ export default function PainelExecutivoPage() {
           .slice(0, 5)
       );
     } catch (e: any) {
-      toast.error(e.message || 'Não foi possível carregar o painel executivo.');
+      toast.error(e.message || 'Nao foi possivel carregar o painel executivo.');
     } finally {
       setLoading(false);
     }
@@ -175,33 +154,34 @@ export default function PainelExecutivoPage() {
   }, [load]);
 
   const totalCompras = comprasAvistaTotal + comprasFaturadasTotal;
-  const exposicaoOperacional = totalCompras + programacaoTotal + combustivelTotal;
   const percentualSemPedido = totalCompras > 0 ? (comprasSemPedidoTotal / totalCompras) * 100 : 0;
+  const combustivelMedio =
+    abastecimentosCount > 0 ? combustivelTotal / abastecimentosCount : 0;
 
   const heroCards: KpiCard[] = [
     {
-      title: 'Exposição Operacional',
-      value: formatCurrencyBR(exposicaoOperacional),
-      helper: 'Compras, programação e combustível somados.',
-      icon: Wallet,
-    },
-    {
-      title: 'Compras Totais',
+      title: 'Previsao de Compras',
       value: formatCurrencyBR(totalCompras),
-      helper: `${formatCurrencyBR(comprasAvistaTotal)} à vista e ${formatCurrencyBR(comprasFaturadasTotal)} faturadas.`,
+      helper: `${formatCurrencyBR(comprasAvistaTotal)} a vista e ${formatCurrencyBR(comprasFaturadasTotal)} faturadas.`,
       icon: ShoppingCart,
     },
     {
-      title: 'Saldo Atual de Caixa',
-      value: formatCurrencyBR(caixaSaldoAtual),
-      helper:
-        Math.abs(caixaDiferenca) > 0.01
-          ? `Última divergência: ${formatCurrencyBR(caixaDiferenca)}`
-          : 'Sem divergência relevante na última conferência.',
-      icon: Landmark,
+      title: 'Compras sem Pedido',
+      value: formatCurrencyBR(comprasSemPedidoTotal),
+      helper: `${comprasSemPedidoCount} lancamentos ainda sem pedido vinculado.`,
+      icon: PackageSearch,
     },
     {
-      title: 'Combustível',
+      title: 'Programacao Semanal',
+      value: formatCurrencyBR(programacaoTotal),
+      helper:
+        programacaoSemResponsavel > 0
+          ? `${programacaoSemResponsavel} itens sem responsavel definido.`
+          : 'Todos os itens com responsavel definido.',
+      icon: CalendarClock,
+    },
+    {
+      title: 'Combustivel',
       value: formatCurrencyBR(combustivelTotal),
       helper: `${combustivelLitros.toFixed(1)} L em ${abastecimentosCount} abastecimentos.`,
       icon: Fuel,
@@ -214,45 +194,41 @@ export default function PainelExecutivoPage() {
     if (comprasSemPedidoTotal > 0) {
       nextAlerts.push({
         id: 'compras-sem-pedido',
-        title: 'Compras sem pedido exigem atenção',
-        description: `${comprasSemPedidoCount} lançamentos somam ${formatCurrencyBR(comprasSemPedidoTotal)} ainda sem pedido vinculado.`,
+        title: 'Compras sem pedido exigem atencao',
+        description: `${comprasSemPedidoCount} lancamentos somam ${formatCurrencyBR(comprasSemPedidoTotal)} ainda sem pedido vinculado.`,
         tone: comprasSemPedidoTotal > 100000 ? 'critical' : 'warning',
         cta: 'Revisar espelho geral',
-      });
-    }
-
-    if (Math.abs(caixaDiferenca) > 0.01) {
-      nextAlerts.push({
-        id: 'caixa-divergente',
-        title: 'Caixa com divergência',
-        description: `A última conferência registrou ${formatCurrencyBR(caixaDiferenca)} de diferença entre físico e sistema.`,
-        tone: Math.abs(caixaDiferenca) > 100 ? 'critical' : 'warning',
-        cta: 'Conferir caixa',
       });
     }
 
     if (programacaoSemResponsavel > 0) {
       nextAlerts.push({
         id: 'programacao-sem-responsavel',
-        title: 'Programação sem responsável definido',
-        description: `${programacaoSemResponsavel} lançamentos da programação semanal ainda não têm responsável atribuído.`,
-        tone: 'info',
-        cta: 'Ajustar programação',
+        title: 'Programacao com pendencia de responsavel',
+        description: `${programacaoSemResponsavel} itens da programacao semanal ainda nao tem responsavel atribuido.`,
+        tone: 'warning',
+        cta: 'Abrir programacao',
       });
     }
 
     if (topVeiculos.length > 0) {
       nextAlerts.push({
         id: 'combustivel-top-veiculo',
-        title: 'Maior consumo concentrado em um veículo',
-        description: `${topVeiculos[0].name} já acumula ${formatCurrencyBR(topVeiculos[0].value)} em combustível.`,
+        title: 'Consumo concentrado em um veiculo',
+        description: `${topVeiculos[0].name} acumula ${formatCurrencyBR(topVeiculos[0].value)} em combustivel.`,
         tone: 'info',
-        cta: 'Abrir dashboard de combustível',
+        cta: 'Abrir dashboard de combustivel',
       });
     }
 
-    return nextAlerts.slice(0, 4);
-  }, [caixaDiferenca, comprasSemPedidoCount, comprasSemPedidoTotal, programacaoSemResponsavel, topVeiculos]);
+    return nextAlerts.slice(0, 3);
+  }, [comprasSemPedidoCount, comprasSemPedidoTotal, programacaoSemResponsavel, topVeiculos]);
+
+  const comprasMix = [
+    { name: 'A Vista', value: comprasAvistaTotal },
+    { name: 'Faturadas', value: comprasFaturadasTotal },
+    { name: 'Programacao', value: programacaoTotal },
+  ].filter((item) => item.value > 0);
 
   if (loading) {
     return (
@@ -268,7 +244,7 @@ export default function PainelExecutivoPage() {
         <div>
           <h2 className="text-2xl font-bold">Painel Executivo</h2>
           <p className="text-sm text-muted-foreground">
-            Visão consolidada dos módulos principais para acompanhamento da diretoria.
+            Foco em previsao de compras e combustivel para acompanhamento da diretoria.
           </p>
         </div>
 
@@ -294,21 +270,15 @@ export default function PainelExecutivoPage() {
         ))}
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[1.6fr_1fr]">
+      <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
         <Card className="border-slate-200">
           <CardHeader>
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-amber-500" />
-              <CardTitle className="text-base">Alertas Prioritários</CardTitle>
+              <CardTitle className="text-base">Alertas Prioritarios</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
-            {alerts.length === 0 && (
-              <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-                Nenhum alerta crítico no momento. Essa área pode virar a central de exceções do sistema.
-              </div>
-            )}
-
             {alerts.map((alert) => (
               <div
                 key={alert.id}
@@ -327,9 +297,9 @@ export default function PainelExecutivoPage() {
                       }
                     >
                       {alert.tone === 'critical'
-                        ? 'Crítico'
+                        ? 'Critico'
                         : alert.tone === 'warning'
-                        ? 'Atenção'
+                        ? 'Atencao'
                         : 'Acompanhar'}
                     </Badge>
                   </div>
@@ -349,12 +319,12 @@ export default function PainelExecutivoPage() {
 
         <Card className="border-slate-200">
           <CardHeader>
-            <CardTitle className="text-base">Indicadores de Processo</CardTitle>
+            <CardTitle className="text-base">Indicadores Chave</CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">
             <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
-                <span>Compras sem pedido</span>
+                <span>Volume sem pedido</span>
                 <span className="font-medium">{percentualSemPedido.toFixed(1)}%</span>
               </div>
               <Progress value={Math.min(percentualSemPedido, 100)} className="h-2" />
@@ -363,238 +333,196 @@ export default function PainelExecutivoPage() {
               </p>
             </div>
 
-            <Separator />
-
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xs text-muted-foreground">Usuários ativos</p>
-                <p className="text-xl font-bold">{usuariosTotal}</p>
+                <p className="text-xs text-muted-foreground">Sem pedido</p>
+                <p className="text-xl font-bold">{comprasSemPedidoCount}</p>
               </div>
 
               <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xs text-muted-foreground">Administradores</p>
-                <p className="text-xl font-bold">{adminsTotal}</p>
-              </div>
-
-              <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xs text-muted-foreground">Sem responsável</p>
+                <p className="text-xs text-muted-foreground">Sem responsavel</p>
                 <p className="text-xl font-bold">{programacaoSemResponsavel}</p>
               </div>
 
               <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xs text-muted-foreground">Divergência de caixa</p>
-                <p className="text-xl font-bold">{formatCurrencyBR(caixaDiferenca)}</p>
+                <p className="text-xs text-muted-foreground">Abastecimentos</p>
+                <p className="text-xl font-bold">{abastecimentosCount}</p>
+              </div>
+
+              <div className="rounded-lg bg-slate-50 p-3">
+                <p className="text-xs text-muted-foreground">Ticket medio combustivel</p>
+                <p className="text-xl font-bold">{formatCurrencyBR(combustivelMedio)}</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <Tabs defaultValue="compras" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4 md:w-fit">
-          <TabsTrigger value="compras">Compras</TabsTrigger>
-          <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
-          <TabsTrigger value="combustivel">Combustível</TabsTrigger>
-          <TabsTrigger value="operacao">Operação</TabsTrigger>
-        </TabsList>
+      <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <FileBarChart className="h-4 w-4 text-slate-500" />
+              <CardTitle className="text-base">Composicao da Previsao</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={comprasMix}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={60}
+                    outerRadius={90}
+                    paddingAngle={3}
+                  >
+                    {comprasMix.map((_, index) => (
+                      <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value: number) => formatCurrencyBR(value)} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
 
-        <TabsContent value="compras" className="space-y-4">
-          <div className="grid gap-4 lg:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Top Obras por Volume</CardTitle>
-              </CardHeader>
-              <CardContent className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={topObras} layout="vertical" margin={{ left: 40 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis type="number" tickFormatter={(value) => `R$ ${Number(value).toLocaleString('pt-BR')}`} />
-                    <YAxis type="category" dataKey="name" width={150} tick={{ fontSize: 11 }} />
-                    <Tooltip formatter={(value: number) => formatCurrencyBR(value)} />
-                    <Bar dataKey="value" fill="hsl(var(--primary))" radius={[0, 6, 6, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
+            <div className="space-y-3">
+              {comprasMix.map((item, index) => {
+                const percent = totalCompras + programacaoTotal > 0
+                  ? (item.value / (totalCompras + programacaoTotal)) * 100
+                  : 0;
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Top Fornecedores</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {topFornecedores.map((item, index) => (
-                  <div key={item.name} className="flex items-center justify-between gap-3 rounded-lg border p-3">
-                    <div className="min-w-0">
-                      <p className="text-xs text-muted-foreground">#{index + 1}</p>
-                      <p className="truncate font-medium">{item.name}</p>
-                    </div>
-                    <p className="whitespace-nowrap font-semibold">{formatCurrencyBR(item.value)}</p>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="financeiro" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-muted-foreground">Compras à Vista</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-emerald-500" />
-                  <span className="text-2xl font-bold">{formatCurrencyBR(comprasAvistaTotal)}</span>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-muted-foreground">Compras Faturadas</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-2">
-                  <CalendarClock className="h-4 w-4 text-sky-500" />
-                  <span className="text-2xl font-bold">{formatCurrencyBR(comprasFaturadasTotal)}</span>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-muted-foreground">Programação Semanal</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-2">
-                  <TrendingDown className="h-4 w-4 text-amber-500" />
-                  <span className="text-2xl font-bold">{formatCurrencyBR(programacaoTotal)}</span>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="combustivel" className="space-y-4">
-          <div className="grid gap-4 lg:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Veículos com Maior Gasto</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {topVeiculos.map((item, index) => (
-                  <div key={item.name} className="flex items-center justify-between gap-3 rounded-lg border p-3">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <div className="rounded-lg bg-slate-100 p-2">
-                        <CarFront className="h-4 w-4 text-slate-600" />
+                return (
+                  <div key={item.name} className="rounded-xl border p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="h-3 w-3 rounded-full"
+                          style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                        />
+                        <span className="font-medium">{item.name}</span>
                       </div>
-                      <div className="min-w-0">
-                        <p className="text-xs text-muted-foreground">#{index + 1}</p>
-                        <p className="truncate font-medium">{item.name}</p>
-                      </div>
+                      <span className="text-sm font-semibold">{percent.toFixed(1)}%</span>
                     </div>
-                    <p className="whitespace-nowrap font-semibold">{formatCurrencyBR(item.value)}</p>
+                    <p className="mt-2 text-xl font-bold">{formatCurrencyBR(item.value)}</p>
                   </div>
-                ))}
-              </CardContent>
-            </Card>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Resumo do Módulo</CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-4 sm:grid-cols-2">
-                <div className="rounded-xl border p-4">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Droplets className="h-4 w-4" />
-                    Litros Abastecidos
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Top Fornecedores</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {topFornecedores.map((item, index) => (
+              <div key={item.name} className="flex items-center justify-between gap-3 rounded-lg border p-3">
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">#{index + 1}</p>
+                  <p className="truncate font-medium">{item.name}</p>
+                </div>
+                <p className="whitespace-nowrap font-semibold">{formatCurrencyBR(item.value)}</p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Top Obras por Volume</CardTitle>
+          </CardHeader>
+          <CardContent className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={topObras} layout="vertical" margin={{ left: 40 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis type="number" tickFormatter={(value) => `R$ ${Number(value).toLocaleString('pt-BR')}`} />
+                <YAxis type="category" dataKey="name" width={150} tick={{ fontSize: 11 }} />
+                <Tooltip formatter={(value: number) => formatCurrencyBR(value)} />
+                <Bar dataKey="value" fill="#0f172a" radius={[0, 6, 6, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <CarFront className="h-4 w-4 text-slate-500" />
+              <CardTitle className="text-base">Combustivel por Veiculo</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {topVeiculos.map((item, index) => (
+              <div key={item.name} className="rounded-lg border p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground">#{index + 1}</p>
+                    <p className="truncate font-medium">{item.name}</p>
                   </div>
-                  <p className="mt-2 text-2xl font-bold">{combustivelLitros.toFixed(1)} L</p>
+                  <p className="whitespace-nowrap font-semibold">{formatCurrencyBR(item.value)}</p>
                 </div>
+                <div className="mt-3">
+                  <Progress
+                    value={topVeiculos[0]?.value ? (item.value / topVeiculos[0].value) * 100 : 0}
+                    className="h-2"
+                  />
+                </div>
+              </div>
+            ))}
 
-                <div className="rounded-xl border p-4">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <DollarSign className="h-4 w-4" />
-                    Ticket Médio
-                  </div>
-                  <p className="mt-2 text-2xl font-bold">
-                    {formatCurrencyBR(abastecimentosCount > 0 ? combustivelTotal / abastecimentosCount : 0)}
-                  </p>
-                </div>
+            {topVeiculos.length === 0 && (
+              <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+                Ainda nao existem dados de combustivel suficientes para montar o ranking.
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
-                <div className="rounded-xl border p-4">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Fuel className="h-4 w-4" />
-                    Abastecimentos
-                  </div>
-                  <p className="mt-2 text-2xl font-bold">{abastecimentosCount}</p>
-                </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-emerald-500" />
+              <CardTitle className="text-base">Leitura Executiva de Compras</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm text-muted-foreground">
+            <p>
+              O volume total da previsao esta concentrado em {topObras[0]?.name || 'obras principais'} e o
+              principal ponto de risco continua sendo o montante sem pedido vinculado.
+            </p>
+            <p>
+              Essa area pode evoluir depois para mostrar comparativo por quinzena, remessas e regularizacao
+              posterior de pedidos.
+            </p>
+          </CardContent>
+        </Card>
 
-                <div className="rounded-xl border p-4">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <BarChart3 className="h-4 w-4" />
-                    Veículos com gasto
-                  </div>
-                  <p className="mt-2 text-2xl font-bold">{topVeiculos.length}</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="operacao" className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-muted-foreground">Itens sem Pedido</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-2">
-                  <PackageSearch className="h-4 w-4 text-amber-500" />
-                  <span className="text-2xl font-bold">{comprasSemPedidoCount}</span>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-muted-foreground">Programação sem Responsável</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-sky-500" />
-                  <span className="text-2xl font-bold">{programacaoSemResponsavel}</span>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-muted-foreground">Divergência de Caixa</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-rose-500" />
-                  <span className="text-2xl font-bold">{formatCurrencyBR(caixaDiferenca)}</span>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm text-muted-foreground">Usuários Cadastrados</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-emerald-500" />
-                  <span className="text-2xl font-bold">{usuariosTotal}</span>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-      </Tabs>
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Droplets className="h-4 w-4 text-sky-500" />
+              <CardTitle className="text-base">Leitura Executiva de Combustivel</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm text-muted-foreground">
+            <p>
+              O modulo de combustivel agora entra como um bloco proprio da diretoria, destacando gasto total,
+              ticket medio e concentracao por veiculo.
+            </p>
+            <p>
+              Depois podemos adicionar tendencia mensal, comparativo entre categorias e alertas de consumo fora
+              da media.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
