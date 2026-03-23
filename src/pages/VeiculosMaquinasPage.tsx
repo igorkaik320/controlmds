@@ -9,20 +9,17 @@ import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useModulePermissions } from '@/hooks/useModulePermissions';
 import { VeiculoMaquina, fetchVeiculos, saveVeiculo, updateVeiculo, deleteVeiculo } from '@/lib/combustivelService';
-import { fetchObras, Obra } from '@/lib/obrasService';
 import { toast } from 'sonner';
 
 const emptyForm = {
   tipo: 'veiculo' as 'veiculo' | 'maquina',
   placa: '',
-  obra_id: '',
 };
 
 export default function VeiculosMaquinasPage() {
-  const { user, userRole } = useAuth();
+  const { user } = useAuth();
   const { canCreate, canEdit, canDelete } = useModulePermissions();
   const [items, setItems] = useState<VeiculoMaquina[]>([]);
-  const [obras, setObras] = useState<Obra[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -31,9 +28,7 @@ export default function VeiculosMaquinasPage() {
 
   const load = useCallback(async () => {
     try {
-      const [veiculos, obrasData] = await Promise.all([fetchVeiculos(), fetchObras()]);
-      setItems(veiculos);
-      setObras(obrasData);
+      setItems(await fetchVeiculos());
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -47,7 +42,7 @@ export default function VeiculosMaquinasPage() {
 
   const filtered = items.filter((item) => {
     const term = search.toLowerCase();
-    return item.placa.toLowerCase().includes(term) || (item.obra?.nome || '').toLowerCase().includes(term);
+    return item.placa.toLowerCase().includes(term);
   });
 
   function resetDialogDraft() {
@@ -67,7 +62,6 @@ export default function VeiculosMaquinasPage() {
     setForm({
       tipo: item.tipo,
       placa: item.placa,
-      obra_id: item.obra_id || '',
     });
     setShowDialog(true);
   }
@@ -91,7 +85,6 @@ export default function VeiculosMaquinasPage() {
         marca: '',
         categoria_id: null,
         categoria: '',
-        obra_id: form.obra_id || null,
         created_by: user.id,
       };
 
@@ -140,7 +133,7 @@ export default function VeiculosMaquinasPage() {
       <Input
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        placeholder="Buscar por placa ou obra..."
+        placeholder="Buscar por placa..."
         className="max-w-sm"
       />
 
@@ -150,14 +143,13 @@ export default function VeiculosMaquinasPage() {
             <TableRow>
               <TableHead>Tipo</TableHead>
               <TableHead>Placa</TableHead>
-              <TableHead>Obra Vinculada</TableHead>
               <TableHead></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground">
+                <TableCell colSpan={3} className="text-center text-muted-foreground">
                   Nenhum registro
                 </TableCell>
               </TableRow>
@@ -167,7 +159,6 @@ export default function VeiculosMaquinasPage() {
               <TableRow key={item.id}>
                 <TableCell>{item.tipo === 'veiculo' ? 'Veiculo' : 'Maquina'}</TableCell>
                 <TableCell>{item.placa}</TableCell>
-                <TableCell>{item.obra?.nome || '—'}</TableCell>
                 <TableCell>
                   <div className="flex gap-1">
                     {canEdit('veiculos_maquinas') && (
@@ -227,26 +218,6 @@ export default function VeiculosMaquinasPage() {
                 onChange={(e) => setForm((prev) => ({ ...prev, placa: e.target.value.toUpperCase() }))}
                 placeholder="RXE-5D11"
               />
-            </div>
-
-            <div>
-              <Label>Obra Vinculada</Label>
-              <Select
-                value={form.obra_id || '_none'}
-                onValueChange={(value) => setForm((prev) => ({ ...prev, obra_id: value === '_none' ? '' : value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="_none">Sem obra vinculada</SelectItem>
-                  {obras.map((obra) => (
-                    <SelectItem key={obra.id} value={obra.id}>
-                      {obra.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
           </div>
 

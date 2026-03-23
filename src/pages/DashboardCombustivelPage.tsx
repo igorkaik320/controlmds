@@ -99,11 +99,11 @@ export default function DashboardCombustivelPage() {
     load();
   }, [load]);
 
-  const obrasComVeiculos = veiculos
-    .filter((veiculo) => veiculo.obra_id && veiculo.obra?.nome)
-    .reduce((acc, veiculo) => {
-      if (!acc.some((obra) => obra.id === veiculo.obra_id)) {
-        acc.push({ id: veiculo.obra_id as string, nome: veiculo.obra?.nome as string });
+  const obrasComAbastecimento = items
+    .filter((item) => item.obra_id && item.obra?.nome)
+    .reduce((acc, item) => {
+      if (!acc.some((obra) => obra.id === item.obra_id)) {
+        acc.push({ id: item.obra_id as string, nome: item.obra?.nome as string });
       }
       return acc;
     }, [] as Array<{ id: string; nome: string }>)
@@ -113,7 +113,7 @@ export default function DashboardCombustivelPage() {
     if (filters.dateFrom && item.data < filters.dateFrom) return false;
     if (filters.dateTo && item.data > filters.dateTo) return false;
     if (filters.veiculo !== 'all' && item.veiculo_id !== filters.veiculo) return false;
-    if (filters.obra !== 'all' && (item.veiculo?.obra_id || '') !== filters.obra) return false;
+    if (filters.obra !== 'all' && (item.obra_id || '') !== filters.obra) return false;
     if (filters.posto !== 'all' && (item.posto_id || '') !== filters.posto) return false;
     if (filters.combustivel !== 'all' && item.combustivel_id !== filters.combustivel) return false;
     return true;
@@ -147,9 +147,9 @@ export default function DashboardCombustivelPage() {
     })
     .filter((combustivel) => combustivel.litros > 0);
 
-  const consumoPorObra = obrasComVeiculos
+  const consumoPorObra = obrasComAbastecimento
     .map((obra) => {
-      const obraItems = filtered.filter((item) => item.veiculo?.obra_id === obra.id);
+      const obraItems = filtered.filter((item) => item.obra_id === obra.id);
       return {
         name: obra.nome,
         litros: obraItems.reduce((sum, item) => sum + item.quantidade_litros, 0),
@@ -157,6 +157,18 @@ export default function DashboardCombustivelPage() {
       };
     })
     .filter((obra) => obra.litros > 0)
+    .sort((a, b) => b.valor - a.valor);
+
+  const consumoPorPosto = postos
+    .map((posto) => {
+      const postoItems = filtered.filter((item) => item.posto_id === posto.id);
+      return {
+        name: posto.nome,
+        litros: postoItems.reduce((sum, item) => sum + item.quantidade_litros, 0),
+        valor: postoItems.reduce((sum, item) => sum + item.valor_total, 0),
+      };
+    })
+    .filter((posto) => posto.litros > 0)
     .sort((a, b) => b.valor - a.valor);
 
   const monthlyMap = new Map<string, { litros: number; valor: number }>();
@@ -250,7 +262,7 @@ export default function DashboardCombustivelPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas</SelectItem>
-                  {obrasComVeiculos.map((obra) => (
+                  {obrasComAbastecimento.map((obra) => (
                     <SelectItem key={obra.id} value={obra.id}>
                       {obra.nome}
                     </SelectItem>
@@ -412,6 +424,23 @@ export default function DashboardCombustivelPage() {
         </Card>
 
         <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Consumo por Posto (R$)</CardTitle>
+          </CardHeader>
+          <CardContent className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={consumoPorPosto}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis tickFormatter={(value) => `R$ ${value.toLocaleString('pt-BR')}`} />
+                <Tooltip formatter={(value: number) => formatCurrencyBR(value)} />
+                <Bar dataKey="valor" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card className="md:col-span-2">
           <CardHeader>
             <CardTitle className="text-base">Evolucao Mensal</CardTitle>
           </CardHeader>

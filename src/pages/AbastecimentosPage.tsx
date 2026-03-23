@@ -22,6 +22,7 @@ import {
   fetchTiposCombustivel,
   fetchPostosCombustivel,
 } from '@/lib/combustivelService';
+import { Obra, fetchObras } from '@/lib/obrasService';
 import { formatCurrencyBR, formatDateBR } from '@/lib/comprasService';
 import { exportAbastecimentosPDF, exportAbastecimentosXLSX } from '@/lib/combustivelExport';
 import DateRangeFilter from '@/components/DateRangeFilter';
@@ -29,6 +30,7 @@ import { toast } from 'sonner';
 
 const emptyForm = {
   veiculo_id: '',
+  obra_id: '',
   posto_id: '',
   nfe: '',
   data: '',
@@ -43,6 +45,7 @@ export default function AbastecimentosPage() {
   const { canCreate, canEdit, canDelete, canExport } = useModulePermissions();
   const [items, setItems] = useState<Abastecimento[]>([]);
   const [veiculos, setVeiculos] = useState<VeiculoMaquina[]>([]);
+  const [obras, setObras] = useState<Obra[]>([]);
   const [combustiveis, setCombustiveis] = useState<TipoCombustivel[]>([]);
   const [postos, setPostos] = useState<PostoCombustivel[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,19 +54,22 @@ export default function AbastecimentosPage() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [filterVeiculo, setFilterVeiculo] = useState('all');
+  const [filterObra, setFilterObra] = useState('all');
   const [filterPosto, setFilterPosto] = useState('all');
   const [form, setForm] = useState(emptyForm);
 
   const load = useCallback(async () => {
     try {
-      const [abs, veic, comb, postosData] = await Promise.all([
+      const [abs, veic, obrasData, comb, postosData] = await Promise.all([
         fetchAbastecimentos(),
         fetchVeiculos(),
+        fetchObras(),
         fetchTiposCombustivel(),
         fetchPostosCombustivel(),
       ]);
       setItems(abs);
       setVeiculos(veic);
+      setObras(obrasData);
       setCombustiveis(comb);
       setPostos(postosData);
     } catch (e: any) {
@@ -81,6 +87,7 @@ export default function AbastecimentosPage() {
     if (dateFrom && item.data < dateFrom) return false;
     if (dateTo && item.data > dateTo) return false;
     if (filterVeiculo !== 'all' && item.veiculo_id !== filterVeiculo) return false;
+    if (filterObra !== 'all' && (item.obra_id || '') !== filterObra) return false;
     if (filterPosto !== 'all' && (item.posto_id || '') !== filterPosto) return false;
     return true;
   });
@@ -104,6 +111,7 @@ export default function AbastecimentosPage() {
     setEditingId(item.id);
     setForm({
       veiculo_id: item.veiculo_id,
+      obra_id: item.obra_id || '',
       posto_id: item.posto_id || '',
       nfe: item.nfe || '',
       data: item.data,
@@ -133,6 +141,7 @@ export default function AbastecimentosPage() {
 
       const payload = {
         veiculo_id: form.veiculo_id,
+        obra_id: form.obra_id || null,
         posto_id: form.posto_id || null,
         nfe: form.nfe || null,
         data: form.data,
@@ -224,6 +233,23 @@ export default function AbastecimentosPage() {
         </div>
 
         <div>
+          <Label className="text-xs">Obra</Label>
+          <Select value={filterObra} onValueChange={setFilterObra}>
+            <SelectTrigger className="w-56">
+              <SelectValue placeholder="Todas" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas</SelectItem>
+              {obras.map((obra) => (
+                <SelectItem key={obra.id} value={obra.id}>
+                  {obra.nome}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
           <Label className="text-xs">Posto</Label>
           <Select value={filterPosto} onValueChange={setFilterPosto}>
             <SelectTrigger className="w-48">
@@ -247,6 +273,7 @@ export default function AbastecimentosPage() {
             <TableRow>
               <TableHead>Data</TableHead>
               <TableHead>Veiculo</TableHead>
+              <TableHead>Obra</TableHead>
               <TableHead>Posto</TableHead>
               <TableHead>NF-e</TableHead>
               <TableHead>Combustivel</TableHead>
@@ -260,7 +287,7 @@ export default function AbastecimentosPage() {
           <TableBody>
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={10} className="text-center text-muted-foreground">
+                <TableCell colSpan={11} className="text-center text-muted-foreground">
                   Nenhum registro
                 </TableCell>
               </TableRow>
@@ -270,6 +297,7 @@ export default function AbastecimentosPage() {
               <TableRow key={item.id}>
                 <TableCell>{formatDateBR(item.data)}</TableCell>
                 <TableCell>{item.veiculo?.placa || ''}</TableCell>
+                <TableCell>{item.obra?.nome || '—'}</TableCell>
                 <TableCell>{item.posto?.nome || '—'}</TableCell>
                 <TableCell>{item.nfe || '—'}</TableCell>
                 <TableCell>{item.combustivel?.nome || ''}</TableCell>
@@ -296,7 +324,7 @@ export default function AbastecimentosPage() {
 
             {filtered.length > 0 && (
               <TableRow className="font-bold bg-muted/50">
-                <TableCell colSpan={5} className="text-right">TOTAL</TableCell>
+                <TableCell colSpan={6} className="text-right">TOTAL</TableCell>
                 <TableCell className="text-right">{totalLitros.toFixed(2)}</TableCell>
                 <TableCell />
                 <TableCell className="text-right">{formatCurrencyBR(totalGeral)}</TableCell>
@@ -333,6 +361,26 @@ export default function AbastecimentosPage() {
                   {veiculos.map((veiculo) => (
                     <SelectItem key={veiculo.id} value={veiculo.id}>
                       {veiculo.placa}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Obra</Label>
+              <Select
+                value={form.obra_id || '_none'}
+                onValueChange={(value) => setForm((prev) => ({ ...prev, obra_id: value === '_none' ? '' : value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecionar obra" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none">Nao informada</SelectItem>
+                  {obras.map((obra) => (
+                    <SelectItem key={obra.id} value={obra.id}>
+                      {obra.nome}
                     </SelectItem>
                   ))}
                 </SelectContent>

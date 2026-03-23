@@ -28,7 +28,7 @@ export function exportAbastecimentosPDF(items: Abastecimento[]) {
     body: items.map((item) => [
       formatDateBR(item.data),
       item.veiculo?.placa || '',
-      item.veiculo?.obra?.nome || '',
+      item.obra?.nome || '',
       item.posto?.nome || '',
       item.nfe || '',
       item.combustivel?.nome || '',
@@ -64,7 +64,7 @@ export function exportAbastecimentosXLSX(items: Abastecimento[]) {
   const rows = items.map((item) => ({
     Data: formatDateBR(item.data),
     Veiculo: item.veiculo?.placa || '',
-    Obra: item.veiculo?.obra?.nome || '',
+    Obra: item.obra?.nome || '',
     Posto: item.posto?.nome || '',
     'NF-e': item.nfe || '',
     Combustivel: item.combustivel?.nome || '',

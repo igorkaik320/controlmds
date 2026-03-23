@@ -38,11 +38,11 @@ for delete
 to authenticated
 using (true);
 
-alter table public.veiculos_maquinas
-add column if not exists obra_id uuid null references public.obras(id) on delete set null;
-
 alter table public.abastecimentos
 add column if not exists posto_id uuid null references public.postos_combustivel(id) on delete set null;
 
-create index if not exists idx_veiculos_maquinas_obra_id on public.veiculos_maquinas(obra_id);
+alter table public.abastecimentos
+add column if not exists obra_id uuid null references public.obras(id) on delete set null;
+
 create index if not exists idx_abastecimentos_posto_id on public.abastecimentos(posto_id);
+create index if not exists idx_abastecimentos_obra_id on public.abastecimentos(obra_id);
