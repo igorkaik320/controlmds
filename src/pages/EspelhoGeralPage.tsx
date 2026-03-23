@@ -192,12 +192,18 @@ export default function EspelhoGeralPage() {
   async function handleExportPDF() {
     let config = await fetchConfigRelatorio();
 
-    if (appliedFilters.empresa && (empresaLogos.logo_esquerda || empresaLogos.logo_direita) && config) {
-      config = {
-        ...config,
-        logo_esquerda: empresaLogos.logo_esquerda || config.logo_esquerda || null,
-        logo_direita: empresaLogos.logo_direita || config.logo_direita || null,
-      };
+    if (appliedFilters.empresa && config) {
+      const empresas = await fetchEmpresas();
+      const empresaSelecionada = empresas.find((e) => e.id === appliedFilters.empresa);
+
+      if (empresaSelecionada) {
+        config = {
+          ...config,
+          logo_esquerda: empresaSelecionada.logo_esquerda || config.logo_esquerda || null,
+          logo_direita: empresaSelecionada.logo_direita || config.logo_direita || null,
+          cor_cabecalho: empresaSelecionada.cor_cabecalho || config.cor_cabecalho || '#6b7280',
+        };
+      }
     }
 
     exportEspelhoPDF(items, formatPeriodoLabel(), config, observation);
