@@ -41,9 +41,14 @@ export default function EspelhoGeralPage() {
 
   const [draftDateFrom, setDraftDateFrom] = useFormDraft('espelho-dateFrom', '');
   const [draftDateTo, setDraftDateTo] = useFormDraft('espelho-dateTo', '');
-  const [observation, setObservation] = useFormDraft('espelho-obs', '');
   const [draftFonte, setDraftFonte] = useFormDraft<FonteDados>('espelho-fonte', 'ambos');
   const [draftEmpresa, setDraftEmpresa] = useFormDraft('espelho-empresa', '');
+  const [observation, setObservation] = useFormDraft('espelho-obs', '');
+
+  const [dateFrom, setDateFrom] = useState(draftDateFrom);
+  const [dateTo, setDateTo] = useState(draftDateTo);
+  const [fonte, setFonte] = useState<FonteDados>(draftFonte);
+  const [empresa, setEmpresa] = useState(draftEmpresa);
 
   const [appliedFilters, setAppliedFilters] = useState<Filtros>({
     dateFrom: draftDateFrom,
@@ -62,13 +67,12 @@ export default function EspelhoGeralPage() {
     logo_esquerda: null,
     logo_direita: null,
   });
-  const [empresaCorCabecalho, setEmpresaCorCabecalho] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
       setLoading(true);
 
-      const [comprasAv, comprasFat, fornecedores, obras, empresas] = await Promise.all([
+      const [comprasAv, comprasFat, fornecedores, obras, empresasData] = await Promise.all([
         fetchComprasAvista(),
         fetchComprasFaturadas(),
         fetchFornecedores(),
@@ -85,20 +89,17 @@ export default function EspelhoGeralPage() {
             .map((o) => o.nome.toLowerCase())
         );
 
-        const empresa = empresas.find((e) => e.id === appliedFilters.empresa);
-        if (empresa) {
+        const empresaSelecionada = empresasData.find((e) => e.id === appliedFilters.empresa);
+        if (empresaSelecionada) {
           setEmpresaLogos({
-            logo_esquerda: empresa.logo_esquerda,
-            logo_direita: empresa.logo_direita,
+            logo_esquerda: empresaSelecionada.logo_esquerda,
+            logo_direita: empresaSelecionada.logo_direita,
           });
-          setEmpresaCorCabecalho(empresa.cor_cabecalho || null);
         } else {
           setEmpresaLogos({ logo_esquerda: null, logo_direita: null });
-          setEmpresaCorCabecalho(null);
         }
       } else {
         setEmpresaLogos({ logo_esquerda: null, logo_direita: null });
-        setEmpresaCorCabecalho(null);
       }
 
       const filterByEmpresa = (c: any) =>
@@ -128,19 +129,10 @@ export default function EspelhoGeralPage() {
 
       setTotalAvista(avTotal);
       setTotalFaturadas(fatTotal);
-
-      setTotalComPedidoFat(
-        fatFiltered.filter((c) => c.pedido?.trim()).reduce((s, c) => s + c.valor, 0)
-      );
-      setTotalSemPedidoFat(
-        fatFiltered.filter((c) => !c.pedido?.trim()).reduce((s, c) => s + c.valor, 0)
-      );
-      setTotalComPedidoAv(
-        avFiltered.filter((c) => c.pedido?.trim()).reduce((s, c) => s + c.valor, 0)
-      );
-      setTotalSemPedidoAv(
-        avFiltered.filter((c) => !c.pedido?.trim()).reduce((s, c) => s + c.valor, 0)
-      );
+      setTotalComPedidoFat(fatFiltered.filter((c) => c.pedido?.trim()).reduce((s, c) => s + c.valor, 0));
+      setTotalSemPedidoFat(fatFiltered.filter((c) => !c.pedido?.trim()).reduce((s, c) => s + c.valor, 0));
+      setTotalComPedidoAv(avFiltered.filter((c) => c.pedido?.trim()).reduce((s, c) => s + c.valor, 0));
+      setTotalSemPedidoAv(avFiltered.filter((c) => !c.pedido?.trim()).reduce((s, c) => s + c.valor, 0));
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -164,15 +156,25 @@ export default function EspelhoGeralPage() {
   }
 
   function handleConsultar() {
+    setDraftDateFrom(dateFrom);
+    setDraftDateTo(dateTo);
+    setDraftFonte(fonte);
+    setDraftEmpresa(empresa);
+
     setAppliedFilters({
-      dateFrom: draftDateFrom,
-      dateTo: draftDateTo,
-      fonte: draftFonte,
-      empresa: draftEmpresa,
+      dateFrom,
+      dateTo,
+      fonte,
+      empresa,
     });
   }
 
   function handleLimpar() {
+    setDateFrom('');
+    setDateTo('');
+    setFonte('ambos');
+    setEmpresa('');
+
     setDraftDateFrom('');
     setDraftDateTo('');
     setDraftFonte('ambos');
@@ -189,17 +191,11 @@ export default function EspelhoGeralPage() {
   async function handleExportPDF() {
     let config = await fetchConfigRelatorio();
 
-    if (appliedFilters.empresa && config) {
+    if (appliedFilters.empresa && (empresaLogos.logo_esquerda || empresaLogos.logo_direita) && config) {
       config = {
         ...config,
         logo_esquerda: empresaLogos.logo_esquerda || config.logo_esquerda || null,
         logo_direita: empresaLogos.logo_direita || config.logo_direita || null,
-        cor_cabecalho: empresaCorCabecalho || config.cor_cabecalho || '#6b7280',
-      };
-    } else if (config) {
-      config = {
-        ...config,
-        cor_cabecalho: '#6b7280',
       };
     }
 
@@ -207,7 +203,11 @@ export default function EspelhoGeralPage() {
   }
 
   if (loading) {
-    return <div className="flex min-h-screen items-center justify-center"><p>Carregando...</p></div>;
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p>Carregando...</p>
+      </div>
+    );
   }
 
   const groupedRows: { item: EspelhoItem; isFirst: boolean; groupSize: number }[] = [];
@@ -217,7 +217,9 @@ export default function EspelhoGeralPage() {
     const forn = items[idx].fornecedor;
     let j = idx;
 
-    while (j < items.length && items[j].fornecedor === forn) j++;
+    while (j < items.length && items[j].fornecedor === forn) {
+      j++;
+    }
 
     const size = j - idx;
 
@@ -233,76 +235,97 @@ export default function EspelhoGeralPage() {
   }
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h2 className="text-2xl font-bold">Espelho Geral</h2>
-        <p className="text-sm text-muted-foreground">
-          Resumo automático das compras agrupado por fornecedor/obra
-        </p>
-      </div>
-
-      <div className="flex flex-wrap gap-4 items-end">
-        {canExport('espelho_geral') && (
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleExportPDF}>
-              <FileDown className="h-4 w-4 mr-1" />
-              PDF
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => exportEspelhoXLSX(items, formatPeriodoLabel(), observation)}
-            >
-              <FileSpreadsheet className="h-4 w-4 mr-1" />
-              Excel
-            </Button>
-          </div>
-        )}
-
-        <DateRangeFilter
-          dateFrom={draftDateFrom}
-          dateTo={draftDateTo}
-          onDateFromChange={setDraftDateFrom}
-          onDateToChange={setDraftDateTo}
-        />
-
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <Label className="text-xs">Fonte dos Dados</Label>
-          <Select value={draftFonte} onValueChange={(v: FonteDados) => setDraftFonte(v)}>
-            <SelectTrigger className="w-48">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ambos">Ambos (À Vista + Faturadas)</SelectItem>
-              <SelectItem value="avista">Somente Compras à Vista</SelectItem>
-              <SelectItem value="faturadas">Somente Compras Faturadas</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="w-48">
-          <EmpresaSelect value={draftEmpresa} onChange={setDraftEmpresa} label="Empresa" allowAll />
+          <h2 className="text-2xl font-bold">Espelho Geral</h2>
+          <p className="text-sm text-muted-foreground">
+            Resumo automático das compras agrupado por fornecedor/obra
+          </p>
         </div>
 
         <div className="flex gap-2">
-          <Button size="sm" onClick={handleConsultar}>
-            <Search className="h-4 w-4 mr-1" />
-            Consultar
-          </Button>
+          {canExport('espelho_geral') && (
+            <>
+              <Button variant="outline" size="sm" onClick={handleExportPDF}>
+                <FileDown className="mr-1 h-4 w-4" />
+                PDF
+              </Button>
 
-          <Button variant="outline" size="sm" onClick={handleLimpar}>
-            <RotateCcw className="h-4 w-4 mr-1" />
-            Limpar
-          </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => exportEspelhoXLSX(items, formatPeriodoLabel(), observation)}
+              >
+                <FileSpreadsheet className="mr-1 h-4 w-4" />
+                Excel
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
-      <div className="text-sm text-muted-foreground">
-        Período consultado: <span className="font-medium">{formatPeriodoLabel()}</span>
+      <div className="rounded-xl border bg-card p-4 space-y-4">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div>
+            <Label className="text-xs">De</Label>
+            <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+          </div>
+
+          <div>
+            <Label className="text-xs">Até</Label>
+            <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+          </div>
+
+          <div>
+            <Label className="text-xs">Fonte dos Dados</Label>
+            <Select value={fonte} onValueChange={(v: FonteDados) => setFonte(v)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ambos">Ambos (À Vista + Faturadas)</SelectItem>
+                <SelectItem value="avista">Somente Compras à Vista</SelectItem>
+                <SelectItem value="faturadas">Somente Compras Faturadas</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <EmpresaSelect value={empresa} onChange={setEmpresa} label="Empresa" allowAll />
+          </div>
+        </div>
+
+        <div>
+          <Label className="text-xs">Observação do relatório</Label>
+          <Textarea
+            value={observation}
+            onChange={(e) => setObservation(e.target.value)}
+            rows={2}
+            placeholder="Observação para o relatório..."
+          />
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="text-sm text-muted-foreground">
+            Período consultado: <span className="font-medium">{formatPeriodoLabel()}</span>
+          </div>
+
+          <div className="flex gap-2">
+            <Button size="sm" onClick={handleConsultar}>
+              <Search className="mr-1 h-4 w-4" />
+              Consultar
+            </Button>
+
+            <Button variant="outline" size="sm" onClick={handleLimpar}>
+              <RotateCcw className="mr-1 h-4 w-4" />
+              Limpar
+            </Button>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Total Geral</p>
@@ -314,7 +337,7 @@ export default function EspelhoGeralPage() {
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Compras à Vista</p>
             <p className="text-xl font-bold">{formatCurrencyBR(totalAvista)}</p>
-            <div className="mt-1 text-xs text-muted-foreground flex gap-3">
+            <div className="mt-1 flex flex-wrap gap-3 text-xs text-muted-foreground">
               <span>Com Pedido: {formatCurrencyBR(totalComPedidoAv)}</span>
               <span>Sem Pedido: {formatCurrencyBR(totalSemPedidoAv)}</span>
             </div>
@@ -325,7 +348,7 @@ export default function EspelhoGeralPage() {
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Compras Faturadas</p>
             <p className="text-xl font-bold">{formatCurrencyBR(totalFaturadas)}</p>
-            <div className="mt-1 text-xs text-muted-foreground flex gap-3">
+            <div className="mt-1 flex flex-wrap gap-3 text-xs text-muted-foreground">
               <span>Com Pedido: {formatCurrencyBR(totalComPedidoFat)}</span>
               <span>Sem Pedido: {formatCurrencyBR(totalSemPedidoFat)}</span>
             </div>
@@ -333,17 +356,7 @@ export default function EspelhoGeralPage() {
         </Card>
       </div>
 
-      <div>
-        <Label className="text-xs">Observação do relatório</Label>
-        <Textarea
-          value={observation}
-          onChange={(e) => setObservation(e.target.value)}
-          rows={2}
-          placeholder="Observação para o relatório..."
-        />
-      </div>
-
-      <div className="rounded-md border overflow-auto">
+      <div className="overflow-auto rounded-xl border bg-card">
         <Table>
           <TableHeader>
             <TableRow>
@@ -407,8 +420,10 @@ export default function EspelhoGeralPage() {
             ))}
 
             {items.length > 0 && (
-              <TableRow className="font-bold bg-muted/50">
-                <TableCell colSpan={8} className="text-right">TOTAL GERAL</TableCell>
+              <TableRow className="bg-muted/50 font-bold">
+                <TableCell colSpan={8} className="text-right">
+                  TOTAL GERAL
+                </TableCell>
                 <TableCell className="text-right">{formatCurrencyBR(totalGeral)}</TableCell>
                 <TableCell />
               </TableRow>
