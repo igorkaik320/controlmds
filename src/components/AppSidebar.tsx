@@ -208,7 +208,7 @@ export function AppSidebar() {
               {collapsed ? (
                 <SidebarGroupContent>
                   <SidebarMenu className="space-y-1">
-                    {group.items.map(renderMenuItem)}
+                    {group.items.filter(item => item.showCollapsed).map(renderMenuItem)}
                   </SidebarMenu>
                 </SidebarGroupContent>
               ) : (
