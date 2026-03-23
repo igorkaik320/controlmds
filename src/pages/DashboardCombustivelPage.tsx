@@ -7,9 +7,11 @@ import {
   Abastecimento,
   VeiculoMaquina,
   TipoCombustivel,
+  PostoCombustivel,
   fetchAbastecimentos,
   fetchVeiculos,
-  fetchTiposCombustivel
+  fetchTiposCombustivel,
+  fetchPostosCombustivel
 } from '@/lib/combustivelService';
 import { formatCurrencyBR } from '@/lib/comprasService';
 import DateRangeFilter from '@/components/DateRangeFilter';
@@ -46,7 +48,8 @@ type AppliedFilters = {
   dateFrom: string;
   dateTo: string;
   veiculo: string;
-  categoria: string;
+  obra: string;
+  posto: string;
   combustivel: string;
 };
 
@@ -54,32 +57,37 @@ export default function DashboardCombustivelPage() {
   const [items, setItems] = useState<Abastecimento[]>([]);
   const [veiculos, setVeiculos] = useState<VeiculoMaquina[]>([]);
   const [combustiveis, setCombustiveis] = useState<TipoCombustivel[]>([]);
+  const [postos, setPostos] = useState<PostoCombustivel[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [draftDateFrom, setDraftDateFrom] = useState('');
   const [draftDateTo, setDraftDateTo] = useState('');
   const [draftVeiculo, setDraftVeiculo] = useState('all');
-  const [draftCategoria, setDraftCategoria] = useState('all');
+  const [draftObra, setDraftObra] = useState('all');
+  const [draftPosto, setDraftPosto] = useState('all');
   const [draftCombustivel, setDraftCombustivel] = useState('all');
 
   const [filters, setFilters] = useState<AppliedFilters>({
     dateFrom: '',
     dateTo: '',
     veiculo: 'all',
-    categoria: 'all',
+    obra: 'all',
+    posto: 'all',
     combustivel: 'all',
   });
 
   const load = useCallback(async () => {
     try {
-      const [abs, veic, comb] = await Promise.all([
+      const [abs, veic, comb, postosData] = await Promise.all([
         fetchAbastecimentos(),
         fetchVeiculos(),
-        fetchTiposCombustivel()
+        fetchTiposCombustivel(),
+        fetchPostosCombustivel()
       ]);
       setItems(abs);
       setVeiculos(veic);
       setCombustiveis(comb);
+      setPostos(postosData);
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -91,73 +99,73 @@ export default function DashboardCombustivelPage() {
     load();
   }, [load]);
 
-  const categoriasUnicas = Array.from(
-    new Set(
-      veiculos
-        .map((v) => v.categoria)
-        .filter(Boolean)
-    )
-  ).sort((a, b) => a.localeCompare(b));
+  const obrasComVeiculos = veiculos
+    .filter((veiculo) => veiculo.obra_id && veiculo.obra?.nome)
+    .reduce((acc, veiculo) => {
+      if (!acc.some((obra) => obra.id === veiculo.obra_id)) {
+        acc.push({ id: veiculo.obra_id as string, nome: veiculo.obra?.nome as string });
+      }
+      return acc;
+    }, [] as Array<{ id: string; nome: string }>)
+    .sort((a, b) => a.nome.localeCompare(b.nome));
 
-  const filtered = items.filter((i) => {
-    if (filters.dateFrom && i.data < filters.dateFrom) return false;
-    if (filters.dateTo && i.data > filters.dateTo) return false;
-    if (filters.veiculo !== 'all' && i.veiculo_id !== filters.veiculo) return false;
-    if (filters.combustivel !== 'all' && i.combustivel_id !== filters.combustivel) return false;
-
-    const categoriaItem = i.veiculo?.categoria || '';
-    if (filters.categoria !== 'all' && categoriaItem !== filters.categoria) return false;
-
+  const filtered = items.filter((item) => {
+    if (filters.dateFrom && item.data < filters.dateFrom) return false;
+    if (filters.dateTo && item.data > filters.dateTo) return false;
+    if (filters.veiculo !== 'all' && item.veiculo_id !== filters.veiculo) return false;
+    if (filters.obra !== 'all' && (item.veiculo?.obra_id || '') !== filters.obra) return false;
+    if (filters.posto !== 'all' && (item.posto_id || '') !== filters.posto) return false;
+    if (filters.combustivel !== 'all' && item.combustivel_id !== filters.combustivel) return false;
     return true;
   });
 
-  const totalGasto = filtered.reduce((s, i) => s + i.valor_total, 0);
-  const totalLitros = filtered.reduce((s, i) => s + i.quantidade_litros, 0);
+  const totalGasto = filtered.reduce((sum, item) => sum + item.valor_total, 0);
+  const totalLitros = filtered.reduce((sum, item) => sum + item.quantidade_litros, 0);
   const totalAbast = filtered.length;
   const mediaLitros = totalAbast > 0 ? totalLitros / totalAbast : 0;
 
   const consumoPorVeiculo = veiculos
-    .map((v) => {
-      const veicItems = filtered.filter((i) => i.veiculo_id === v.id);
+    .map((veiculo) => {
+      const veicItems = filtered.filter((item) => item.veiculo_id === veiculo.id);
       return {
-        name: v.placa || v.modelo || 'Sem identificação',
-        litros: veicItems.reduce((s, i) => s + i.quantidade_litros, 0),
-        valor: veicItems.reduce((s, i) => s + i.valor_total, 0),
+        name: veiculo.placa || veiculo.modelo || 'Sem identificacao',
+        litros: veicItems.reduce((sum, item) => sum + item.quantidade_litros, 0),
+        valor: veicItems.reduce((sum, item) => sum + item.valor_total, 0),
       };
     })
-    .filter((v) => v.litros > 0)
+    .filter((veiculo) => veiculo.litros > 0)
     .sort((a, b) => b.valor - a.valor);
 
   const consumoPorCombustivel = combustiveis
-    .map((c) => {
-      const combItems = filtered.filter((i) => i.combustivel_id === c.id);
+    .map((combustivel) => {
+      const combItems = filtered.filter((item) => item.combustivel_id === combustivel.id);
       return {
-        name: c.nome,
-        litros: combItems.reduce((s, i) => s + i.quantidade_litros, 0),
-        valor: combItems.reduce((s, i) => s + i.valor_total, 0),
+        name: combustivel.nome,
+        litros: combItems.reduce((sum, item) => sum + item.quantidade_litros, 0),
+        valor: combItems.reduce((sum, item) => sum + item.valor_total, 0),
       };
     })
-    .filter((c) => c.litros > 0);
+    .filter((combustivel) => combustivel.litros > 0);
 
-  const consumoPorCategoria = categoriasUnicas
-    .map((categoria) => {
-      const catItems = filtered.filter((i) => (i.veiculo?.categoria || '') === categoria);
+  const consumoPorObra = obrasComVeiculos
+    .map((obra) => {
+      const obraItems = filtered.filter((item) => item.veiculo?.obra_id === obra.id);
       return {
-        name: categoria,
-        litros: catItems.reduce((s, i) => s + i.quantidade_litros, 0),
-        valor: catItems.reduce((s, i) => s + i.valor_total, 0),
+        name: obra.nome,
+        litros: obraItems.reduce((sum, item) => sum + item.quantidade_litros, 0),
+        valor: obraItems.reduce((sum, item) => sum + item.valor_total, 0),
       };
     })
-    .filter((c) => c.litros > 0)
+    .filter((obra) => obra.litros > 0)
     .sort((a, b) => b.valor - a.valor);
 
   const monthlyMap = new Map<string, { litros: number; valor: number }>();
   for (const item of filtered) {
     const month = item.data.slice(0, 7);
-    const cur = monthlyMap.get(month) || { litros: 0, valor: 0 };
-    cur.litros += item.quantidade_litros;
-    cur.valor += item.valor_total;
-    monthlyMap.set(month, cur);
+    const current = monthlyMap.get(month) || { litros: 0, valor: 0 };
+    current.litros += item.quantidade_litros;
+    current.valor += item.valor_total;
+    monthlyMap.set(month, current);
   }
 
   const evolucaoMensal = Array.from(monthlyMap.entries())
@@ -172,7 +180,8 @@ export default function DashboardCombustivelPage() {
       dateFrom: draftDateFrom,
       dateTo: draftDateTo,
       veiculo: draftVeiculo,
-      categoria: draftCategoria,
+      obra: draftObra,
+      posto: draftPosto,
       combustivel: draftCombustivel,
     });
   }
@@ -181,14 +190,16 @@ export default function DashboardCombustivelPage() {
     setDraftDateFrom('');
     setDraftDateTo('');
     setDraftVeiculo('all');
-    setDraftCategoria('all');
+    setDraftObra('all');
+    setDraftPosto('all');
     setDraftCombustivel('all');
 
     setFilters({
       dateFrom: '',
       dateTo: '',
       veiculo: 'all',
-      categoria: 'all',
+      obra: 'all',
+      posto: 'all',
       combustivel: 'all',
     });
   }
@@ -199,7 +210,7 @@ export default function DashboardCombustivelPage() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Dashboard de Combustível</h2>
+      <h2 className="text-2xl font-bold">Dashboard de Combustivel</h2>
 
       <Card>
         <CardHeader className="pb-3">
@@ -215,16 +226,16 @@ export default function DashboardCombustivelPage() {
             />
 
             <div>
-              <Label className="text-xs">Veículo</Label>
+              <Label className="text-xs">Veiculo</Label>
               <Select value={draftVeiculo} onValueChange={setDraftVeiculo}>
                 <SelectTrigger className="w-48">
                   <SelectValue placeholder="Todos" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos</SelectItem>
-                  {veiculos.map((v) => (
-                    <SelectItem key={v.id} value={v.id}>
-                      {v.placa || v.modelo}
+                  {veiculos.map((veiculo) => (
+                    <SelectItem key={veiculo.id} value={veiculo.id}>
+                      {veiculo.placa || veiculo.modelo}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -232,16 +243,16 @@ export default function DashboardCombustivelPage() {
             </div>
 
             <div>
-              <Label className="text-xs">Categoria</Label>
-              <Select value={draftCategoria} onValueChange={setDraftCategoria}>
-                <SelectTrigger className="w-48">
+              <Label className="text-xs">Obra</Label>
+              <Select value={draftObra} onValueChange={setDraftObra}>
+                <SelectTrigger className="w-56">
                   <SelectValue placeholder="Todas" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas</SelectItem>
-                  {categoriasUnicas.map((categoria) => (
-                    <SelectItem key={categoria} value={categoria}>
-                      {categoria}
+                  {obrasComVeiculos.map((obra) => (
+                    <SelectItem key={obra.id} value={obra.id}>
+                      {obra.nome}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -249,16 +260,33 @@ export default function DashboardCombustivelPage() {
             </div>
 
             <div>
-              <Label className="text-xs">Combustível</Label>
+              <Label className="text-xs">Posto</Label>
+              <Select value={draftPosto} onValueChange={setDraftPosto}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  {postos.map((posto) => (
+                    <SelectItem key={posto.id} value={posto.id}>
+                      {posto.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label className="text-xs">Combustivel</Label>
               <Select value={draftCombustivel} onValueChange={setDraftCombustivel}>
                 <SelectTrigger className="w-48">
                   <SelectValue placeholder="Todos" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos</SelectItem>
-                  {combustiveis.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.nome}
+                  {combustiveis.map((combustivel) => (
+                    <SelectItem key={combustivel.id} value={combustivel.id}>
+                      {combustivel.nome}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -312,7 +340,7 @@ export default function DashboardCombustivelPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Média por Abast.</CardTitle>
+            <CardTitle className="text-sm font-medium">Media por Abast.</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -324,15 +352,15 @@ export default function DashboardCombustivelPage() {
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Consumo por Veículo (R$)</CardTitle>
+            <CardTitle className="text-base">Consumo por Veiculo (R$)</CardTitle>
           </CardHeader>
           <CardContent className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={consumoPorVeiculo} layout="vertical" margin={{ left: 60 }}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" tickFormatter={(v) => `R$ ${v.toLocaleString('pt-BR')}`} />
+                <XAxis type="number" tickFormatter={(value) => `R$ ${value.toLocaleString('pt-BR')}`} />
                 <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 11 }} />
-                <Tooltip formatter={(v: number) => formatCurrencyBR(v)} />
+                <Tooltip formatter={(value: number) => formatCurrencyBR(value)} />
                 <Bar dataKey="valor" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -341,7 +369,7 @@ export default function DashboardCombustivelPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Por Tipo de Combustível</CardTitle>
+            <CardTitle className="text-base">Por Tipo de Combustivel</CardTitle>
           </CardHeader>
           <CardContent className="h-80">
             <ResponsiveContainer width="100%" height="100%">
@@ -355,11 +383,11 @@ export default function DashboardCombustivelPage() {
                   outerRadius={100}
                   label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                 >
-                  {consumoPorCombustivel.map((_, idx) => (
-                    <Cell key={idx} fill={COLORS[idx % COLORS.length]} />
+                  {consumoPorCombustivel.map((_, index) => (
+                    <Cell key={index} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(v: number) => formatCurrencyBR(v)} />
+                <Tooltip formatter={(value: number) => formatCurrencyBR(value)} />
                 <Legend />
               </PieChart>
             </ResponsiveContainer>
@@ -368,15 +396,15 @@ export default function DashboardCombustivelPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Consumo por Categoria (R$)</CardTitle>
+            <CardTitle className="text-base">Consumo por Obra (R$)</CardTitle>
           </CardHeader>
           <CardContent className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={consumoPorCategoria}>
+              <BarChart data={consumoPorObra}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
-                <YAxis tickFormatter={(v) => `R$ ${v.toLocaleString('pt-BR')}`} />
-                <Tooltip formatter={(v: number) => formatCurrencyBR(v)} />
+                <YAxis tickFormatter={(value) => `R$ ${value.toLocaleString('pt-BR')}`} />
+                <Tooltip formatter={(value: number) => formatCurrencyBR(value)} />
                 <Bar dataKey="valor" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -385,18 +413,18 @@ export default function DashboardCombustivelPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Evolução Mensal</CardTitle>
+            <CardTitle className="text-base">Evolucao Mensal</CardTitle>
           </CardHeader>
           <CardContent className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={evolucaoMensal}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
-                <YAxis yAxisId="left" tickFormatter={(v) => `R$ ${v.toLocaleString('pt-BR')}`} />
-                <YAxis yAxisId="right" orientation="right" tickFormatter={(v) => `${v}L`} />
+                <YAxis yAxisId="left" tickFormatter={(value) => `R$ ${value.toLocaleString('pt-BR')}`} />
+                <YAxis yAxisId="right" orientation="right" tickFormatter={(value) => `${value}L`} />
                 <Tooltip
-                  formatter={(v: number, name: string) =>
-                    name === 'valor' ? formatCurrencyBR(v) : `${v.toFixed(2)} L`
+                  formatter={(value: number, name: string) =>
+                    name === 'valor' ? formatCurrencyBR(value) : `${value.toFixed(2)} L`
                   }
                 />
                 <Legend />

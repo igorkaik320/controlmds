@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import type { Obra } from './obrasService';
 
 // ---- Types ----
 export interface VeiculoMaquina {
@@ -9,8 +10,10 @@ export interface VeiculoMaquina {
   marca: string;
   categoria: string;
   categoria_id?: string | null;
+  obra_id?: string | null;
   created_by: string;
   created_at: string;
+  obra?: Obra | null;
 }
 
 export interface TipoCombustivel {
@@ -18,6 +21,15 @@ export interface TipoCombustivel {
   nome: string;
   created_by: string;
   created_at: string;
+}
+
+export interface PostoCombustivel {
+  id: string;
+  nome: string;
+  observacao: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface CategoriaVeiculo {
@@ -34,6 +46,7 @@ export interface CategoriaVeiculo {
 export interface Abastecimento {
   id: string;
   veiculo_id: string;
+  posto_id?: string | null;
   nfe: string | null;
   data: string;
   combustivel_id: string;
@@ -46,6 +59,7 @@ export interface Abastecimento {
   updated_at: string;
   veiculo?: VeiculoMaquina;
   combustivel?: TipoCombustivel;
+  posto?: PostoCombustivel | null;
 }
 
 export interface RevisaoCombustivel {
@@ -73,11 +87,63 @@ export interface RevisaoCombustivel {
 export async function fetchVeiculos(): Promise<VeiculoMaquina[]> {
   const { data, error } = await supabase
     .from('veiculos_maquinas')
-    .select('*')
+    .select('*, obra:obras(*)')
     .order('modelo');
 
   if (error) throw error;
   return data || [];
+}
+
+// ---- Postos ----
+export async function fetchPostosCombustivel(): Promise<PostoCombustivel[]> {
+  const { data, error } = await supabase
+    .from('postos_combustivel')
+    .select('*')
+    .order('nome');
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function savePostoCombustivel(
+  posto: {
+    nome: string;
+    observacao?: string | null;
+    created_by: string;
+  }
+) {
+  const { data, error } = await supabase
+    .from('postos_combustivel')
+    .insert(posto as any)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function updatePostoCombustivel(
+  id: string,
+  posto: {
+    nome: string;
+    observacao?: string | null;
+  }
+) {
+  const { error } = await supabase
+    .from('postos_combustivel')
+    .update({ ...posto, updated_at: new Date().toISOString() } as any)
+    .eq('id', id);
+
+  if (error) throw error;
+}
+
+export async function deletePostoCombustivel(id: string) {
+  const { error } = await supabase
+    .from('postos_combustivel')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
 }
 
 export async function saveVeiculo(v: Omit<VeiculoMaquina, 'id' | 'created_at'>) {
@@ -220,7 +286,7 @@ export async function deleteCategoriaVeiculo(id: string) {
 export async function fetchAbastecimentos(): Promise<Abastecimento[]> {
   const { data, error } = await supabase
     .from('abastecimentos')
-    .select('*, veiculo:veiculos_maquinas(*), combustivel:tipos_combustivel(*)')
+    .select('*, veiculo:veiculos_maquinas(*, obra:obras(*)), combustivel:tipos_combustivel(*), posto:postos_combustivel(*)')
     .order('data', { ascending: false });
 
   if (error) throw error;
@@ -229,6 +295,7 @@ export async function fetchAbastecimentos(): Promise<Abastecimento[]> {
 
 export async function saveAbastecimento(a: {
   veiculo_id: string;
+  posto_id?: string | null;
   nfe?: string;
   data: string;
   combustivel_id: string;

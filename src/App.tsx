@@ -21,7 +21,7 @@ import FornecedoresPage from "./pages/FornecedoresPage";
 import ObrasPage from "./pages/ObrasPage";
 import ResponsaveisPage from "./pages/ResponsaveisPage";
 import VeiculosMaquinasPage from "./pages/VeiculosMaquinasPage";
-import CategoriasVeiculosPage from "./pages/CategoriasVeiculosPage";
+import PostosCombustivelPage from "./pages/PostosCombustivelPage";
 import TiposCombustivelPage from "./pages/TiposCombustivelPage";
 import AbastecimentosPage from "./pages/AbastecimentosPage";
 import DashboardCombustivelPage from "./pages/DashboardCombustivelPage";
@@ -139,8 +139,8 @@ const App = () => (
             <Route path="/responsaveis" element={<ModuleRoute module="responsaveis"><ResponsaveisPage /></ModuleRoute>} />
             <Route path="/veiculos" element={<ModuleRoute module="veiculos_maquinas"><VeiculosMaquinasPage /></ModuleRoute>} />
             <Route
-              path="/categorias-veiculos"
-              element={<ModuleRoute module="veiculos_maquinas"><CategoriasVeiculosPage /></ModuleRoute>}
+              path="/postos-combustivel"
+              element={<ModuleRoute module="postos_combustivel"><PostosCombustivelPage /></ModuleRoute>}
             />
             <Route
               path="/tipos-combustivel"

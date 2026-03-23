@@ -33,7 +33,7 @@ import {
   Car,
   Droplets,
   Factory,
-  Tags,
+  MapPinned,
   Wrench,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -64,13 +64,13 @@ export function AppSidebar() {
 
   if (isAdmin) {
     groups.push({
-      label: 'Administração',
+      label: 'Administracao',
       defaultOpen: true,
       items: [
         { title: 'Painel Executivo', url: '/painel-executivo', icon: LayoutDashboard },
-        { title: 'Usuários', url: '/usuarios', icon: Users },
+        { title: 'Usuarios', url: '/usuarios', icon: Users },
         { title: 'Auditoria', url: '/auditoria', icon: History },
-        { title: 'Config. Relatório', url: '/config-relatorio', icon: Settings },
+        { title: 'Config. Relatorio', url: '/config-relatorio', icon: Settings },
       ],
     });
   }
@@ -84,19 +84,19 @@ export function AppSidebar() {
   });
 
   groups.push({
-    label: 'Previsão de Compras',
+    label: 'Previsao de Compras',
     defaultOpen: true,
     items: [
       { title: 'Compras Faturadas', url: '/compras/faturadas', icon: Receipt, module: 'compras_faturadas' },
-      { title: 'Compras à Vista', url: '/compras/avista', icon: ShoppingCart, module: 'compras_avista' },
+      { title: 'Compras a Vista', url: '/compras/avista', icon: ShoppingCart, module: 'compras_avista' },
       { title: 'Espelho Geral', url: '/compras/espelho', icon: Eye, module: 'espelho_geral' },
-      { title: 'Programação Semanal', url: '/compras/programacao-semanal', icon: CalendarDays, module: 'programacao_semanal' },
+      { title: 'Programacao Semanal', url: '/compras/programacao-semanal', icon: CalendarDays, module: 'programacao_semanal' },
       { title: 'Espelho Semanal', url: '/compras/espelho-semanal', icon: BarChart3, module: 'espelho_semanal' },
     ],
   });
 
   groups.push({
-    label: 'Controle de Combustível',
+    label: 'Controle de Combustivel',
     defaultOpen: false,
     items: [
       { title: 'Dashboard', url: '/combustivel/dashboard', icon: Fuel, module: 'combustivel_dashboard' },
@@ -112,10 +112,10 @@ export function AppSidebar() {
       { title: 'Empresas', url: '/empresas', icon: Factory, module: 'empresas' },
       { title: 'Fornecedores', url: '/fornecedores', icon: Truck, module: 'fornecedores' },
       { title: 'Obras', url: '/obras', icon: Building2, module: 'obras' },
-      { title: 'Responsáveis', url: '/responsaveis', icon: UserCheck, module: 'responsaveis' },
-      { title: 'Veículos/Máquinas', url: '/veiculos', icon: Car, module: 'veiculos_maquinas' },
-      { title: 'Categorias de Veículos', url: '/categorias-veiculos', icon: Tags, module: 'veiculos_maquinas' },
-      { title: 'Tipos de Combustível', url: '/tipos-combustivel', icon: Droplets, module: 'tipos_combustivel' },
+      { title: 'Responsaveis', url: '/responsaveis', icon: UserCheck, module: 'responsaveis' },
+      { title: 'Veiculos/Maquinas', url: '/veiculos', icon: Car, module: 'veiculos_maquinas' },
+      { title: 'Postos de Combustivel', url: '/postos-combustivel', icon: MapPinned, module: 'postos_combustivel' },
+      { title: 'Tipos de Combustivel', url: '/tipos-combustivel', icon: Droplets, module: 'tipos_combustivel' },
     ],
   });
 

@@ -13,12 +13,14 @@ import {
   Abastecimento,
   VeiculoMaquina,
   TipoCombustivel,
+  PostoCombustivel,
   fetchAbastecimentos,
   saveAbastecimento,
   updateAbastecimento,
   deleteAbastecimento,
   fetchVeiculos,
   fetchTiposCombustivel,
+  fetchPostosCombustivel,
 } from '@/lib/combustivelService';
 import { formatCurrencyBR, formatDateBR } from '@/lib/comprasService';
 import { exportAbastecimentosPDF, exportAbastecimentosXLSX } from '@/lib/combustivelExport';
@@ -27,6 +29,7 @@ import { toast } from 'sonner';
 
 const emptyForm = {
   veiculo_id: '',
+  posto_id: '',
   nfe: '',
   data: '',
   combustivel_id: '',
@@ -41,24 +44,28 @@ export default function AbastecimentosPage() {
   const [items, setItems] = useState<Abastecimento[]>([]);
   const [veiculos, setVeiculos] = useState<VeiculoMaquina[]>([]);
   const [combustiveis, setCombustiveis] = useState<TipoCombustivel[]>([]);
+  const [postos, setPostos] = useState<PostoCombustivel[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
-  const [filterVeiculo, setFilterVeiculo] = useState('');
+  const [filterVeiculo, setFilterVeiculo] = useState('all');
+  const [filterPosto, setFilterPosto] = useState('all');
   const [form, setForm] = useState(emptyForm);
 
   const load = useCallback(async () => {
     try {
-      const [abs, veic, comb] = await Promise.all([
+      const [abs, veic, comb, postosData] = await Promise.all([
         fetchAbastecimentos(),
         fetchVeiculos(),
         fetchTiposCombustivel(),
+        fetchPostosCombustivel(),
       ]);
       setItems(abs);
       setVeiculos(veic);
       setCombustiveis(comb);
+      setPostos(postosData);
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -70,15 +77,16 @@ export default function AbastecimentosPage() {
     load();
   }, [load]);
 
-  const filtered = items.filter((i) => {
-    if (dateFrom && i.data < dateFrom) return false;
-    if (dateTo && i.data > dateTo) return false;
-    if (filterVeiculo && filterVeiculo !== 'all' && i.veiculo_id !== filterVeiculo) return false;
+  const filtered = items.filter((item) => {
+    if (dateFrom && item.data < dateFrom) return false;
+    if (dateTo && item.data > dateTo) return false;
+    if (filterVeiculo !== 'all' && item.veiculo_id !== filterVeiculo) return false;
+    if (filterPosto !== 'all' && (item.posto_id || '') !== filterPosto) return false;
     return true;
   });
 
-  const totalGeral = filtered.reduce((s, i) => s + i.valor_total, 0);
-  const totalLitros = filtered.reduce((s, i) => s + i.quantidade_litros, 0);
+  const totalGeral = filtered.reduce((sum, item) => sum + item.valor_total, 0);
+  const totalLitros = filtered.reduce((sum, item) => sum + item.quantidade_litros, 0);
 
   function resetDialogDraft() {
     setEditingId(null);
@@ -96,6 +104,7 @@ export default function AbastecimentosPage() {
     setEditingId(item.id);
     setForm({
       veiculo_id: item.veiculo_id,
+      posto_id: item.posto_id || '',
       nfe: item.nfe || '',
       data: item.data,
       combustivel_id: item.combustivel_id,
@@ -106,30 +115,31 @@ export default function AbastecimentosPage() {
     setShowDialog(true);
   }
 
-  const calcTotal = (qtd: string, vunit: string) => {
-    const q = parseFloat(qtd) || 0;
-    const v = parseFloat(vunit) || 0;
-    return q * v;
-  };
+  function calcTotal(qtd: string, valorUnitario: string) {
+    const quantidade = parseFloat(qtd) || 0;
+    const valor = parseFloat(valorUnitario) || 0;
+    return quantidade * valor;
+  }
 
   async function handleSubmit() {
     if (!user || !form.veiculo_id || !form.data || !form.combustivel_id || !form.quantidade_litros || !form.valor_unitario) {
-      toast.error('Preencha os campos obrigatórios');
+      toast.error('Preencha os campos obrigatorios');
       return;
     }
 
     try {
-      const qtd = parseFloat(form.quantidade_litros);
-      const vunit = parseFloat(form.valor_unitario);
+      const quantidade = parseFloat(form.quantidade_litros);
+      const valorUnitario = parseFloat(form.valor_unitario);
 
       const payload = {
         veiculo_id: form.veiculo_id,
+        posto_id: form.posto_id || null,
         nfe: form.nfe || null,
         data: form.data,
         combustivel_id: form.combustivel_id,
-        quantidade_litros: qtd,
-        valor_unitario: vunit,
-        valor_total: qtd * vunit,
+        quantidade_litros: quantidade,
+        valor_unitario: valorUnitario,
+        valor_total: quantidade * valorUnitario,
         observacao: form.observacao || null,
         created_by: user.id,
       };
@@ -155,7 +165,7 @@ export default function AbastecimentosPage() {
     try {
       await deleteAbastecimento(id);
       load();
-      toast.success('Excluído');
+      toast.success('Excluido');
     } catch (e: any) {
       toast.error(e.message);
     }
@@ -197,16 +207,33 @@ export default function AbastecimentosPage() {
         />
 
         <div>
-          <Label className="text-xs">Veículo</Label>
-          <Select value={filterVeiculo || 'all'} onValueChange={setFilterVeiculo}>
+          <Label className="text-xs">Veiculo</Label>
+          <Select value={filterVeiculo} onValueChange={setFilterVeiculo}>
             <SelectTrigger className="w-48">
               <SelectValue placeholder="Todos" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>
-              {veiculos.map((v) => (
-                <SelectItem key={v.id} value={v.id}>
-                  {v.placa}
+              {veiculos.map((veiculo) => (
+                <SelectItem key={veiculo.id} value={veiculo.id}>
+                  {veiculo.placa}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <Label className="text-xs">Posto</Label>
+          <Select value={filterPosto} onValueChange={setFilterPosto}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="Todos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              {postos.map((posto) => (
+                <SelectItem key={posto.id} value={posto.id}>
+                  {posto.nome}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -219,9 +246,10 @@ export default function AbastecimentosPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Data</TableHead>
-              <TableHead>Veículo</TableHead>
+              <TableHead>Veiculo</TableHead>
+              <TableHead>Posto</TableHead>
               <TableHead>NF-e</TableHead>
-              <TableHead>Combustível</TableHead>
+              <TableHead>Combustivel</TableHead>
               <TableHead className="text-right">Qtd (L)</TableHead>
               <TableHead className="text-right">Valor Unit.</TableHead>
               <TableHead className="text-right">Valor Total</TableHead>
@@ -232,31 +260,32 @@ export default function AbastecimentosPage() {
           <TableBody>
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={9} className="text-center text-muted-foreground">
+                <TableCell colSpan={10} className="text-center text-muted-foreground">
                   Nenhum registro
                 </TableCell>
               </TableRow>
             )}
 
-            {filtered.map((i) => (
-              <TableRow key={i.id}>
-                <TableCell>{formatDateBR(i.data)}</TableCell>
-                <TableCell>{i.veiculo?.placa || ''}</TableCell>
-                <TableCell>{i.nfe}</TableCell>
-                <TableCell>{i.combustivel?.nome || ''}</TableCell>
-                <TableCell className="text-right">{i.quantidade_litros.toFixed(2)}</TableCell>
-                <TableCell className="text-right">{formatCurrencyBR(i.valor_unitario)}</TableCell>
-                <TableCell className="text-right">{formatCurrencyBR(i.valor_total)}</TableCell>
-                <TableCell className="max-w-[120px] truncate">{i.observacao}</TableCell>
+            {filtered.map((item) => (
+              <TableRow key={item.id}>
+                <TableCell>{formatDateBR(item.data)}</TableCell>
+                <TableCell>{item.veiculo?.placa || ''}</TableCell>
+                <TableCell>{item.posto?.nome || '—'}</TableCell>
+                <TableCell>{item.nfe || '—'}</TableCell>
+                <TableCell>{item.combustivel?.nome || ''}</TableCell>
+                <TableCell className="text-right">{item.quantidade_litros.toFixed(2)}</TableCell>
+                <TableCell className="text-right">{formatCurrencyBR(item.valor_unitario)}</TableCell>
+                <TableCell className="text-right">{formatCurrencyBR(item.valor_total)}</TableCell>
+                <TableCell className="max-w-[120px] truncate">{item.observacao || '—'}</TableCell>
                 <TableCell>
                   <div className="flex gap-1">
                     {canEdit('abastecimentos') && (
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(i)}>
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(item)}>
                         <Pencil className="h-4 w-4" />
                       </Button>
                     )}
                     {canDelete('abastecimentos') && (
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(i.id)}>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(item.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     )}
@@ -267,7 +296,7 @@ export default function AbastecimentosPage() {
 
             {filtered.length > 0 && (
               <TableRow className="font-bold bg-muted/50">
-                <TableCell colSpan={4} className="text-right">TOTAL</TableCell>
+                <TableCell colSpan={5} className="text-right">TOTAL</TableCell>
                 <TableCell className="text-right">{totalLitros.toFixed(2)}</TableCell>
                 <TableCell />
                 <TableCell className="text-right">{formatCurrencyBR(totalGeral)}</TableCell>
@@ -295,15 +324,35 @@ export default function AbastecimentosPage() {
 
           <div className="grid gap-3">
             <div>
-              <Label>Veículo *</Label>
-              <Select value={form.veiculo_id} onValueChange={(v) => setForm((p) => ({ ...p, veiculo_id: v }))}>
+              <Label>Veiculo *</Label>
+              <Select value={form.veiculo_id} onValueChange={(value) => setForm((prev) => ({ ...prev, veiculo_id: value }))}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecionar veículo" />
+                  <SelectValue placeholder="Selecionar veiculo" />
                 </SelectTrigger>
                 <SelectContent>
-                  {veiculos.map((v) => (
-                    <SelectItem key={v.id} value={v.id}>
-                      {v.placa}
+                  {veiculos.map((veiculo) => (
+                    <SelectItem key={veiculo.id} value={veiculo.id}>
+                      {veiculo.placa}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Posto</Label>
+              <Select
+                value={form.posto_id || '_none'}
+                onValueChange={(value) => setForm((prev) => ({ ...prev, posto_id: value === '_none' ? '' : value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecionar posto" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none">Nao informado</SelectItem>
+                  {postos.map((posto) => (
+                    <SelectItem key={posto.id} value={posto.id}>
+                      {posto.nome}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -313,24 +362,24 @@ export default function AbastecimentosPage() {
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label>Data *</Label>
-                <Input type="date" value={form.data} onChange={(e) => setForm((p) => ({ ...p, data: e.target.value }))} />
+                <Input type="date" value={form.data} onChange={(e) => setForm((prev) => ({ ...prev, data: e.target.value }))} />
               </div>
               <div>
                 <Label>NF-e</Label>
-                <Input value={form.nfe} onChange={(e) => setForm((p) => ({ ...p, nfe: e.target.value }))} />
+                <Input value={form.nfe} onChange={(e) => setForm((prev) => ({ ...prev, nfe: e.target.value }))} />
               </div>
             </div>
 
             <div>
-              <Label>Combustível *</Label>
-              <Select value={form.combustivel_id} onValueChange={(v) => setForm((p) => ({ ...p, combustivel_id: v }))}>
+              <Label>Combustivel *</Label>
+              <Select value={form.combustivel_id} onValueChange={(value) => setForm((prev) => ({ ...prev, combustivel_id: value }))}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecionar combustível" />
+                  <SelectValue placeholder="Selecionar combustivel" />
                 </SelectTrigger>
                 <SelectContent>
-                  {combustiveis.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.nome}
+                  {combustiveis.map((combustivel) => (
+                    <SelectItem key={combustivel.id} value={combustivel.id}>
+                      {combustivel.nome}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -344,7 +393,7 @@ export default function AbastecimentosPage() {
                   type="number"
                   step="0.01"
                   value={form.quantidade_litros}
-                  onChange={(e) => setForm((p) => ({ ...p, quantidade_litros: e.target.value }))}
+                  onChange={(e) => setForm((prev) => ({ ...prev, quantidade_litros: e.target.value }))}
                 />
               </div>
 
@@ -354,7 +403,7 @@ export default function AbastecimentosPage() {
                   type="number"
                   step="0.01"
                   value={form.valor_unitario}
-                  onChange={(e) => setForm((p) => ({ ...p, valor_unitario: e.target.value }))}
+                  onChange={(e) => setForm((prev) => ({ ...prev, valor_unitario: e.target.value }))}
                 />
               </div>
 
@@ -369,10 +418,10 @@ export default function AbastecimentosPage() {
             </div>
 
             <div>
-              <Label>Observação</Label>
+              <Label>Observacao</Label>
               <Textarea
                 value={form.observacao}
-                onChange={(e) => setForm((p) => ({ ...p, observacao: e.target.value }))}
+                onChange={(e) => setForm((prev) => ({ ...prev, observacao: e.target.value }))}
               />
             </div>
           </div>

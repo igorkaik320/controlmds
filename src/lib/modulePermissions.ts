@@ -3,22 +3,23 @@ import { supabase } from '@/integrations/supabase/client';
 export const MODULES = [
   { key: 'controle_caixa', label: 'Controle de Caixa' },
   { key: 'compras_faturadas', label: 'Compras Faturadas' },
-  { key: 'compras_avista', label: 'Compras à Vista' },
+  { key: 'compras_avista', label: 'Compras a Vista' },
   { key: 'espelho_geral', label: 'Espelho Geral' },
-  { key: 'programacao_semanal', label: 'Programação Semanal' },
+  { key: 'programacao_semanal', label: 'Programacao Semanal' },
   { key: 'espelho_semanal', label: 'Espelho Semanal' },
   { key: 'fornecedores', label: 'Fornecedores' },
   { key: 'obras', label: 'Obras' },
-  { key: 'responsaveis', label: 'Responsáveis' },
+  { key: 'responsaveis', label: 'Responsaveis' },
   { key: 'empresas', label: 'Empresas' },
-  { key: 'combustivel_dashboard', label: 'Dashboard Combustível' },
+  { key: 'combustivel_dashboard', label: 'Dashboard Combustivel' },
   { key: 'abastecimentos', label: 'Abastecimentos' },
-  { key: 'revisoes_combustivel', label: 'Revisões' },
-  { key: 'veiculos_maquinas', label: 'Veículos/Máquinas' },
-  { key: 'tipos_combustivel', label: 'Tipos de Combustível' },
-  { key: 'usuarios', label: 'Usuários' },
+  { key: 'revisoes_combustivel', label: 'Revisoes' },
+  { key: 'veiculos_maquinas', label: 'Veiculos/Maquinas' },
+  { key: 'postos_combustivel', label: 'Postos de Combustivel' },
+  { key: 'tipos_combustivel', label: 'Tipos de Combustivel' },
+  { key: 'usuarios', label: 'Usuarios' },
   { key: 'auditoria', label: 'Auditoria' },
-  { key: 'config_relatorio', label: 'Config. Relatório' },
+  { key: 'config_relatorio', label: 'Config. Relatorio' },
 ] as const;
 
 export type ModuleKey = typeof MODULES[number]['key'];
@@ -100,7 +101,6 @@ export async function setUserActionPermission(
   }
 }
 
-// Legacy compat
 export interface ModulePermission {
   id: string;
   user_id: string;
@@ -114,22 +114,22 @@ export interface ModulePermission {
 export async function fetchUserPermissions(userId: string): Promise<Record<string, boolean>> {
   const perms = await fetchUserActionPermissions(userId);
   const result: Record<string, boolean> = {};
-  for (const p of perms) {
-    result[p.module] = p.can_view;
+  for (const permission of perms) {
+    result[permission.module] = permission.can_view;
   }
   return result;
 }
 
 export async function fetchAllPermissions(): Promise<ModulePermission[]> {
   const perms = await fetchAllActionPermissions();
-  return perms.map(p => ({
-    id: p.id,
-    user_id: p.user_id,
-    module: p.module,
-    granted: p.can_view,
-    granted_by: p.granted_by,
-    created_at: p.created_at,
-    updated_at: p.updated_at,
+  return perms.map((permission) => ({
+    id: permission.id,
+    user_id: permission.user_id,
+    module: permission.module,
+    granted: permission.can_view,
+    granted_by: permission.granted_by,
+    created_at: permission.created_at,
+    updated_at: permission.updated_at,
   }));
 }
 
