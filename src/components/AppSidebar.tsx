@@ -68,7 +68,7 @@ export function AppSidebar() {
       label: 'Administração',
       defaultOpen: true,
       items: [
-        { title: 'Usuários', url: '/usuarios', icon: Users, module: 'usuarios' },
+        { title: 'Usuários', url: '/usuarios', icon: Users, module: 'usuarios', showCollapsed: true },
         { title: 'Auditoria', url: '/auditoria', icon: History, module: 'auditoria' },
       ],
     },
@@ -77,7 +77,7 @@ export function AppSidebar() {
       label: 'Financeiro',
       defaultOpen: true,
       items: [
-        { title: 'Controle de Caixa', url: '/', icon: Landmark, module: 'controle_caixa' },
+        { title: 'Controle de Caixa', url: '/', icon: Landmark, module: 'controle_caixa', showCollapsed: true },
       ],
     },
     {
@@ -85,7 +85,7 @@ export function AppSidebar() {
       label: 'Previsão de Compras',
       defaultOpen: true,
       items: [
-        { title: 'Compras Faturadas', url: '/compras/faturadas', icon: Receipt, module: 'compras_faturadas' },
+        { title: 'Compras Faturadas', url: '/compras/faturadas', icon: Receipt, module: 'compras_faturadas', showCollapsed: true },
         { title: 'Compras à Vista', url: '/compras/avista', icon: ShoppingCart, module: 'compras_avista' },
         { title: 'Espelho Geral', url: '/compras/espelho', icon: Eye, module: 'espelho_geral' },
         { title: 'Programação Semanal', url: '/compras/programacao-semanal', icon: CalendarDays, module: 'programacao_semanal' },
@@ -97,7 +97,7 @@ export function AppSidebar() {
       label: 'Controle de Combustível',
       defaultOpen: false,
       items: [
-        { title: 'Dashboard', url: '/combustivel/dashboard', icon: Fuel, module: 'combustivel_dashboard' },
+        { title: 'Dashboard', url: '/combustivel/dashboard', icon: Fuel, module: 'combustivel_dashboard', showCollapsed: true },
         { title: 'Abastecimentos', url: '/combustivel/abastecimentos', icon: Droplets, module: 'abastecimentos' },
       ],
     },
@@ -106,7 +106,7 @@ export function AppSidebar() {
       label: 'Cadastros',
       defaultOpen: false,
       items: [
-        { title: 'Empresas', url: '/empresas', icon: Factory, module: 'empresas' },
+        { title: 'Empresas', url: '/empresas', icon: Factory, module: 'empresas', showCollapsed: true },
         { title: 'Fornecedores', url: '/fornecedores', icon: Truck, module: 'fornecedores' },
         { title: 'Obras', url: '/obras', icon: Building2, module: 'obras' },
         { title: 'Responsáveis', url: '/responsaveis', icon: UserCheck, module: 'responsaveis' },
