@@ -317,10 +317,10 @@ export default function ComprasFaturadasPage() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-2xl font-bold">Compras Faturadas</h2>
+        <div className="space-y-0.5">
+          <h2 className="text-[30px] font-bold tracking-tight">Compras Faturadas</h2>
           <p className="text-sm text-muted-foreground">
             Controle e acompanhamento dos lançamentos faturados
           </p>
@@ -329,12 +329,17 @@ export default function ComprasFaturadasPage() {
         <div className="flex gap-2">
           {canExport('compras_faturadas') && (
             <>
-              <Button variant="outline" size="sm" onClick={handleExportPDF}>
+              <Button variant="outline" size="sm" className="h-9 px-3" onClick={handleExportPDF}>
                 <FileDown className="mr-1 h-4 w-4" />
                 PDF
               </Button>
 
-              <Button variant="outline" size="sm" onClick={() => exportFaturadasXLSX(filtered, observation)}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 px-3"
+                onClick={() => exportFaturadasXLSX(filtered, observation)}
+              >
                 <FileSpreadsheet className="mr-1 h-4 w-4" />
                 Excel
               </Button>
@@ -342,7 +347,7 @@ export default function ComprasFaturadasPage() {
           )}
 
           {canCreate('compras_faturadas') && (
-            <Button size="sm" onClick={openNew}>
+            <Button size="sm" className="h-9 px-4" onClick={openNew}>
               <Plus className="mr-1 h-4 w-4" />
               Novo
             </Button>
@@ -350,141 +355,182 @@ export default function ComprasFaturadasPage() {
         </div>
       </div>
 
-      <div className="rounded-xl border bg-card p-4 space-y-4">
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-          <div>
-            <Label className="text-xs">Fornecedor</Label>
-            <Input
-              value={filterForn}
-              onChange={(e) => setFilterForn(e.target.value)}
-              placeholder="Filtrar..."
+      <div className="rounded-xl border bg-card">
+        <div className="border-b px-4 py-3">
+          <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            Parâmetros da Consulta
+          </h3>
+        </div>
+
+        <div className="space-y-4 p-4">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
+                Fornecedor
+              </Label>
+              <Input
+                value={filterForn}
+                onChange={(e) => setFilterForn(e.target.value)}
+                placeholder="Filtrar..."
+                className="h-9"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
+                Obra
+              </Label>
+              <Input
+                value={filterObra}
+                onChange={(e) => setFilterObra(e.target.value)}
+                placeholder="Filtrar..."
+                className="h-9"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <EmpresaSelect value={filterEmpresa} onChange={setFilterEmpresa} label="Empresa" allowAll />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
+                De
+              </Label>
+              <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="h-9" />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
+                Até
+              </Label>
+              <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="h-9" />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
+              Observação do Relatório
+            </Label>
+            <Textarea
+              value={observation}
+              onChange={(e) => setObservation(e.target.value)}
+              rows={2}
+              placeholder="Observação..."
+              className="min-h-[84px] resize-none"
             />
           </div>
 
-          <div>
-            <Label className="text-xs">Obra</Label>
-            <Input
-              value={filterObra}
-              onChange={(e) => setFilterObra(e.target.value)}
-              placeholder="Filtrar..."
-            />
+          <div className="flex justify-end gap-2">
+            <Button size="sm" className="h-9 px-4" onClick={handleConsultar}>
+              <Search className="mr-1 h-4 w-4" />
+              Consultar
+            </Button>
+
+            <Button variant="outline" size="sm" className="h-9 px-4" onClick={handleLimpar}>
+              <RotateCcw className="mr-1 h-4 w-4" />
+              Limpar
+            </Button>
           </div>
-
-          <div>
-            <EmpresaSelect value={filterEmpresa} onChange={setFilterEmpresa} label="Empresa" allowAll />
-          </div>
-
-          <div>
-            <Label className="text-xs">De</Label>
-            <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
-          </div>
-
-          <div>
-            <Label className="text-xs">Até</Label>
-            <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
-          </div>
-        </div>
-
-        <div>
-          <Label className="text-xs">Observação do relatório</Label>
-          <Textarea
-            value={observation}
-            onChange={(e) => setObservation(e.target.value)}
-            rows={2}
-            placeholder="Observação..."
-          />
-        </div>
-
-        <div className="flex justify-end gap-2">
-          <Button size="sm" onClick={handleConsultar}>
-            <Search className="mr-1 h-4 w-4" />
-            Consultar
-          </Button>
-
-          <Button variant="outline" size="sm" onClick={handleLimpar}>
-            <RotateCcw className="mr-1 h-4 w-4" />
-            Limpar
-          </Button>
         </div>
       </div>
 
-      <div className="overflow-auto rounded-xl border bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Data</TableHead>
-              <TableHead>Fornecedor</TableHead>
-              <TableHead>Pedido</TableHead>
-              <TableHead>Forma Pgto</TableHead>
-              <TableHead>Condição</TableHead>
-              <TableHead>Vencimentos</TableHead>
-              <TableHead>CNPJ/CPF</TableHead>
-              <TableHead className="text-right">Valor</TableHead>
-              <TableHead>Obra</TableHead>
-              <TableHead>Obs</TableHead>
-              <TableHead className="w-[92px] text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
+      <div className="rounded-xl border bg-card">
+        <div className="border-b px-4 py-3">
+          <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            Resultado da Consulta
+          </h3>
+        </div>
 
-          <TableBody>
-            {filtered.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={11} className="text-center text-muted-foreground">
-                  Nenhum registro
-                </TableCell>
+        <div className="overflow-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="h-11">
+                <TableHead className="px-4 py-2 text-[12px]">Data</TableHead>
+                <TableHead className="px-4 py-2 text-[12px]">Fornecedor</TableHead>
+                <TableHead className="px-4 py-2 text-[12px]">Pedido</TableHead>
+                <TableHead className="px-4 py-2 text-[12px]">Forma Pgto</TableHead>
+                <TableHead className="px-4 py-2 text-[12px]">Condição</TableHead>
+                <TableHead className="px-4 py-2 text-[12px]">Vencimentos</TableHead>
+                <TableHead className="px-4 py-2 text-[12px]">CNPJ/CPF</TableHead>
+                <TableHead className="px-4 py-2 text-right text-[12px]">Valor</TableHead>
+                <TableHead className="px-4 py-2 text-[12px]">Obra</TableHead>
+                <TableHead className="px-4 py-2 text-[12px]">Obs</TableHead>
+                <TableHead className="w-[88px] px-4 py-2 text-right text-[12px]">Ações</TableHead>
               </TableRow>
-            )}
+            </TableHeader>
 
-            {filtered.map((i) => (
-              <TableRow key={i.id}>
-                <TableCell>{formatDateBR(i.data)}</TableCell>
-                <TableCell className="max-w-[260px]">
-                  <div className="truncate" title={i.fornecedor}>
-                    {i.fornecedor}
-                  </div>
-                </TableCell>
-                <TableCell>{i.pedido || '—'}</TableCell>
-                <TableCell>{i.forma_pagamento || '—'}</TableCell>
-                <TableCell>{i.condicao_pagamento || '—'}</TableCell>
-                <TableCell className="max-w-[220px]">
-                  <div
-                    className="truncate"
-                    title={i.vencimentos || (i.data_liquidacao ? formatDateBR(i.data_liquidacao) : '—')}
-                  >
-                    {i.vencimentos || (i.data_liquidacao ? formatDateBR(i.data_liquidacao) : '—')}
-                  </div>
-                </TableCell>
-                <TableCell className="max-w-[160px] break-words">{i.cnpj_cpf || '—'}</TableCell>
-                <TableCell className="text-right font-mono">{formatCurrencyBR(i.valor)}</TableCell>
-                <TableCell className="max-w-[190px]">
-                  <div className="truncate" title={i.obra || '—'}>
-                    {i.obra || '—'}
-                  </div>
-                </TableCell>
-                <TableCell className="max-w-[190px]">
-                  <div className="truncate" title={i.observacao || '—'}>
-                    {i.observacao || '—'}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex justify-end gap-1">
-                    {canEdit('compras_faturadas') && (
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(i)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    )}
+            <TableBody>
+              {filtered.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={11} className="h-14 text-center text-sm text-muted-foreground">
+                    Nenhum registro
+                  </TableCell>
+                </TableRow>
+              )}
 
-                    {canDelete('compras_faturadas') && (
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(i.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+              {filtered.map((i) => (
+                <TableRow key={i.id} className="h-12">
+                  <TableCell className="px-4 py-2 text-sm">{formatDateBR(i.data)}</TableCell>
+
+                  <TableCell className="max-w-[240px] px-4 py-2 text-sm">
+                    <div className="truncate" title={i.fornecedor}>
+                      {i.fornecedor}
+                    </div>
+                  </TableCell>
+
+                  <TableCell className="px-4 py-2 text-sm">{i.pedido || '—'}</TableCell>
+                  <TableCell className="px-4 py-2 text-sm">{i.forma_pagamento || '—'}</TableCell>
+                  <TableCell className="px-4 py-2 text-sm">{i.condicao_pagamento || '—'}</TableCell>
+
+                  <TableCell className="max-w-[220px] px-4 py-2 text-sm">
+                    <div
+                      className="truncate"
+                      title={i.vencimentos || (i.data_liquidacao ? formatDateBR(i.data_liquidacao) : '—')}
+                    >
+                      {i.vencimentos || (i.data_liquidacao ? formatDateBR(i.data_liquidacao) : '—')}
+                    </div>
+                  </TableCell>
+
+                  <TableCell className="max-w-[150px] break-words px-4 py-2 text-sm">
+                    {i.cnpj_cpf || '—'}
+                  </TableCell>
+
+                  <TableCell className="px-4 py-2 text-right font-mono text-sm">
+                    {formatCurrencyBR(i.valor)}
+                  </TableCell>
+
+                  <TableCell className="max-w-[180px] px-4 py-2 text-sm">
+                    <div className="truncate" title={i.obra || '—'}>
+                      {i.obra || '—'}
+                    </div>
+                  </TableCell>
+
+                  <TableCell className="max-w-[170px] px-4 py-2 text-sm">
+                    <div className="truncate" title={i.observacao || '—'}>
+                      {i.observacao || '—'}
+                    </div>
+                  </TableCell>
+
+                  <TableCell className="px-4 py-2">
+                    <div className="flex justify-end gap-1">
+                      {canEdit('compras_faturadas') && (
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(i)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      )}
+
+                      {canDelete('compras_faturadas') && (
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDelete(i.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </div>
 
       <Dialog
