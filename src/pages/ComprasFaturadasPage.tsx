@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Pencil, Trash2, FileDown, FileSpreadsheet } from 'lucide-react';
+import { Plus, Pencil, Trash2, FileDown, FileSpreadsheet, Search, RotateCcw } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useModulePermissions } from '@/hooks/useModulePermissions';
 import {
@@ -84,12 +84,18 @@ export default function ComprasFaturadasPage() {
   const [showDialog, setShowDialog, clearShowDialog] = useFormDraft('fat-showDialog', false);
   const [editingId, setEditingId, clearEditingId] = useFormDraft<string | null>('fat-editingId', null);
 
-  const [dateFrom, setDateFrom] = useFormDraft('fat-dateFrom', '');
-  const [dateTo, setDateTo] = useFormDraft('fat-dateTo', '');
-  const [filterForn, setFilterForn] = useFormDraft('fat-filterForn', '');
-  const [filterObra, setFilterObra] = useFormDraft('fat-filterObra', '');
-  const [filterEmpresa, setFilterEmpresa] = useFormDraft('fat-filterEmpresa', '');
+  const [draftDateFrom, setDraftDateFrom] = useFormDraft('fat-dateFrom', '');
+  const [draftDateTo, setDraftDateTo] = useFormDraft('fat-dateTo', '');
+  const [draftFilterForn, setDraftFilterForn] = useFormDraft('fat-filterForn', '');
+  const [draftFilterObra, setDraftFilterObra] = useFormDraft('fat-filterObra', '');
+  const [draftFilterEmpresa, setDraftFilterEmpresa] = useFormDraft('fat-filterEmpresa', '');
   const [observation, setObservation] = useFormDraft('fat-observation', '');
+
+  const [dateFrom, setDateFrom] = useState(draftDateFrom);
+  const [dateTo, setDateTo] = useState(draftDateTo);
+  const [filterForn, setFilterForn] = useState(draftFilterForn);
+  const [filterObra, setFilterObra] = useState(draftFilterObra);
+  const [filterEmpresa, setFilterEmpresa] = useState(draftFilterEmpresa);
 
   const [form, setForm, clearForm] = useFormDraft('fat-form', emptyForm);
   const [empresaLogos, setEmpresaLogos] = useState<{ logo_esquerda: string | null; logo_direita: string | null }>({
@@ -148,6 +154,28 @@ export default function ComprasFaturadasPage() {
 
     return true;
   });
+
+  function handleConsultar() {
+    setDraftDateFrom(dateFrom);
+    setDraftDateTo(dateTo);
+    setDraftFilterForn(filterForn);
+    setDraftFilterObra(filterObra);
+    setDraftFilterEmpresa(filterEmpresa);
+  }
+
+  function handleLimpar() {
+    setDateFrom('');
+    setDateTo('');
+    setFilterForn('');
+    setFilterObra('');
+    setFilterEmpresa('');
+
+    setDraftDateFrom('');
+    setDraftDateTo('');
+    setDraftFilterForn('');
+    setDraftFilterObra('');
+    setDraftFilterEmpresa('');
+  }
 
   function resetDialogDraft() {
     clearEditingId();
@@ -290,9 +318,15 @@ export default function ComprasFaturadasPage() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-2xl font-bold">Compras Faturadas</h2>
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-2xl font-bold">Compras Faturadas</h2>
+          <p className="text-sm text-muted-foreground">
+            Controle e acompanhamento dos lançamentos faturados
+          </p>
+        </div>
+
         <div className="flex gap-2">
           {canExport('compras_faturadas') && (
             <>
@@ -300,6 +334,7 @@ export default function ComprasFaturadasPage() {
                 <FileDown className="mr-1 h-4 w-4" />
                 PDF
               </Button>
+
               <Button variant="outline" size="sm" onClick={() => exportFaturadasXLSX(filtered, observation)}>
                 <FileSpreadsheet className="mr-1 h-4 w-4" />
                 Excel
@@ -316,50 +351,62 @@ export default function ComprasFaturadasPage() {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-end gap-4">
-        <div>
-          <Label className="text-xs">Fornecedor</Label>
-          <Input
-            value={filterForn}
-            onChange={(e) => setFilterForn(e.target.value)}
-            placeholder="Filtrar..."
-            className="w-40"
+      <div className="rounded-xl border bg-card p-4 space-y-4">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+          <div>
+            <Label className="text-xs">Fornecedor</Label>
+            <Input
+              value={filterForn}
+              onChange={(e) => setFilterForn(e.target.value)}
+              placeholder="Filtrar..."
+            />
+          </div>
+
+          <div>
+            <Label className="text-xs">Obra</Label>
+            <Input
+              value={filterObra}
+              onChange={(e) => setFilterObra(e.target.value)}
+              placeholder="Filtrar..."
+            />
+          </div>
+
+          <div>
+            <EmpresaSelect value={filterEmpresa} onChange={setFilterEmpresa} label="Empresa" allowAll />
+          </div>
+
+          <DateRangeFilter
+            dateFrom={dateFrom}
+            dateTo={dateTo}
+            onDateFromChange={setDateFrom}
+            onDateToChange={setDateTo}
           />
+
+          <div className="flex items-end gap-2 xl:col-span-2">
+            <Button size="sm" onClick={handleConsultar}>
+              <Search className="mr-1 h-4 w-4" />
+              Consultar
+            </Button>
+
+            <Button variant="outline" size="sm" onClick={handleLimpar}>
+              <RotateCcw className="mr-1 h-4 w-4" />
+              Limpar
+            </Button>
+          </div>
         </div>
 
         <div>
-          <Label className="text-xs">Obra</Label>
-          <Input
-            value={filterObra}
-            onChange={(e) => setFilterObra(e.target.value)}
-            placeholder="Filtrar..."
-            className="w-40"
-          />
-        </div>
-
-        <div className="w-52">
-          <EmpresaSelect value={filterEmpresa} onChange={setFilterEmpresa} label="Empresa" allowAll />
-        </div>
-
-        <DateRangeFilter
-          dateFrom={dateFrom}
-          dateTo={dateTo}
-          onDateFromChange={setDateFrom}
-          onDateToChange={setDateTo}
-        />
-
-        <div className="min-w-[200px] flex-1">
           <Label className="text-xs">Observação do relatório</Label>
           <Textarea
             value={observation}
             onChange={(e) => setObservation(e.target.value)}
-            rows={1}
+            rows={3}
             placeholder="Observação..."
           />
         </div>
       </div>
 
-      <div className="overflow-auto rounded-md border">
+      <div className="overflow-auto rounded-xl border bg-card">
         <Table>
           <TableHeader>
             <TableRow>
@@ -373,9 +420,10 @@ export default function ComprasFaturadasPage() {
               <TableHead className="text-right">Valor</TableHead>
               <TableHead>Obra</TableHead>
               <TableHead>Obs</TableHead>
-              <TableHead></TableHead>
+              <TableHead className="w-[92px] text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
+
           <TableBody>
             {filtered.length === 0 && (
               <TableRow>
@@ -388,24 +436,31 @@ export default function ComprasFaturadasPage() {
             {filtered.map((i) => (
               <TableRow key={i.id}>
                 <TableCell>{formatDateBR(i.data)}</TableCell>
-                <TableCell>{i.fornecedor}</TableCell>
-                <TableCell>{i.pedido}</TableCell>
-                <TableCell>{i.forma_pagamento}</TableCell>
-                <TableCell>{i.condicao_pagamento || ''}</TableCell>
-                <TableCell className="max-w-[220px] whitespace-pre-wrap">
-                  {i.vencimentos || (i.data_liquidacao ? formatDateBR(i.data_liquidacao) : '')}
+                <TableCell className="max-w-[260px]">
+                  <div className="truncate">{i.fornecedor}</div>
                 </TableCell>
-                <TableCell>{i.cnpj_cpf}</TableCell>
-                <TableCell className="text-right">{formatCurrencyBR(i.valor)}</TableCell>
-                <TableCell>{i.obra}</TableCell>
-                <TableCell className="max-w-[120px] truncate">{i.observacao}</TableCell>
+                <TableCell>{i.pedido || '—'}</TableCell>
+                <TableCell>{i.forma_pagamento || '—'}</TableCell>
+                <TableCell>{i.condicao_pagamento || '—'}</TableCell>
+                <TableCell className="max-w-[240px] whitespace-pre-wrap">
+                  {i.vencimentos || (i.data_liquidacao ? formatDateBR(i.data_liquidacao) : '—')}
+                </TableCell>
+                <TableCell className="max-w-[160px] break-words">{i.cnpj_cpf || '—'}</TableCell>
+                <TableCell className="text-right font-mono">{formatCurrencyBR(i.valor)}</TableCell>
+                <TableCell className="max-w-[180px]">
+                  <div className="truncate">{i.obra || '—'}</div>
+                </TableCell>
+                <TableCell className="max-w-[180px]">
+                  <div className="truncate">{i.observacao || '—'}</div>
+                </TableCell>
                 <TableCell>
-                  <div className="flex gap-1">
+                  <div className="flex justify-end gap-1">
                     {canEdit('compras_faturadas') && (
                       <Button variant="ghost" size="icon" onClick={() => openEdit(i)}>
                         <Pencil className="h-4 w-4" />
                       </Button>
                     )}
+
                     {canDelete('compras_faturadas') && (
                       <Button variant="ghost" size="icon" onClick={() => handleDelete(i.id)}>
                         <Trash2 className="h-4 w-4" />
@@ -417,10 +472,6 @@ export default function ComprasFaturadasPage() {
             ))}
           </TableBody>
         </Table>
-      </div>
-
-      <div className="text-right font-bold">
-        Total: {formatCurrencyBR(filtered.reduce((s, i) => s + i.valor, 0))}
       </div>
 
       <Dialog
@@ -503,7 +554,9 @@ export default function ComprasFaturadasPage() {
               <Label>Valor *</Label>
               <Input
                 value={form.valor}
-                onChange={(e) => setForm((p: typeof emptyForm) => ({ ...p, valor: formatCurrencyInput(e.target.value) }))}
+                onChange={(e) =>
+                  setForm((p: typeof emptyForm) => ({ ...p, valor: formatCurrencyInput(e.target.value) }))
+                }
                 placeholder="R$ 0,00"
               />
             </div>
