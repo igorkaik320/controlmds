@@ -32,7 +32,7 @@ export default function VeiculoSearchSelect({
 
   useEffect(() => {
     if (selectedVeiculo) {
-      setQuery(`${selectedVeiculo.placa} - ${selectedVeiculo.modelo}`);
+      setQuery(selectedVeiculo.placa || '');
       return;
     }
     setQuery('');
@@ -52,7 +52,7 @@ export default function VeiculoSearchSelect({
 
   function selectVeiculo(veiculo: VeiculoMaquina) {
     onChange(veiculo.id);
-    setQuery(`${veiculo.placa} - ${veiculo.modelo}`);
+    setQuery(veiculo.placa || '');
     setOpen(false);
   }
 
@@ -83,10 +83,10 @@ export default function VeiculoSearchSelect({
                 onMouseDown={() => selectVeiculo(veiculo)}
               >
                 <div className="font-medium">
-                  {veiculo.placa} - {veiculo.modelo}
+                  {veiculo.placa || 'Sem placa'}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {[veiculo.marca, veiculo.categoria].filter(Boolean).join(' • ') || 'Sem detalhes'}
+                  {[veiculo.modelo, veiculo.marca, veiculo.categoria].filter(Boolean).join(' • ') || 'Sem detalhes'}
                 </div>
               </button>
             ))}
