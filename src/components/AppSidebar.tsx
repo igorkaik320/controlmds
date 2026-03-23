@@ -43,6 +43,7 @@ interface MenuItem {
   url: string;
   icon: any;
   module?: ModuleKey;
+  showCollapsed?: boolean;
 }
 
 interface MenuGroup {
