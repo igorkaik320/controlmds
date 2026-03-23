@@ -25,49 +25,18 @@ import TiposCombustivelPage from "./pages/TiposCombustivelPage";
 import AbastecimentosPage from "./pages/AbastecimentosPage";
 import DashboardCombustivelPage from "./pages/DashboardCombustivelPage";
 import EmpresasPage from "./pages/EmpresasPage";
+import PainelExecutivoPage from "./pages/PainelExecutivoPage";
 import NotFound from "./pages/NotFound";
 import type { ModuleKey } from "@/lib/modulePermissions";
 import { Lock } from "lucide-react";
 
 const queryClient = new QueryClient();
 
-const moduleRoutes: Array<{ module: ModuleKey; path: string }> = [
-  { module: "controle_caixa", path: "/" },
-  { module: "compras_faturadas", path: "/compras/faturadas" },
-  { module: "compras_avista", path: "/compras/avista" },
-  { module: "espelho_geral", path: "/compras/espelho" },
-  { module: "programacao_semanal", path: "/compras/programacao-semanal" },
-  { module: "espelho_semanal", path: "/compras/espelho-semanal" },
-  { module: "empresas", path: "/empresas" },
-  { module: "fornecedores", path: "/fornecedores" },
-  { module: "obras", path: "/obras" },
-  { module: "responsaveis", path: "/responsaveis" },
-  { module: "veiculos_maquinas", path: "/veiculos" },
-  { module: "tipos_combustivel", path: "/tipos-combustivel" },
-  { module: "abastecimentos", path: "/combustivel/abastecimentos" },
-  { module: "combustivel_dashboard", path: "/combustivel/dashboard" },
-  { module: "usuarios", path: "/usuarios" },
-  { module: "auditoria", path: "/auditoria" },
-  { module: "config_relatorio", path: "/config-relatorio" },
-];
-
 function LoadingScreen() {
   return (
     <div className="flex min-h-screen items-center justify-center">
       <p>Carregando...</p>
     </div>
-  );
-}
-
-function AccessDeniedScreen() {
-  return (
-    <AppLayout>
-      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4">
-        <Lock className="h-12 w-12 text-muted-foreground" />
-        <h2 className="text-xl font-bold">Acesso Restrito</h2>
-        <p className="text-muted-foreground">Você não tem permissão para acessar nenhum módulo.</p>
-      </div>
-    </AppLayout>
   );
 }
 
@@ -115,31 +84,6 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
   return <AppLayout>{children}</AppLayout>;
 }
 
-function HomeRoute() {
-  const { user, loading, userRole } = useAuth();
-  const { canAccess, loading: permLoading } = useModulePermissions();
-
-  if (!user && loading) return <LoadingScreen />;
-  if (permLoading) return <LoadingScreen />;
-  if (!user) return <Navigate to="/auth" />;
-
-  if (userRole === "admin" || canAccess("controle_caixa")) {
-    return (
-      <AppLayout>
-        <Index />
-      </AppLayout>
-    );
-  }
-
-  const firstAllowed = moduleRoutes.find((item) => item.module !== "controle_caixa" && canAccess(item.module));
-
-  if (firstAllowed) {
-    return <Navigate to={firstAllowed.path} replace />;
-  }
-
-  return <AccessDeniedScreen />;
-}
-
 function AuthRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
 
@@ -158,7 +102,7 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
-            <Route path="/" element={<HomeRoute />} />
+            <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
 
             <Route
               path="/compras/faturadas"
@@ -194,6 +138,7 @@ const App = () => (
               path="/tipos-combustivel"
               element={<ModuleRoute module="tipos_combustivel"><TiposCombustivelPage /></ModuleRoute>}
             />
+
             <Route
               path="/combustivel/abastecimentos"
               element={<ModuleRoute module="abastecimentos"><AbastecimentosPage /></ModuleRoute>}
@@ -203,8 +148,9 @@ const App = () => (
               element={<ModuleRoute module="combustivel_dashboard"><DashboardCombustivelPage /></ModuleRoute>}
             />
 
+            <Route path="/painel-executivo" element={<AdminRoute><PainelExecutivoPage /></AdminRoute>} />
             <Route path="/usuarios" element={<AdminRoute><UserManagement /></AdminRoute>} />
-            <Route path="/auditoria" element={<ModuleRoute module="auditoria"><AuditLog /></ModuleRoute>} />
+            <Route path="/auditoria" element={<AdminRoute><AuditLog /></AdminRoute>} />
             <Route path="/config-relatorio" element={<AdminRoute><ConfigRelatorioPage /></AdminRoute>} />
 
             <Route path="*" element={<NotFound />} />
