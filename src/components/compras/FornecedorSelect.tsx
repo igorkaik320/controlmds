@@ -23,9 +23,10 @@ function digitsOnly(value: string) {
 export default function FornecedorSearchSelect({
   value,
   onChange,
-  fornecedores,
+  fornecedores = [],
   label = 'Fornecedor *',
   placeholder = 'Digite nome, razão social ou CNPJ/CPF',
+  onFornecedorSelect,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
