@@ -6,9 +6,10 @@ import type { Fornecedor } from '@/lib/comprasService';
 interface Props {
   value: string;
   onChange: (fornecedorId: string) => void;
-  fornecedores: Fornecedor[];
+  fornecedores?: Fornecedor[];
   label?: string;
   placeholder?: string;
+  onFornecedorSelect?: (fornecedor: Fornecedor) => void;
 }
 
 function normalize(value: string) {
