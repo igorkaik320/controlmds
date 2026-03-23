@@ -52,10 +52,11 @@ export interface Abastecimento {
   quantidade_litros: number;
   valor_unitario: number;
   valor_total: number;
-  observacao: string | null;
   created_by: string;
   created_at: string;
-  updated_at: string;
+  updated_by?: string | null;
+  updated_at?: string | null;
+  observacao: string | null;
   veiculo?: VeiculoMaquina;
   combustivel?: TipoCombustivel;
   obra?: Obra | null;

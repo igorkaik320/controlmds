@@ -27,6 +27,7 @@ import { formatCurrencyBR, formatDateBR } from '@/lib/comprasService';
 import { exportAbastecimentosPDF, exportAbastecimentosXLSX } from '@/lib/combustivelExport';
 import DateRangeFilter from '@/components/DateRangeFilter';
 import { toast } from 'sonner';
+import { fetchProfiles } from '@/lib/cashRegister';
 
 const emptyForm = {
   veiculo_id: '',
@@ -39,6 +40,12 @@ const emptyForm = {
   valor_unitario: '',
   observacao: '',
 };
+
+function formatAuditDate(iso: string) {
+  if (!iso) return '—';
+  const parsed = new Date(iso);
+  return `${parsed.toLocaleDateString('pt-BR')} ${parsed.toLocaleTimeString('pt-BR')}`;
+}
 
 export default function AbastecimentosPage() {
   const { user } = useAuth();
@@ -57,21 +64,24 @@ export default function AbastecimentosPage() {
   const [filterObra, setFilterObra] = useState('all');
   const [filterPosto, setFilterPosto] = useState('all');
   const [form, setForm] = useState(emptyForm);
+  const [profileMap, setProfileMap] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
     try {
-      const [abs, veic, obrasData, comb, postosData] = await Promise.all([
+      const [abs, veic, obrasData, comb, postosData, profiles] = await Promise.all([
         fetchAbastecimentos(),
         fetchVeiculos(),
         fetchObras(),
         fetchTiposCombustivel(),
         fetchPostosCombustivel(),
+        fetchProfiles(),
       ]);
       setItems(abs);
       setVeiculos(veic);
       setObras(obrasData);
       setCombustiveis(comb);
       setPostos(postosData);
+      setProfileMap(profiles);
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -304,7 +314,19 @@ export default function AbastecimentosPage() {
                 <TableCell className="text-right">{item.quantidade_litros.toFixed(2)}</TableCell>
                 <TableCell className="text-right">{formatCurrencyBR(item.valor_unitario)}</TableCell>
                 <TableCell className="text-right">{formatCurrencyBR(item.valor_total)}</TableCell>
-                <TableCell className="max-w-[120px] truncate">{item.observacao || '—'}</TableCell>
+                <TableCell className="max-w-[140px]">
+                  <div className="text-sm truncate">{item.observacao || '—'}</div>
+                  <div className="text-[11px] text-muted-foreground space-y-0.5 mt-1">
+                    <div>
+                      Criado por {profileMap[item.created_by] || '—'} em {formatAuditDate(item.created_at)}
+                    </div>
+                    {item.updated_by && (
+                      <div>
+                        Atualizado por {profileMap[item.updated_by] || '—'} em {formatAuditDate(item.updated_at || '')}
+                      </div>
+                    )}
+                  </div>
+                </TableCell>
                 <TableCell>
                   <div className="flex gap-1">
                     {canEdit('abastecimentos') && (
