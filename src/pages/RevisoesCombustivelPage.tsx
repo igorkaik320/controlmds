@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Pencil, Trash2, Search, RotateCcw } from 'lucide-react';
@@ -246,7 +246,7 @@ export default function RevisoesCombustivelPage() {
                   <SelectItem value="all">Todos</SelectItem>
                   {veiculos.map((veiculo) => (
                     <SelectItem key={veiculo.id} value={veiculo.id}>
-                      {veiculo.placa} - {veiculo.modelo}
+                      {veiculo.placa || 'Sem placa'}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -398,6 +398,9 @@ export default function RevisoesCombustivelPage() {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>{editingId ? 'Editar' : 'Nova'} revisao</DialogTitle>
+            <DialogDescription>
+              Informe o veiculo, o fornecedor, o valor e a kilometragem da revisao.
+            </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-3">
