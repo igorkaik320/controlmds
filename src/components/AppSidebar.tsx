@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { NavLink } from '@/components/NavLink';
+import logoImg from '@/assets/logo-controlmds.png';
 import {
   Landmark,
   ShoppingCart,
