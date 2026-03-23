@@ -22,6 +22,8 @@ import { Fornecedor, fetchFornecedores, formatCurrencyBR, formatDateBR } from '@
 import { formatCurrencyInput, parseCurrencyInput } from '@/lib/formatters';
 import DateRangeFilter from '@/components/DateRangeFilter';
 import { useFormDraft } from '@/hooks/useFormDraft';
+import VeiculoSearchSelect from '@/components/combustivel/VeiculoSearchSelect';
+import FornecedorSearchSelect from '@/components/combustivel/FornecedorSearchSelect';
 import { toast } from 'sonner';
 
 const emptyForm = {
@@ -400,37 +402,17 @@ export default function RevisoesCombustivelPage() {
 
           <div className="grid gap-3">
             <div className="grid gap-3 md:grid-cols-2">
-              <div>
-                <Label>Veiculo *</Label>
-                <Select value={form.veiculo_id} onValueChange={(value) => setForm((prev) => ({ ...prev, veiculo_id: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecionar veiculo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {veiculos.map((veiculo) => (
-                      <SelectItem key={veiculo.id} value={veiculo.id}>
-                        {veiculo.placa} - {veiculo.modelo}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <VeiculoSearchSelect
+                value={form.veiculo_id}
+                onChange={(veiculoId) => setForm((prev) => ({ ...prev, veiculo_id: veiculoId }))}
+                veiculos={veiculos}
+              />
 
-              <div>
-                <Label>Fornecedor *</Label>
-                <Select value={form.fornecedor_id} onValueChange={(value) => setForm((prev) => ({ ...prev, fornecedor_id: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecionar fornecedor" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {fornecedores.map((fornecedor) => (
-                      <SelectItem key={fornecedor.id} value={fornecedor.id}>
-                        {fornecedor.nome_fornecedor}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <FornecedorSearchSelect
+                value={form.fornecedor_id}
+                onChange={(fornecedorId) => setForm((prev) => ({ ...prev, fornecedor_id: fornecedorId }))}
+                fornecedores={fornecedores}
+              />
             </div>
 
             <div className="grid gap-3 md:grid-cols-3">
