@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Pencil, Trash2, FileDown, FileSpreadsheet } from 'lucide-react';
+import { Plus, Pencil, Trash2, FileDown, FileSpreadsheet, Search, RotateCcw } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useModulePermissions } from '@/hooks/useModulePermissions';
 import {
@@ -23,7 +23,6 @@ import { formatCPFCNPJ, formatCurrencyInput, parseCurrencyInput } from '@/lib/fo
 import FornecedorSelect from '@/components/compras/FornecedorSelect';
 import ObraSelect from '@/components/compras/ObraSelect';
 import EmpresaSelect from '@/components/compras/EmpresaSelect';
-import DateRangeFilter from '@/components/DateRangeFilter';
 import { useFormDraft } from '@/hooks/useFormDraft';
 import { toast } from 'sonner';
 import type { Fornecedor } from '@/lib/comprasService';
@@ -52,12 +51,18 @@ export default function ComprasAvistaPage() {
   const [showDialog, setShowDialog, clearShowDialog] = useFormDraft('av-showDialog', false);
   const [editingId, setEditingId, clearEditingId] = useFormDraft<string | null>('av-editingId', null);
 
-  const [dateFrom, setDateFrom] = useFormDraft('av-dateFrom', '');
-  const [dateTo, setDateTo] = useFormDraft('av-dateTo', '');
-  const [filterForn, setFilterForn] = useFormDraft('av-filterForn', '');
-  const [filterObra, setFilterObra] = useFormDraft('av-filterObra', '');
-  const [filterEmpresa, setFilterEmpresa] = useFormDraft('av-filterEmpresa', '');
+  const [draftDateFrom, setDraftDateFrom] = useFormDraft('av-dateFrom', '');
+  const [draftDateTo, setDraftDateTo] = useFormDraft('av-dateTo', '');
+  const [draftFilterForn, setDraftFilterForn] = useFormDraft('av-filterForn', '');
+  const [draftFilterObra, setDraftFilterObra] = useFormDraft('av-filterObra', '');
+  const [draftFilterEmpresa, setDraftFilterEmpresa] = useFormDraft('av-filterEmpresa', '');
   const [observation, setObservation] = useFormDraft('av-observation', '');
+
+  const [dateFrom, setDateFrom] = useState(draftDateFrom);
+  const [dateTo, setDateTo] = useState(draftDateTo);
+  const [filterForn, setFilterForn] = useState(draftFilterForn);
+  const [filterObra, setFilterObra] = useState(draftFilterObra);
+  const [filterEmpresa, setFilterEmpresa] = useState(draftFilterEmpresa);
 
   const [form, setForm, clearForm] = useFormDraft('av-form', emptyForm);
   const [empresaLogos, setEmpresaLogos] = useState<{ logo_esquerda: string | null; logo_direita: string | null }>({
@@ -76,8 +81,8 @@ export default function ComprasAvistaPage() {
       setItems(compras);
       setObras(obrasData);
 
-      if (filterEmpresa) {
-        const empresa = empresas.find((e) => e.id === filterEmpresa);
+      if (draftFilterEmpresa) {
+        const empresa = empresas.find((e) => e.id === draftFilterEmpresa);
         if (empresa) {
           setEmpresaLogos({
             logo_esquerda: empresa.logo_esquerda,
@@ -94,23 +99,21 @@ export default function ComprasAvistaPage() {
     } finally {
       setLoading(false);
     }
-  }, [filterEmpresa]);
+  }, [draftFilterEmpresa]);
 
   useEffect(() => {
     load();
   }, [load]);
 
   const filtered = items.filter((i) => {
-    if (dateFrom && i.data < dateFrom) return false;
-    if (dateTo && i.data > dateTo) return false;
-    if (filterForn && !i.fornecedor.toLowerCase().includes(filterForn.toLowerCase())) return false;
-    if (filterObra && !(i.obra || '').toLowerCase().includes(filterObra.toLowerCase())) return false;
+    if (draftDateFrom && i.data < draftDateFrom) return false;
+    if (draftDateTo && i.data > draftDateTo) return false;
+    if (draftFilterForn && !i.fornecedor.toLowerCase().includes(draftFilterForn.toLowerCase())) return false;
+    if (draftFilterObra && !(i.obra || '').toLowerCase().includes(draftFilterObra.toLowerCase())) return false;
 
-    if (filterEmpresa) {
+    if (draftFilterEmpresa) {
       const allowedObras = new Set(
-        obras
-          .filter((obra) => obra.empresa_id === filterEmpresa)
-          .map((obra) => obra.nome.toLowerCase())
+        obras.filter((obra) => obra.empresa_id === draftFilterEmpresa).map((obra) => obra.nome.toLowerCase())
       );
 
       if (!i.obra || !allowedObras.has(i.obra.toLowerCase())) return false;
@@ -118,6 +121,28 @@ export default function ComprasAvistaPage() {
 
     return true;
   });
+
+  function handleConsultar() {
+    setDraftDateFrom(dateFrom);
+    setDraftDateTo(dateTo);
+    setDraftFilterForn(filterForn);
+    setDraftFilterObra(filterObra);
+    setDraftFilterEmpresa(filterEmpresa);
+  }
+
+  function handleLimpar() {
+    setDateFrom('');
+    setDateTo('');
+    setFilterForn('');
+    setFilterObra('');
+    setFilterEmpresa('');
+
+    setDraftDateFrom('');
+    setDraftDateTo('');
+    setDraftFilterForn('');
+    setDraftFilterObra('');
+    setDraftFilterEmpresa('');
+  }
 
   function resetDialogDraft() {
     clearEditingId();
@@ -199,9 +224,9 @@ export default function ComprasAvistaPage() {
   async function handleExportPDF() {
     let config = await fetchConfigRelatorio();
 
-    if (filterEmpresa && config) {
+    if (draftFilterEmpresa && config) {
       const empresas = await fetchEmpresas();
-      const empresa = empresas.find((e) => e.id === filterEmpresa);
+      const empresa = empresas.find((e) => e.id === draftFilterEmpresa);
 
       if (empresa) {
         config = {
@@ -240,75 +265,98 @@ export default function ComprasAvistaPage() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <h2 className="text-2xl font-bold">Compras à Vista por Obra</h2>
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-2xl font-bold">Compras à Vista por Obra</h2>
+          <p className="text-sm text-muted-foreground">
+            Controle e acompanhamento dos lançamentos à vista
+          </p>
+        </div>
+
         <div className="flex gap-2">
           {canExport('compras_avista') && (
             <>
               <Button variant="outline" size="sm" onClick={handleExportPDF}>
-                <FileDown className="h-4 w-4 mr-1" />
+                <FileDown className="mr-1 h-4 w-4" />
                 PDF
               </Button>
+
               <Button variant="outline" size="sm" onClick={() => exportAvistaXLSX(filtered, observation)}>
-                <FileSpreadsheet className="h-4 w-4 mr-1" />
+                <FileSpreadsheet className="mr-1 h-4 w-4" />
                 Excel
               </Button>
             </>
           )}
+
           {canCreate('compras_avista') && (
             <Button size="sm" onClick={openNew}>
-              <Plus className="h-4 w-4 mr-1" />
+              <Plus className="mr-1 h-4 w-4" />
               Novo
             </Button>
           )}
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-4 items-end">
-        <div>
-          <Label className="text-xs">Fornecedor</Label>
-          <Input
-            value={filterForn}
-            onChange={(e) => setFilterForn(e.target.value)}
-            placeholder="Filtrar..."
-            className="w-40"
-          />
+      <div className="rounded-xl border bg-card p-4 space-y-4">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+          <div>
+            <Label className="text-xs">Fornecedor</Label>
+            <Input
+              value={filterForn}
+              onChange={(e) => setFilterForn(e.target.value)}
+              placeholder="Filtrar..."
+            />
+          </div>
+
+          <div>
+            <Label className="text-xs">Obra</Label>
+            <Input
+              value={filterObra}
+              onChange={(e) => setFilterObra(e.target.value)}
+              placeholder="Filtrar..."
+            />
+          </div>
+
+          <div>
+            <EmpresaSelect value={filterEmpresa} onChange={setFilterEmpresa} label="Empresa" allowAll />
+          </div>
+
+          <div>
+            <Label className="text-xs">De</Label>
+            <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+          </div>
+
+          <div>
+            <Label className="text-xs">Até</Label>
+            <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+          </div>
         </div>
 
         <div>
-          <Label className="text-xs">Obra</Label>
-          <Input
-            value={filterObra}
-            onChange={(e) => setFilterObra(e.target.value)}
-            placeholder="Filtrar..."
-            className="w-40"
-          />
-        </div>
-
-        <div className="w-52">
-          <EmpresaSelect value={filterEmpresa} onChange={setFilterEmpresa} label="Empresa" allowAll />
-        </div>
-
-        <DateRangeFilter
-          dateFrom={dateFrom}
-          dateTo={dateTo}
-          onDateFromChange={setDateFrom}
-          onDateToChange={setDateTo}
-        />
-
-        <div className="flex-1 min-w-[200px]">
           <Label className="text-xs">Observação do relatório</Label>
           <Textarea
             value={observation}
             onChange={(e) => setObservation(e.target.value)}
-            rows={1}
+            rows={2}
             placeholder="Observação..."
           />
         </div>
+
+        <div className="flex justify-end gap-2">
+          <Button size="sm" onClick={handleConsultar}>
+            <Search className="mr-1 h-4 w-4" />
+            Consultar
+          </Button>
+
+          <Button variant="outline" size="sm" onClick={handleLimpar}>
+            <RotateCcw className="mr-1 h-4 w-4" />
+            Limpar
+          </Button>
+        </div>
       </div>
 
-      <div className="rounded-md border overflow-auto">
+      <div className="overflow-auto rounded-xl border bg-card">
         <Table>
           <TableHeader>
             <TableRow>
@@ -322,7 +370,7 @@ export default function ComprasAvistaPage() {
               <TableHead className="text-right">Valor</TableHead>
               <TableHead>Obra</TableHead>
               <TableHead>Obs</TableHead>
-              <TableHead></TableHead>
+              <TableHead className="w-[92px] text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
 
@@ -338,22 +386,35 @@ export default function ComprasAvistaPage() {
             {filtered.map((i) => (
               <TableRow key={i.id}>
                 <TableCell>{formatDateBR(i.data)}</TableCell>
-                <TableCell>{i.fornecedor}</TableCell>
-                <TableCell>{i.pedido}</TableCell>
-                <TableCell>{i.banco}</TableCell>
-                <TableCell>{i.agencia}</TableCell>
-                <TableCell>{i.conta}</TableCell>
-                <TableCell>{i.cnpj_cpf}</TableCell>
-                <TableCell className="text-right">{formatCurrencyBR(i.valor)}</TableCell>
-                <TableCell>{i.obra}</TableCell>
-                <TableCell className="max-w-[120px] truncate">{i.observacao}</TableCell>
+                <TableCell className="max-w-[260px]">
+                  <div className="truncate" title={i.fornecedor}>
+                    {i.fornecedor}
+                  </div>
+                </TableCell>
+                <TableCell>{i.pedido || '—'}</TableCell>
+                <TableCell>{i.banco || '—'}</TableCell>
+                <TableCell>{i.agencia || '—'}</TableCell>
+                <TableCell>{i.conta || '—'}</TableCell>
+                <TableCell className="max-w-[160px] break-words">{i.cnpj_cpf || '—'}</TableCell>
+                <TableCell className="text-right font-mono">{formatCurrencyBR(i.valor)}</TableCell>
+                <TableCell className="max-w-[190px]">
+                  <div className="truncate" title={i.obra || '—'}>
+                    {i.obra || '—'}
+                  </div>
+                </TableCell>
+                <TableCell className="max-w-[190px]">
+                  <div className="truncate" title={i.observacao || '—'}>
+                    {i.observacao || '—'}
+                  </div>
+                </TableCell>
                 <TableCell>
-                  <div className="flex gap-1">
+                  <div className="flex justify-end gap-1">
                     {canEdit('compras_avista') && (
                       <Button variant="ghost" size="icon" onClick={() => openEdit(i)}>
                         <Pencil className="h-4 w-4" />
                       </Button>
                     )}
+
                     {canDelete('compras_avista') && (
                       <Button variant="ghost" size="icon" onClick={() => handleDelete(i.id)}>
                         <Trash2 className="h-4 w-4" />
@@ -365,10 +426,6 @@ export default function ComprasAvistaPage() {
             ))}
           </TableBody>
         </Table>
-      </div>
-
-      <div className="text-right font-bold">
-        Total: {formatCurrencyBR(filtered.reduce((s, i) => s + i.valor, 0))}
       </div>
 
       <Dialog
@@ -385,6 +442,7 @@ export default function ComprasAvistaPage() {
           <DialogHeader>
             <DialogTitle>{editingId ? 'Editar' : 'Nova'} Compra à Vista</DialogTitle>
           </DialogHeader>
+
           <div className="grid gap-3">
             <div>
               <Label>Data *</Label>
@@ -417,6 +475,7 @@ export default function ComprasAvistaPage() {
                   onChange={(e) => setForm((p: typeof emptyForm) => ({ ...p, banco: e.target.value }))}
                 />
               </div>
+
               <div>
                 <Label>Agência</Label>
                 <Input
@@ -424,6 +483,7 @@ export default function ComprasAvistaPage() {
                   onChange={(e) => setForm((p: typeof emptyForm) => ({ ...p, agencia: e.target.value }))}
                 />
               </div>
+
               <div>
                 <Label>Conta</Label>
                 <Input
@@ -448,7 +508,9 @@ export default function ComprasAvistaPage() {
               <Label>Valor *</Label>
               <Input
                 value={form.valor}
-                onChange={(e) => setForm((p: typeof emptyForm) => ({ ...p, valor: formatCurrencyInput(e.target.value) }))}
+                onChange={(e) =>
+                  setForm((p: typeof emptyForm) => ({ ...p, valor: formatCurrencyInput(e.target.value) }))
+                }
                 placeholder="R$ 0,00"
               />
             </div>
@@ -469,6 +531,7 @@ export default function ComprasAvistaPage() {
               />
             </div>
           </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={resetDialogDraft}>
               Cancelar
