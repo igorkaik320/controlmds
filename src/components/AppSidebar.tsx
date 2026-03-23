@@ -43,6 +43,7 @@ interface MenuItem {
   url: string;
   icon: any;
   module?: ModuleKey;
+  showCollapsed?: boolean;
 }
 
 interface MenuGroup {
@@ -67,7 +68,7 @@ export function AppSidebar() {
       label: 'Administração',
       defaultOpen: true,
       items: [
-        { title: 'Usuários', url: '/usuarios', icon: Users, module: 'usuarios' },
+        { title: 'Usuários', url: '/usuarios', icon: Users, module: 'usuarios', showCollapsed: true },
         { title: 'Auditoria', url: '/auditoria', icon: History, module: 'auditoria' },
       ],
     },
@@ -76,7 +77,7 @@ export function AppSidebar() {
       label: 'Financeiro',
       defaultOpen: true,
       items: [
-        { title: 'Controle de Caixa', url: '/', icon: Landmark, module: 'controle_caixa' },
+        { title: 'Controle de Caixa', url: '/', icon: Landmark, module: 'controle_caixa', showCollapsed: true },
       ],
     },
     {
@@ -84,7 +85,7 @@ export function AppSidebar() {
       label: 'Previsão de Compras',
       defaultOpen: true,
       items: [
-        { title: 'Compras Faturadas', url: '/compras/faturadas', icon: Receipt, module: 'compras_faturadas' },
+        { title: 'Compras Faturadas', url: '/compras/faturadas', icon: Receipt, module: 'compras_faturadas', showCollapsed: true },
         { title: 'Compras à Vista', url: '/compras/avista', icon: ShoppingCart, module: 'compras_avista' },
         { title: 'Espelho Geral', url: '/compras/espelho', icon: Eye, module: 'espelho_geral' },
         { title: 'Programação Semanal', url: '/compras/programacao-semanal', icon: CalendarDays, module: 'programacao_semanal' },
@@ -96,7 +97,7 @@ export function AppSidebar() {
       label: 'Controle de Combustível',
       defaultOpen: false,
       items: [
-        { title: 'Dashboard', url: '/combustivel/dashboard', icon: Fuel, module: 'combustivel_dashboard' },
+        { title: 'Dashboard', url: '/combustivel/dashboard', icon: Fuel, module: 'combustivel_dashboard', showCollapsed: true },
         { title: 'Abastecimentos', url: '/combustivel/abastecimentos', icon: Droplets, module: 'abastecimentos' },
       ],
     },
@@ -105,7 +106,7 @@ export function AppSidebar() {
       label: 'Cadastros',
       defaultOpen: false,
       items: [
-        { title: 'Empresas', url: '/empresas', icon: Factory, module: 'empresas' },
+        { title: 'Empresas', url: '/empresas', icon: Factory, module: 'empresas', showCollapsed: true },
         { title: 'Fornecedores', url: '/fornecedores', icon: Truck, module: 'fornecedores' },
         { title: 'Obras', url: '/obras', icon: Building2, module: 'obras' },
         { title: 'Responsáveis', url: '/responsaveis', icon: UserCheck, module: 'responsaveis' },
@@ -190,7 +191,7 @@ export function AppSidebar() {
         {!collapsed && (
           <div className="border-b border-white/10 bg-[#1d2a3c] px-4 py-5">
             <div className="space-y-1">
-              <img src={logoImg} alt="ControlMDS" className="h-8 object-contain mb-1" />
+              <img src={logoImg} alt="ControlMDS" className="h-12 object-contain mb-1" />
               <p className="text-sm text-white/75">{profile?.display_name}</p>
               <div className="pt-1">
                 <span className="inline-flex rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium text-white/90">
@@ -207,7 +208,7 @@ export function AppSidebar() {
               {collapsed ? (
                 <SidebarGroupContent>
                   <SidebarMenu className="space-y-1">
-                    {group.items.map(renderMenuItem)}
+                    {group.items.filter(item => item.showCollapsed).map(renderMenuItem)}
                   </SidebarMenu>
                 </SidebarGroupContent>
               ) : (
