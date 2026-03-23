@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Pencil, Trash2, FileDown, FileSpreadsheet } from 'lucide-react';
+import { Plus, Pencil, Trash2, FileDown, FileSpreadsheet, Search, RotateCcw } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useModulePermissions } from '@/hooks/useModulePermissions';
 import {
@@ -24,7 +24,6 @@ import FornecedorSelect from '@/components/compras/FornecedorSelect';
 import ObraSelect from '@/components/compras/ObraSelect';
 import ResponsavelSelect from '@/components/compras/ResponsavelSelect';
 import EmpresaSelect from '@/components/compras/EmpresaSelect';
-import DateRangeFilter from '@/components/DateRangeFilter';
 import { useFormDraft } from '@/hooks/useFormDraft';
 import { toast } from 'sonner';
 import type { Fornecedor } from '@/lib/comprasService';
@@ -54,13 +53,20 @@ export default function ProgramacaoSemanalPage() {
   const [showDialog, setShowDialog, clearShowDialog] = useFormDraft('ps-showDialog', false);
   const [editingId, setEditingId, clearEditingId] = useFormDraft<string | null>('ps-editingId', null);
 
-  const [dateFrom, setDateFrom] = useFormDraft('ps-dateFrom', '');
-  const [dateTo, setDateTo] = useFormDraft('ps-dateTo', '');
-  const [filterForn, setFilterForn] = useFormDraft('ps-filterForn', '');
-  const [filterObra, setFilterObra] = useFormDraft('ps-filterObra', '');
-  const [filterResp, setFilterResp] = useFormDraft('ps-filterResp', '');
-  const [filterEmpresa, setFilterEmpresa] = useFormDraft('ps-filterEmpresa', '');
+  const [draftDateFrom, setDraftDateFrom] = useFormDraft('ps-dateFrom', '');
+  const [draftDateTo, setDraftDateTo] = useFormDraft('ps-dateTo', '');
+  const [draftFilterForn, setDraftFilterForn] = useFormDraft('ps-filterForn', '');
+  const [draftFilterObra, setDraftFilterObra] = useFormDraft('ps-filterObra', '');
+  const [draftFilterResp, setDraftFilterResp] = useFormDraft('ps-filterResp', '');
+  const [draftFilterEmpresa, setDraftFilterEmpresa] = useFormDraft('ps-filterEmpresa', '');
   const [observation, setObservation] = useFormDraft('ps-observation', '');
+
+  const [dateFrom, setDateFrom] = useState(draftDateFrom);
+  const [dateTo, setDateTo] = useState(draftDateTo);
+  const [filterForn, setFilterForn] = useState(draftFilterForn);
+  const [filterObra, setFilterObra] = useState(draftFilterObra);
+  const [filterResp, setFilterResp] = useState(draftFilterResp);
+  const [filterEmpresa, setFilterEmpresa] = useState(draftFilterEmpresa);
 
   const [form, setForm, clearForm] = useFormDraft('ps-form', emptyForm);
   const [empresaLogos, setEmpresaLogos] = useState<{ logo_esquerda: string | null; logo_direita: string | null }>({
@@ -79,8 +85,8 @@ export default function ProgramacaoSemanalPage() {
       setItems(programacao);
       setObras(obrasData);
 
-      if (filterEmpresa) {
-        const empresa = empresas.find((e) => e.id === filterEmpresa);
+      if (draftFilterEmpresa) {
+        const empresa = empresas.find((e) => e.id === draftFilterEmpresa);
         if (empresa) {
           setEmpresaLogos({
             logo_esquerda: empresa.logo_esquerda,
@@ -97,24 +103,22 @@ export default function ProgramacaoSemanalPage() {
     } finally {
       setLoading(false);
     }
-  }, [filterEmpresa]);
+  }, [draftFilterEmpresa]);
 
   useEffect(() => {
     load();
   }, [load]);
 
   const filtered = items.filter((i) => {
-    if (dateFrom && i.data < dateFrom) return false;
-    if (dateTo && i.data > dateTo) return false;
-    if (filterForn && !i.fornecedor.toLowerCase().includes(filterForn.toLowerCase())) return false;
-    if (filterObra && !(i.obra || '').toLowerCase().includes(filterObra.toLowerCase())) return false;
-    if (filterResp && !(i.responsavel || '').toLowerCase().includes(filterResp.toLowerCase())) return false;
+    if (draftDateFrom && i.data < draftDateFrom) return false;
+    if (draftDateTo && i.data > draftDateTo) return false;
+    if (draftFilterForn && !i.fornecedor.toLowerCase().includes(draftFilterForn.toLowerCase())) return false;
+    if (draftFilterObra && !(i.obra || '').toLowerCase().includes(draftFilterObra.toLowerCase())) return false;
+    if (draftFilterResp && !(i.responsavel || '').toLowerCase().includes(draftFilterResp.toLowerCase())) return false;
 
-    if (filterEmpresa) {
+    if (draftFilterEmpresa) {
       const allowedObras = new Set(
-        obras
-          .filter((obra) => obra.empresa_id === filterEmpresa)
-          .map((obra) => obra.nome.toLowerCase())
+        obras.filter((obra) => obra.empresa_id === draftFilterEmpresa).map((obra) => obra.nome.toLowerCase())
       );
 
       if (!i.obra || !allowedObras.has(i.obra.toLowerCase())) return false;
@@ -122,6 +126,31 @@ export default function ProgramacaoSemanalPage() {
 
     return true;
   });
+
+  function handleConsultar() {
+    setDraftDateFrom(dateFrom);
+    setDraftDateTo(dateTo);
+    setDraftFilterForn(filterForn);
+    setDraftFilterObra(filterObra);
+    setDraftFilterResp(filterResp);
+    setDraftFilterEmpresa(filterEmpresa);
+  }
+
+  function handleLimpar() {
+    setDateFrom('');
+    setDateTo('');
+    setFilterForn('');
+    setFilterObra('');
+    setFilterResp('');
+    setFilterEmpresa('');
+
+    setDraftDateFrom('');
+    setDraftDateTo('');
+    setDraftFilterForn('');
+    setDraftFilterObra('');
+    setDraftFilterResp('');
+    setDraftFilterEmpresa('');
+  }
 
   function resetDialogDraft() {
     clearEditingId();
@@ -205,9 +234,9 @@ export default function ProgramacaoSemanalPage() {
   async function handleExportPDF() {
     let config = await fetchConfigRelatorio();
 
-    if (filterEmpresa && config) {
+    if (draftFilterEmpresa && config) {
       const empresas = await fetchEmpresas();
-      const empresa = empresas.find((e) => e.id === filterEmpresa);
+      const empresa = empresas.find((e) => e.id === draftFilterEmpresa);
 
       if (empresa) {
         config = {
@@ -238,65 +267,119 @@ export default function ProgramacaoSemanalPage() {
   }
 
   if (loading) {
-    return <div className="p-6 text-center text-muted-foreground">Carregando...</div>;
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p>Carregando...</p>
+      </div>
+    );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <h2 className="text-2xl font-bold">Programação Semanal</h2>
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-2xl font-bold">Programação Semanal</h2>
+          <p className="text-sm text-muted-foreground">
+            Controle e acompanhamento da programação semanal
+          </p>
+        </div>
+
         <div className="flex gap-2">
           {canExport('programacao_semanal') && (
             <>
               <Button variant="outline" size="sm" onClick={handleExportPDF}>
-                <FileDown className="h-4 w-4 mr-1" />
+                <FileDown className="mr-1 h-4 w-4" />
                 PDF
               </Button>
-              <Button variant="outline" size="sm" onClick={() => exportProgramacaoSemanalXLSX(filtered, observation)}>
-                <FileSpreadsheet className="h-4 w-4 mr-1" />
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => exportProgramacaoSemanalXLSX(filtered, observation)}
+              >
+                <FileSpreadsheet className="mr-1 h-4 w-4" />
                 Excel
               </Button>
             </>
           )}
+
           {canCreate('programacao_semanal') && (
             <Button size="sm" onClick={openNew}>
-              <Plus className="h-4 w-4 mr-1" />
+              <Plus className="mr-1 h-4 w-4" />
               Novo
             </Button>
           )}
         </div>
       </div>
 
-      <div className="flex flex-wrap items-end gap-3">
-        <DateRangeFilter
-          dateFrom={dateFrom}
-          dateTo={dateTo}
-          onDateFromChange={setDateFrom}
-          onDateToChange={setDateTo}
-        />
-        <div>
-          <Label className="text-xs">Fornecedor</Label>
-          <Input value={filterForn} onChange={(e) => setFilterForn(e.target.value)} placeholder="Filtrar..." className="w-40" />
+      <div className="rounded-xl border bg-card p-4 space-y-4">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+          <div>
+            <Label className="text-xs">Fornecedor</Label>
+            <Input
+              value={filterForn}
+              onChange={(e) => setFilterForn(e.target.value)}
+              placeholder="Filtrar..."
+            />
+          </div>
+
+          <div>
+            <Label className="text-xs">Obra</Label>
+            <Input
+              value={filterObra}
+              onChange={(e) => setFilterObra(e.target.value)}
+              placeholder="Filtrar..."
+            />
+          </div>
+
+          <div>
+            <Label className="text-xs">Responsável</Label>
+            <Input
+              value={filterResp}
+              onChange={(e) => setFilterResp(e.target.value)}
+              placeholder="Filtrar..."
+            />
+          </div>
+
+          <div>
+            <EmpresaSelect value={filterEmpresa} onChange={setFilterEmpresa} label="Empresa" allowAll />
+          </div>
+
+          <div>
+            <Label className="text-xs">De</Label>
+            <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+          </div>
+
+          <div>
+            <Label className="text-xs">Até</Label>
+            <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+          </div>
         </div>
+
         <div>
-          <Label className="text-xs">Obra</Label>
-          <Input value={filterObra} onChange={(e) => setFilterObra(e.target.value)} placeholder="Filtrar..." className="w-40" />
+          <Label className="text-xs">Observação do relatório</Label>
+          <Textarea
+            value={observation}
+            onChange={(e) => setObservation(e.target.value)}
+            rows={2}
+            placeholder="Observação..."
+          />
         </div>
-        <div>
-          <Label className="text-xs">Responsável</Label>
-          <Input value={filterResp} onChange={(e) => setFilterResp(e.target.value)} placeholder="Filtrar..." className="w-40" />
-        </div>
-        <div className="w-52">
-          <EmpresaSelect value={filterEmpresa} onChange={setFilterEmpresa} label="Empresa" allowAll />
+
+        <div className="flex justify-end gap-2">
+          <Button size="sm" onClick={handleConsultar}>
+            <Search className="mr-1 h-4 w-4" />
+            Consultar
+          </Button>
+
+          <Button variant="outline" size="sm" onClick={handleLimpar}>
+            <RotateCcw className="mr-1 h-4 w-4" />
+            Limpar
+          </Button>
         </div>
       </div>
 
-      <div>
-        <Label className="text-xs">Observação do relatório</Label>
-        <Textarea value={observation} onChange={(e) => setObservation(e.target.value)} rows={2} />
-      </div>
-
-      <div className="rounded-md border overflow-auto">
+      <div className="overflow-auto rounded-xl border bg-card">
         <Table>
           <TableHeader>
             <TableRow>
@@ -307,13 +390,14 @@ export default function ProgramacaoSemanalPage() {
               <TableHead>Agência</TableHead>
               <TableHead>Conta</TableHead>
               <TableHead>CNPJ/CPF</TableHead>
-              <TableHead>Valor</TableHead>
+              <TableHead className="text-right">Valor</TableHead>
               <TableHead>Obra</TableHead>
               <TableHead>Responsável</TableHead>
               <TableHead>Obs.</TableHead>
-              <TableHead>Ações</TableHead>
+              <TableHead className="w-[92px] text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
+
           <TableBody>
             {filtered.length === 0 && (
               <TableRow>
@@ -322,28 +406,46 @@ export default function ProgramacaoSemanalPage() {
                 </TableCell>
               </TableRow>
             )}
+
             {filtered.map((i) => (
               <TableRow key={i.id}>
                 <TableCell>{formatDateBR(i.data)}</TableCell>
-                <TableCell>{i.fornecedor}</TableCell>
-                <TableCell>{i.pedido}</TableCell>
-                <TableCell>{i.banco}</TableCell>
-                <TableCell>{i.agencia}</TableCell>
-                <TableCell>{i.conta}</TableCell>
-                <TableCell>{i.cnpj_cpf}</TableCell>
-                <TableCell className="font-mono">{formatCurrencyBR(i.valor)}</TableCell>
-                <TableCell>{i.obra}</TableCell>
-                <TableCell>{i.responsavel}</TableCell>
-                <TableCell className="max-w-[120px] truncate">{i.observacao}</TableCell>
+                <TableCell className="max-w-[240px]">
+                  <div className="truncate" title={i.fornecedor}>
+                    {i.fornecedor}
+                  </div>
+                </TableCell>
+                <TableCell>{i.pedido || '—'}</TableCell>
+                <TableCell>{i.banco || '—'}</TableCell>
+                <TableCell>{i.agencia || '—'}</TableCell>
+                <TableCell>{i.conta || '—'}</TableCell>
+                <TableCell className="max-w-[160px] break-words">{i.cnpj_cpf || '—'}</TableCell>
+                <TableCell className="text-right font-mono">{formatCurrencyBR(i.valor)}</TableCell>
+                <TableCell className="max-w-[200px]">
+                  <div className="truncate" title={i.obra || '—'}>
+                    {i.obra || '—'}
+                  </div>
+                </TableCell>
+                <TableCell className="max-w-[140px]">
+                  <div className="truncate" title={i.responsavel || '—'}>
+                    {i.responsavel || '—'}
+                  </div>
+                </TableCell>
+                <TableCell className="max-w-[190px]">
+                  <div className="truncate" title={i.observacao || '—'}>
+                    {i.observacao || '—'}
+                  </div>
+                </TableCell>
                 <TableCell>
-                  <div className="flex gap-1">
+                  <div className="flex justify-end gap-1">
                     {canEdit('programacao_semanal') && (
-                      <Button size="icon" variant="ghost" onClick={() => openEdit(i)}>
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(i)}>
                         <Pencil className="h-4 w-4" />
                       </Button>
                     )}
+
                     {canDelete('programacao_semanal') && (
-                      <Button size="icon" variant="ghost" onClick={() => handleDelete(i.id)}>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(i.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     )}
@@ -351,66 +453,126 @@ export default function ProgramacaoSemanalPage() {
                 </TableCell>
               </TableRow>
             ))}
-            {filtered.length > 0 && (
-              <TableRow className="font-bold bg-muted/50">
-                <TableCell colSpan={7} className="text-right">TOTAL</TableCell>
-                <TableCell className="font-mono">{formatCurrencyBR(filtered.reduce((s, i) => s + i.valor, 0))}</TableCell>
-                <TableCell colSpan={4} />
-              </TableRow>
-            )}
           </TableBody>
         </Table>
       </div>
 
-      <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-auto">
+      <Dialog
+        open={showDialog}
+        onOpenChange={(open) => {
+          if (!open) {
+            resetDialogDraft();
+            return;
+          }
+          setShowDialog(true);
+        }}
+      >
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-auto">
           <DialogHeader>
-            <DialogTitle>{editingId ? 'Editar' : 'Novo'} Lançamento</DialogTitle>
+            <DialogTitle>{editingId ? 'Editar' : 'Nova'} Programação Semanal</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3">
+
+          <div className="grid gap-3">
             <div>
               <Label>Data *</Label>
-              <Input type="date" value={form.data} onChange={(e) => setForm((p) => ({ ...p, data: e.target.value }))} />
+              <Input
+                type="date"
+                value={form.data}
+                onChange={(e) => setForm((p: typeof emptyForm) => ({ ...p, data: e.target.value }))}
+              />
             </div>
-            <FornecedorSelect value={form.fornecedor} onChange={(v) => setForm((p) => ({ ...p, fornecedor: v }))} onFornecedorSelect={handleFornecedorSelect} />
+
+            <FornecedorSelect
+              value={form.fornecedor}
+              onChange={(v) => setForm((p: typeof emptyForm) => ({ ...p, fornecedor: v }))}
+              onFornecedorSelect={handleFornecedorSelect}
+            />
+
             <div>
               <Label>Pedido</Label>
-              <Input value={form.pedido} onChange={(e) => setForm((p) => ({ ...p, pedido: e.target.value }))} />
+              <Input
+                value={form.pedido}
+                onChange={(e) => setForm((p: typeof emptyForm) => ({ ...p, pedido: e.target.value }))}
+              />
             </div>
+
             <div className="grid grid-cols-3 gap-2">
               <div>
                 <Label>Banco</Label>
-                <Input value={form.banco} onChange={(e) => setForm((p) => ({ ...p, banco: e.target.value }))} />
+                <Input
+                  value={form.banco}
+                  onChange={(e) => setForm((p: typeof emptyForm) => ({ ...p, banco: e.target.value }))}
+                />
               </div>
+
               <div>
                 <Label>Agência</Label>
-                <Input value={form.agencia} onChange={(e) => setForm((p) => ({ ...p, agencia: e.target.value }))} />
+                <Input
+                  value={form.agencia}
+                  onChange={(e) => setForm((p: typeof emptyForm) => ({ ...p, agencia: e.target.value }))}
+                />
               </div>
+
               <div>
                 <Label>Conta</Label>
-                <Input value={form.conta} onChange={(e) => setForm((p) => ({ ...p, conta: e.target.value }))} />
+                <Input
+                  value={form.conta}
+                  onChange={(e) => setForm((p: typeof emptyForm) => ({ ...p, conta: e.target.value }))}
+                />
               </div>
             </div>
+
             <div>
               <Label>CNPJ/CPF</Label>
-              <Input value={form.cnpj_cpf} onChange={(e) => setForm((p) => ({ ...p, cnpj_cpf: formatCPFCNPJ(e.target.value) }))} maxLength={18} />
+              <Input
+                value={form.cnpj_cpf}
+                onChange={(e) =>
+                  setForm((p: typeof emptyForm) => ({ ...p, cnpj_cpf: formatCPFCNPJ(e.target.value) }))
+                }
+                maxLength={18}
+              />
             </div>
+
             <div>
               <Label>Valor *</Label>
-              <Input value={form.valor} onChange={(e) => setForm((p) => ({ ...p, valor: formatCurrencyInput(e.target.value) }))} placeholder="R$ 0,00" />
+              <Input
+                value={form.valor}
+                onChange={(e) =>
+                  setForm((p: typeof emptyForm) => ({ ...p, valor: formatCurrencyInput(e.target.value) }))
+                }
+                placeholder="R$ 0,00"
+              />
             </div>
+
             <div>
               <Label>Obra</Label>
-              <ObraSelect value={form.obra} onChange={(v) => setForm((p) => ({ ...p, obra: v }))} />
+              <ObraSelect
+                value={form.obra}
+                onChange={(v) => setForm((p: typeof emptyForm) => ({ ...p, obra: v }))}
+              />
             </div>
-            <ResponsavelSelect value={form.responsavel} onChange={(v) => setForm((p) => ({ ...p, responsavel: v }))} />
+
+            <div>
+              <ResponsavelSelect
+                value={form.responsavel}
+                onChange={(v) => setForm((p: typeof emptyForm) => ({ ...p, responsavel: v }))}
+                allowAll={false}
+              />
+            </div>
+
             <div>
               <Label>Observação</Label>
-              <Textarea value={form.observacao} onChange={(e) => setForm((p) => ({ ...p, observacao: e.target.value }))} />
+              <Textarea
+                value={form.observacao}
+                onChange={(e) => setForm((p: typeof emptyForm) => ({ ...p, observacao: e.target.value }))}
+              />
             </div>
           </div>
+
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDialog(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={resetDialogDraft}>
+              Cancelar
+            </Button>
             <Button onClick={handleSubmit}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
