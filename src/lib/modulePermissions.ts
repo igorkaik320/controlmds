@@ -13,6 +13,7 @@ export const MODULES = [
   { key: 'empresas', label: 'Empresas' },
   { key: 'combustivel_dashboard', label: 'Dashboard Combustível' },
   { key: 'abastecimentos', label: 'Abastecimentos' },
+  { key: 'revisoes_combustivel', label: 'Revisões' },
   { key: 'veiculos_maquinas', label: 'Veículos/Máquinas' },
   { key: 'tipos_combustivel', label: 'Tipos de Combustível' },
   { key: 'usuarios', label: 'Usuários' },
