@@ -48,6 +48,27 @@ export interface Abastecimento {
   combustivel?: TipoCombustivel;
 }
 
+export interface RevisaoCombustivel {
+  id: string;
+  veiculo_id: string;
+  fornecedor_id: string;
+  data: string;
+  valor: number;
+  quilometragem_atual: number;
+  quilometragem_proxima: number;
+  observacao: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  veiculo?: VeiculoMaquina;
+  fornecedor?: {
+    id: string;
+    nome_fornecedor: string;
+    razao_social: string | null;
+    cnpj_cpf: string | null;
+  };
+}
+
 // ---- Veículos / Máquinas ----
 export async function fetchVeiculos(): Promise<VeiculoMaquina[]> {
   const { data, error } = await supabase
@@ -239,6 +260,55 @@ export async function updateAbastecimento(id: string, a: Partial<Abastecimento>)
 export async function deleteAbastecimento(id: string) {
   const { error } = await supabase
     .from('abastecimentos')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+}
+
+// ---- Revisoes ----
+export async function fetchRevisoesCombustivel(): Promise<RevisaoCombustivel[]> {
+  const { data, error } = await supabase
+    .from('revisoes_combustivel')
+    .select('*, veiculo:veiculos_maquinas(*), fornecedor:fornecedores(id, nome_fornecedor, razao_social, cnpj_cpf)')
+    .order('data', { ascending: false });
+
+  if (error) throw error;
+  return (data || []) as any;
+}
+
+export async function saveRevisaoCombustivel(revisao: {
+  veiculo_id: string;
+  fornecedor_id: string;
+  data: string;
+  valor: number;
+  quilometragem_atual: number;
+  quilometragem_proxima: number;
+  observacao?: string | null;
+  created_by: string;
+}) {
+  const { data, error } = await supabase
+    .from('revisoes_combustivel')
+    .insert(revisao as any)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function updateRevisaoCombustivel(id: string, revisao: Partial<RevisaoCombustivel>) {
+  const { error } = await supabase
+    .from('revisoes_combustivel')
+    .update({ ...revisao, updated_at: new Date().toISOString() } as any)
+    .eq('id', id);
+
+  if (error) throw error;
+}
+
+export async function deleteRevisaoCombustivel(id: string) {
+  const { error } = await supabase
+    .from('revisoes_combustivel')
     .delete()
     .eq('id', id);
 
