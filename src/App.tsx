@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/lib/auth";
+import { useBeforeUnloadDraftGuard } from "@/lib/draftGuard";
 import { useModulePermissions } from "@/hooks/useModulePermissions";
 import AppLayout from "@/components/AppLayout";
 import Index from "./pages/Index";
@@ -32,6 +33,11 @@ import type { ModuleKey } from "@/lib/modulePermissions";
 import { Lock } from "lucide-react";
 
 const queryClient = new QueryClient();
+
+function DraftGuards() {
+  useBeforeUnloadDraftGuard();
+  return null;
+}
 
 function LoadingScreen() {
   return (
@@ -97,6 +103,7 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
+      <DraftGuards />
       <Toaster />
       <Sonner />
       <BrowserRouter>
