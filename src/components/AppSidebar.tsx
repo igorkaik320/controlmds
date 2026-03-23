@@ -94,7 +94,7 @@ export function AppSidebar() {
     },
     {
       id: 'combustivel',
-      label: 'Controle de Combustível',
+      label: 'Controle de Veículos',
       defaultOpen: false,
       items: [
         { title: 'Dashboard', url: '/combustivel/dashboard', icon: Fuel, module: 'combustivel_dashboard', showCollapsed: true },
