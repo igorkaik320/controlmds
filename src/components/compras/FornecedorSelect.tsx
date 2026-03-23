@@ -63,6 +63,7 @@ export default function FornecedorSearchSelect({
     onChange(fornecedor.id);
     setQuery(fornecedor.nome_fornecedor);
     setOpen(false);
+    onFornecedorSelect?.(fornecedor);
   }
 
   return (
