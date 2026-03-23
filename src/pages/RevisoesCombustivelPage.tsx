@@ -22,8 +22,8 @@ import { Fornecedor, fetchFornecedores, formatCurrencyBR, formatDateBR } from '@
 import { formatCurrencyInput, parseCurrencyInput } from '@/lib/formatters';
 import DateRangeFilter from '@/components/DateRangeFilter';
 import { useFormDraft } from '@/hooks/useFormDraft';
-import VeiculoSearchSelect from '@/components/combustivel/VeiculoSearchSelect';
-import FornecedorSearchSelect from '@/components/combustivel/FornecedorSearchSelect';
+import VeiculoSearchSelect from '@/components/compras/VeiculoSearchSelect';
+import FornecedorSearchSelect from '@/components/compras/FornecedorSelect';
 import { toast } from 'sonner';
 
 const emptyForm = {

@@ -6,9 +6,10 @@ import type { Fornecedor } from '@/lib/comprasService';
 interface Props {
   value: string;
   onChange: (fornecedorId: string) => void;
-  fornecedores: Fornecedor[];
+  fornecedores?: Fornecedor[];
   label?: string;
   placeholder?: string;
+  onFornecedorSelect?: (fornecedor: Fornecedor) => void;
 }
 
 function normalize(value: string) {
@@ -22,9 +23,10 @@ function digitsOnly(value: string) {
 export default function FornecedorSearchSelect({
   value,
   onChange,
-  fornecedores,
+  fornecedores = [],
   label = 'Fornecedor *',
   placeholder = 'Digite nome, razão social ou CNPJ/CPF',
+  onFornecedorSelect,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -61,6 +63,7 @@ export default function FornecedorSearchSelect({
     onChange(fornecedor.id);
     setQuery(fornecedor.nome_fornecedor);
     setOpen(false);
+    onFornecedorSelect?.(fornecedor);
   }
 
   return (
