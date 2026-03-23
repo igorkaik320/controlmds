@@ -151,14 +151,17 @@ export function useModulePermissions() {
   const [permissions, setPermissions] = useState<Record<string, boolean>>({});
   const [actionPermissions, setActionPermissions] = useState<UserActionPermission[]>([]);
   const [loading, setLoading] = useState(true);
+  const userId = user?.id ?? null;
 
   useEffect(() => {
-    if (!user) {
+    if (!userId) {
+      setPermissions({});
+      setActionPermissions([]);
       setLoading(false);
       return;
     }
-    setLoading(true);
-    fetchUserActionPermissions(user.id)
+
+    fetchUserActionPermissions(userId)
       .then((perms) => {
         const map: Record<string, boolean> = {};
         for (const p of perms) {
@@ -169,7 +172,7 @@ export function useModulePermissions() {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [user]);
+  }, [userId]);
 
   const canAccess = useCallback(
     (module: ModuleKey) => hasModuleAccess(permissions, module, userRole || ''),
