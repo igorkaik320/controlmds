@@ -9,16 +9,16 @@ import { Plus, Pencil, Trash2, FileDown, FileSpreadsheet, Search, RotateCcw } fr
 import { useAuth } from '@/lib/auth';
 import { useModulePermissions } from '@/hooks/useModulePermissions';
 import {
-  CompraFaturada,
-  fetchComprasFaturadas,
-  saveCompraFaturada,
-  updateCompraFaturada,
-  deleteCompraFaturada,
+  CompraAvista,
+  fetchComprasAvista,
+  saveCompraAvista,
+  updateCompraAvista,
+  deleteCompraAvista,
   fetchConfigRelatorio,
   formatCurrencyBR,
   formatDateBR,
 } from '@/lib/comprasService';
-import { exportFaturadasPDF, exportFaturadasXLSX } from '@/lib/comprasExport';
+import { exportAvistaPDF, exportAvistaXLSX } from '@/lib/comprasExport';
 import { formatCPFCNPJ, formatCurrencyInput, parseCurrencyInput } from '@/lib/formatters';
 import FornecedorSelect from '@/components/compras/FornecedorSelect';
 import ObraSelect from '@/components/compras/ObraSelect';
@@ -33,62 +33,30 @@ const emptyForm = {
   data: '',
   fornecedor: '',
   pedido: '',
-  forma_pagamento: '',
-  condicao_pagamento: '',
-  vencimentos: '',
+  banco: '',
+  agencia: '',
+  conta: '',
   cnpj_cpf: '',
   valor: '',
   obra: '',
   observacao: '',
 };
 
-function parseConditionDays(condicao: string): number[] {
-  const matches = condicao.match(/\d+/g);
-  if (!matches) return [];
-  return matches
-    .map((n) => parseInt(n, 10))
-    .filter((n) => !Number.isNaN(n) && n >= 0);
-}
-
-function addDaysToIsoDate(isoDate: string, days: number): string {
-  const [y, m, d] = isoDate.split('-').map(Number);
-  const base = new Date(y, m - 1, d);
-  base.setDate(base.getDate() + days);
-  const year = base.getFullYear();
-  const month = String(base.getMonth() + 1).padStart(2, '0');
-  const day = String(base.getDate()).padStart(2, '0');
-  return `${day}/${month}/${year}`;
-}
-
-function buildVencimentosFromCondition(data: string, condicao: string): string {
-  if (!data || !condicao.trim()) return '';
-  const days = parseConditionDays(condicao);
-  if (days.length === 0) return '';
-  return days.map((day) => addDaysToIsoDate(data, day)).join(' | ');
-}
-
-function extractFirstDueDateIso(vencimentos: string): string | null {
-  const match = vencimentos.match(/(\d{2})\/(\d{2})\/(\d{4})/);
-  if (!match) return null;
-  const [, dd, mm, yyyy] = match;
-  return `${yyyy}-${mm}-${dd}`;
-}
-
-export default function ComprasFaturadasPage() {
+export default function ComprasAvistaPage() {
   const { user } = useAuth();
   const { canCreate, canEdit, canDelete, canExport } = useModulePermissions();
-  const [items, setItems] = useState<CompraFaturada[]>([]);
+  const [items, setItems] = useState<CompraAvista[]>([]);
   const [obras, setObras] = useState<Obra[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showDialog, setShowDialog, clearShowDialog] = useFormDraft('fat-showDialog', false);
-  const [editingId, setEditingId, clearEditingId] = useFormDraft<string | null>('fat-editingId', null);
+  const [showDialog, setShowDialog, clearShowDialog] = useFormDraft('av-showDialog', false);
+  const [editingId, setEditingId, clearEditingId] = useFormDraft<string | null>('av-editingId', null);
 
-  const [draftDateFrom, setDraftDateFrom] = useFormDraft('fat-dateFrom', '');
-  const [draftDateTo, setDraftDateTo] = useFormDraft('fat-dateTo', '');
-  const [draftFilterForn, setDraftFilterForn] = useFormDraft('fat-filterForn', '');
-  const [draftFilterObra, setDraftFilterObra] = useFormDraft('fat-filterObra', '');
-  const [draftFilterEmpresa, setDraftFilterEmpresa] = useFormDraft('fat-filterEmpresa', '');
-  const [observation, setObservation] = useFormDraft('fat-observation', '');
+  const [draftDateFrom, setDraftDateFrom] = useFormDraft('av-dateFrom', '');
+  const [draftDateTo, setDraftDateTo] = useFormDraft('av-dateTo', '');
+  const [draftFilterForn, setDraftFilterForn] = useFormDraft('av-filterForn', '');
+  const [draftFilterObra, setDraftFilterObra] = useFormDraft('av-filterObra', '');
+  const [draftFilterEmpresa, setDraftFilterEmpresa] = useFormDraft('av-filterEmpresa', '');
+  const [observation, setObservation] = useFormDraft('av-observation', '');
 
   const [dateFrom, setDateFrom] = useState(draftDateFrom);
   const [dateTo, setDateTo] = useState(draftDateTo);
@@ -96,7 +64,7 @@ export default function ComprasFaturadasPage() {
   const [filterObra, setFilterObra] = useState(draftFilterObra);
   const [filterEmpresa, setFilterEmpresa] = useState(draftFilterEmpresa);
 
-  const [form, setForm, clearForm] = useFormDraft('fat-form', emptyForm);
+  const [form, setForm, clearForm] = useFormDraft('av-form', emptyForm);
   const [empresaLogos, setEmpresaLogos] = useState<{ logo_esquerda: string | null; logo_direita: string | null }>({
     logo_esquerda: null,
     logo_direita: null,
@@ -105,7 +73,7 @@ export default function ComprasFaturadasPage() {
   const load = useCallback(async () => {
     try {
       const [compras, obrasData, empresas] = await Promise.all([
-        fetchComprasFaturadas(),
+        fetchComprasAvista(),
         fetchObras(),
         fetchEmpresas(),
       ]);
@@ -188,15 +156,15 @@ export default function ComprasFaturadasPage() {
     setShowDialog(true);
   }
 
-  function openEdit(item: CompraFaturada) {
+  function openEdit(item: CompraAvista) {
     setEditingId(item.id);
     setForm({
       data: item.data,
       fornecedor: item.fornecedor,
       pedido: item.pedido || '',
-      forma_pagamento: item.forma_pagamento || '',
-      condicao_pagamento: item.condicao_pagamento || '',
-      vencimentos: item.vencimentos || (item.data_liquidacao ? formatDateBR(item.data_liquidacao) : ''),
+      banco: item.banco || '',
+      agencia: item.agencia || '',
+      conta: item.conta || '',
       cnpj_cpf: item.cnpj_cpf || '',
       valor: formatCurrencyInput(String(Math.round(item.valor * 100))),
       obra: item.obra || '',
@@ -216,10 +184,9 @@ export default function ComprasFaturadasPage() {
         data: form.data,
         fornecedor: form.fornecedor,
         pedido: form.pedido || null,
-        forma_pagamento: form.forma_pagamento || null,
-        condicao_pagamento: form.condicao_pagamento || null,
-        vencimentos: form.vencimentos || null,
-        data_liquidacao: extractFirstDueDateIso(form.vencimentos),
+        banco: form.banco || null,
+        agencia: form.agencia || null,
+        conta: form.conta || null,
         cnpj_cpf: form.cnpj_cpf || null,
         valor: parseCurrencyInput(form.valor),
         obra: form.obra || null,
@@ -228,10 +195,10 @@ export default function ComprasFaturadasPage() {
       };
 
       if (editingId) {
-        await updateCompraFaturada(editingId, payload);
+        await updateCompraAvista(editingId, payload);
         toast.success('Registro atualizado');
       } else {
-        await saveCompraFaturada(payload as any);
+        await saveCompraAvista(payload as any);
         toast.success('Registro cadastrado');
       }
 
@@ -246,7 +213,7 @@ export default function ComprasFaturadasPage() {
     if (!confirm('Excluir este registro?')) return;
 
     try {
-      await deleteCompraFaturada(id);
+      await deleteCompraAvista(id);
       load();
       toast.success('Excluído');
     } catch (e: any) {
@@ -276,36 +243,17 @@ export default function ComprasFaturadasPage() {
       };
     }
 
-    exportFaturadasPDF(filtered, config, observation);
+    exportAvistaPDF(filtered, config, observation);
   }
 
   function handleFornecedorSelect(f: Fornecedor) {
     setForm((prev: typeof emptyForm) => ({
       ...prev,
+      banco: f.banco || prev.banco,
+      agencia: f.agencia || prev.agencia,
+      conta: f.conta || prev.conta,
       cnpj_cpf: f.cnpj_cpf || prev.cnpj_cpf,
     }));
-  }
-
-  function handleConditionChange(value: string) {
-    setForm((prev: typeof emptyForm) => {
-      const autoVencimentos = buildVencimentosFromCondition(prev.data, value);
-      return {
-        ...prev,
-        condicao_pagamento: value,
-        vencimentos: autoVencimentos || prev.vencimentos,
-      };
-    });
-  }
-
-  function handleDateChange(value: string) {
-    setForm((prev: typeof emptyForm) => {
-      const autoVencimentos = buildVencimentosFromCondition(value, prev.condicao_pagamento);
-      return {
-        ...prev,
-        data: value,
-        vencimentos: autoVencimentos || prev.vencimentos,
-      };
-    });
   }
 
   if (loading) {
@@ -320,28 +268,28 @@ export default function ComprasFaturadasPage() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-bold">Compras Faturadas</h2>
+          <h2 className="text-2xl font-bold">Compras à Vista por Obra</h2>
           <p className="text-sm text-muted-foreground">
-            Controle e acompanhamento dos lançamentos faturados
+            Controle e acompanhamento dos lançamentos à vista
           </p>
         </div>
 
         <div className="flex gap-2">
-          {canExport('compras_faturadas') && (
+          {canExport('compras_avista') && (
             <>
               <Button variant="outline" size="sm" onClick={handleExportPDF}>
                 <FileDown className="mr-1 h-4 w-4" />
                 PDF
               </Button>
 
-              <Button variant="outline" size="sm" onClick={() => exportFaturadasXLSX(filtered, observation)}>
+              <Button variant="outline" size="sm" onClick={() => exportAvistaXLSX(filtered, observation)}>
                 <FileSpreadsheet className="mr-1 h-4 w-4" />
                 Excel
               </Button>
             </>
           )}
 
-          {canCreate('compras_faturadas') && (
+          {canCreate('compras_avista') && (
             <Button size="sm" onClick={openNew}>
               <Plus className="mr-1 h-4 w-4" />
               Novo
@@ -415,9 +363,9 @@ export default function ComprasFaturadasPage() {
               <TableHead>Data</TableHead>
               <TableHead>Fornecedor</TableHead>
               <TableHead>Pedido</TableHead>
-              <TableHead>Forma Pgto</TableHead>
-              <TableHead>Condição</TableHead>
-              <TableHead>Vencimentos</TableHead>
+              <TableHead>Banco</TableHead>
+              <TableHead>Agência</TableHead>
+              <TableHead>Conta</TableHead>
               <TableHead>CNPJ/CPF</TableHead>
               <TableHead className="text-right">Valor</TableHead>
               <TableHead>Obra</TableHead>
@@ -444,16 +392,9 @@ export default function ComprasFaturadasPage() {
                   </div>
                 </TableCell>
                 <TableCell>{i.pedido || '—'}</TableCell>
-                <TableCell>{i.forma_pagamento || '—'}</TableCell>
-                <TableCell>{i.condicao_pagamento || '—'}</TableCell>
-                <TableCell className="max-w-[220px]">
-                  <div
-                    className="truncate"
-                    title={i.vencimentos || (i.data_liquidacao ? formatDateBR(i.data_liquidacao) : '—')}
-                  >
-                    {i.vencimentos || (i.data_liquidacao ? formatDateBR(i.data_liquidacao) : '—')}
-                  </div>
-                </TableCell>
+                <TableCell>{i.banco || '—'}</TableCell>
+                <TableCell>{i.agencia || '—'}</TableCell>
+                <TableCell>{i.conta || '—'}</TableCell>
                 <TableCell className="max-w-[160px] break-words">{i.cnpj_cpf || '—'}</TableCell>
                 <TableCell className="text-right font-mono">{formatCurrencyBR(i.valor)}</TableCell>
                 <TableCell className="max-w-[190px]">
@@ -468,13 +409,13 @@ export default function ComprasFaturadasPage() {
                 </TableCell>
                 <TableCell>
                   <div className="flex justify-end gap-1">
-                    {canEdit('compras_faturadas') && (
+                    {canEdit('compras_avista') && (
                       <Button variant="ghost" size="icon" onClick={() => openEdit(i)}>
                         <Pencil className="h-4 w-4" />
                       </Button>
                     )}
 
-                    {canDelete('compras_faturadas') && (
+                    {canDelete('compras_avista') && (
                       <Button variant="ghost" size="icon" onClick={() => handleDelete(i.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -497,15 +438,19 @@ export default function ComprasFaturadasPage() {
           setShowDialog(true);
         }}
       >
-        <DialogContent className="max-h-[90vh] max-w-2xl overflow-auto">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editingId ? 'Editar' : 'Nova'} Compra Faturada</DialogTitle>
+            <DialogTitle>{editingId ? 'Editar' : 'Nova'} Compra à Vista</DialogTitle>
           </DialogHeader>
 
           <div className="grid gap-3">
             <div>
               <Label>Data *</Label>
-              <Input type="date" value={form.data} onChange={(e) => handleDateChange(e.target.value)} />
+              <Input
+                type="date"
+                value={form.data}
+                onChange={(e) => setForm((p: typeof emptyForm) => ({ ...p, data: e.target.value }))}
+              />
             </div>
 
             <FornecedorSelect
@@ -514,42 +459,38 @@ export default function ComprasFaturadasPage() {
               onFornecedorSelect={handleFornecedorSelect}
             />
 
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <Label>Pedido</Label>
-                <Input
-                  value={form.pedido}
-                  onChange={(e) => setForm((p: typeof emptyForm) => ({ ...p, pedido: e.target.value }))}
-                />
-              </div>
-
-              <div>
-                <Label>Forma de Pagamento</Label>
-                <Input
-                  value={form.forma_pagamento}
-                  onChange={(e) => setForm((p: typeof emptyForm) => ({ ...p, forma_pagamento: e.target.value }))}
-                  placeholder="Ex: boleto, TED, pix, transferência"
-                />
-              </div>
-            </div>
-
             <div>
-              <Label>Condição de Pagamento</Label>
+              <Label>Pedido</Label>
               <Input
-                value={form.condicao_pagamento}
-                onChange={(e) => handleConditionChange(e.target.value)}
-                placeholder="Ex: 30/60/90, 28/35, entrada + 2x, 7/14/21"
+                value={form.pedido}
+                onChange={(e) => setForm((p: typeof emptyForm) => ({ ...p, pedido: e.target.value }))}
               />
             </div>
 
-            <div>
-              <Label>Vencimentos</Label>
-              <Textarea
-                value={form.vencimentos}
-                onChange={(e) => setForm((p: typeof emptyForm) => ({ ...p, vencimentos: e.target.value }))}
-                rows={3}
-                placeholder="Ex: 19/04/2026 | 19/05/2026 | 18/06/2026"
-              />
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <Label>Banco</Label>
+                <Input
+                  value={form.banco}
+                  onChange={(e) => setForm((p: typeof emptyForm) => ({ ...p, banco: e.target.value }))}
+                />
+              </div>
+
+              <div>
+                <Label>Agência</Label>
+                <Input
+                  value={form.agencia}
+                  onChange={(e) => setForm((p: typeof emptyForm) => ({ ...p, agencia: e.target.value }))}
+                />
+              </div>
+
+              <div>
+                <Label>Conta</Label>
+                <Input
+                  value={form.conta}
+                  onChange={(e) => setForm((p: typeof emptyForm) => ({ ...p, conta: e.target.value }))}
+                />
+              </div>
             </div>
 
             <div>
