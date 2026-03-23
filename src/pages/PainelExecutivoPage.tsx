@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -13,11 +14,9 @@ import {
   FileBarChart,
   FileWarning,
   Fuel,
-  PackageSearch,
   RotateCcw,
   Search,
   ShoppingCart,
-  TrendingUp,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -43,7 +42,7 @@ import {
 import { fetchAbastecimentos } from '@/lib/combustivelService';
 import { toast } from 'sonner';
 
-const COLORS = ['#0f172a', '#2563eb', '#f97316', '#ef4444', '#0ea5e9'];
+const COLORS = ['#0f172a', '#2563eb', '#f97316'];
 
 type ExecutiveAlert = {
   id: string;
@@ -51,13 +50,7 @@ type ExecutiveAlert = {
   description: string;
   tone: 'critical' | 'warning' | 'info';
   cta?: string;
-};
-
-type KpiCard = {
-  title: string;
-  value: string;
-  helper: string;
-  icon: React.ComponentType<{ className?: string }>;
+  to?: string;
 };
 
 type CompraSemPedido = {
@@ -81,6 +74,7 @@ function monthLabel(isoDate: string) {
 }
 
 export default function PainelExecutivoPage() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
 
   const [draftDateFrom, setDraftDateFrom] = useState('');
@@ -146,7 +140,7 @@ export default function PainelExecutivoPage() {
 
       const obrasMap = new Map<string, number>();
       [...avistaFiltered, ...faturadasFiltered, ...programacaoFiltered].forEach((item) => {
-        const obra = item.obra?.trim() || 'Sem obra informada';
+        const obra = item.obra?.trim() || 'Sem obra';
         obrasMap.set(obra, (obrasMap.get(obra) || 0) + item.valor);
       });
 
@@ -193,7 +187,7 @@ export default function PainelExecutivoPage() {
         })),
       ]
         .sort((a, b) => b.data.localeCompare(a.data))
-        .slice(0, 8);
+        .slice(0, 5);
 
       setComprasAvistaTotal(totalAvista);
       setComprasFaturadasTotal(totalFaturadas);
@@ -209,21 +203,21 @@ export default function PainelExecutivoPage() {
         Array.from(obrasMap.entries())
           .map(([name, value]) => ({ name, value }))
           .sort((a, b) => b.value - a.value)
-          .slice(0, 6)
+          .slice(0, 5)
       );
 
       setTopFornecedores(
         Array.from(fornecedoresMap.entries())
           .map(([name, value]) => ({ name, value }))
           .sort((a, b) => b.value - a.value)
-          .slice(0, 5)
+          .slice(0, 4)
       );
 
       setTopVeiculos(
         Array.from(veiculosMap.entries())
           .map(([name, value]) => ({ name, value }))
           .sort((a, b) => b.value - a.value)
-          .slice(0, 5)
+          .slice(0, 4)
       );
 
       setComprasMix(
@@ -260,36 +254,6 @@ export default function PainelExecutivoPage() {
   const percentualSemPedido = totalCompras > 0 ? (comprasSemPedidoTotal / totalCompras) * 100 : 0;
   const combustivelMedio = abastecimentosCount > 0 ? combustivelTotal / abastecimentosCount : 0;
 
-  const heroCards: KpiCard[] = [
-    {
-      title: 'Previsao de Compras',
-      value: formatCurrencyBR(totalCompras),
-      helper: `${formatCurrencyBR(comprasAvistaTotal)} a vista e ${formatCurrencyBR(comprasFaturadasTotal)} faturadas.`,
-      icon: ShoppingCart,
-    },
-    {
-      title: 'Compras sem Pedido',
-      value: formatCurrencyBR(comprasSemPedidoTotal),
-      helper: `${comprasSemPedidoCount} lancamentos ainda sem pedido vinculado.`,
-      icon: FileWarning,
-    },
-    {
-      title: 'Programacao Semanal',
-      value: formatCurrencyBR(programacaoTotal),
-      helper:
-        programacaoSemResponsavel > 0
-          ? `${programacaoSemResponsavel} itens sem responsavel definido.`
-          : 'Todos os itens com responsavel definido.',
-      icon: CalendarClock,
-    },
-    {
-      title: 'Combustivel',
-      value: formatCurrencyBR(combustivelTotal),
-      helper: `${combustivelLitros.toFixed(1)} L em ${abastecimentosCount} abastecimentos.`,
-      icon: Fuel,
-    },
-  ];
-
   const alerts = useMemo<ExecutiveAlert[]>(() => {
     const nextAlerts: ExecutiveAlert[] = [];
 
@@ -299,7 +263,8 @@ export default function PainelExecutivoPage() {
         title: 'Compras sem pedido exigem atencao',
         description: `${comprasSemPedidoCount} lancamentos somam ${formatCurrencyBR(comprasSemPedidoTotal)} ainda sem pedido vinculado.`,
         tone: comprasSemPedidoTotal > 100000 ? 'critical' : 'warning',
-        cta: 'Revisar espelho geral',
+        cta: 'Espelho geral',
+        to: '/compras/espelho',
       });
     }
 
@@ -309,7 +274,8 @@ export default function PainelExecutivoPage() {
         title: 'Programacao com pendencia de responsavel',
         description: `${programacaoSemResponsavel} itens da programacao semanal ainda nao tem responsavel atribuido.`,
         tone: 'warning',
-        cta: 'Abrir programacao',
+        cta: 'Programacao',
+        to: '/compras/programacao-semanal',
       });
     }
 
@@ -319,7 +285,8 @@ export default function PainelExecutivoPage() {
         title: 'Consumo concentrado em um veiculo',
         description: `${topVeiculos[0].name} acumula ${formatCurrencyBR(topVeiculos[0].value)} em combustivel.`,
         tone: 'info',
-        cta: 'Abrir dashboard de combustivel',
+        cta: 'Dashboard',
+        to: '/combustivel/dashboard',
       });
     }
 
@@ -347,25 +314,22 @@ export default function PainelExecutivoPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-2xl font-bold">Painel Executivo</h2>
           <p className="text-sm text-muted-foreground">
-            Foco em previsao de compras e combustivel para acompanhamento da diretoria.
+            Foco em previsao de compras e combustivel.
           </p>
         </div>
 
-        <Button variant="outline" onClick={load}>
+        <Button variant="outline" size="sm" onClick={load}>
           Atualizar agora
         </Button>
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Periodo de Analise</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="p-4">
           <div className="flex flex-wrap items-end gap-4">
             <DateRangeFilter
               dateFrom={draftDateFrom}
@@ -375,103 +339,127 @@ export default function PainelExecutivoPage() {
             />
 
             <div className="flex gap-2">
-              <Button onClick={handleConsultar}>
+              <Button size="sm" onClick={handleConsultar}>
                 <Search className="mr-1 h-4 w-4" />
                 Consultar
               </Button>
-              <Button variant="outline" onClick={handleLimpar}>
+              <Button variant="outline" size="sm" onClick={handleLimpar}>
                 <RotateCcw className="mr-1 h-4 w-4" />
                 Limpar
               </Button>
             </div>
           </div>
-
-          <p className="text-sm text-muted-foreground">
-            {dateFrom || dateTo
-              ? `Periodo aplicado: ${dateFrom ? formatDateBR(dateFrom) : '...'} ate ${dateTo ? formatDateBR(dateTo) : '...'}`
-              : 'Periodo aplicado: todos os registros'}
-          </p>
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {heroCards.map((card) => (
-          <Card key={card.title} className="border-slate-200">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {card.title}
-              </CardTitle>
-              <card.icon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{card.value}</div>
-              <p className="mt-1 text-xs text-muted-foreground">{card.helper}</p>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">Previsao de Compras</p>
+              <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <p className="mt-2 text-2xl font-bold">{formatCurrencyBR(totalCompras)}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {formatCurrencyBR(comprasAvistaTotal)} a vista e {formatCurrencyBR(comprasFaturadasTotal)} faturadas.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">Sem Pedido</p>
+              <FileWarning className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <p className="mt-2 text-2xl font-bold">{formatCurrencyBR(comprasSemPedidoTotal)}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {comprasSemPedidoCount} lancamentos no periodo.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">Programacao</p>
+              <CalendarClock className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <p className="mt-2 text-2xl font-bold">{formatCurrencyBR(programacaoTotal)}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {programacaoSemResponsavel} itens sem responsavel.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">Combustivel</p>
+              <Fuel className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <p className="mt-2 text-2xl font-bold">{formatCurrencyBR(combustivelTotal)}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {combustivelLitros.toFixed(1)} L em {abastecimentosCount} abastecimentos.
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-        <Card className="border-slate-200">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-amber-500" />
-              <CardTitle className="text-base">Alertas Prioritarios</CardTitle>
-            </div>
+      <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Alertas Prioritarios</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {alerts.map((alert) => (
-              <div
-                key={alert.id}
-                className="flex flex-wrap items-start justify-between gap-3 rounded-xl border p-4"
-              >
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <p className="font-semibold">{alert.title}</p>
-                    <Badge
-                      variant={
-                        alert.tone === 'critical'
-                          ? 'destructive'
+              <div key={alert.id} className="rounded-lg border p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium">{alert.title}</p>
+                      <Badge
+                        variant={
+                          alert.tone === 'critical'
+                            ? 'destructive'
+                            : alert.tone === 'warning'
+                            ? 'secondary'
+                            : 'outline'
+                        }
+                      >
+                        {alert.tone === 'critical'
+                          ? 'Critico'
                           : alert.tone === 'warning'
-                          ? 'secondary'
-                          : 'outline'
-                      }
-                    >
-                      {alert.tone === 'critical'
-                        ? 'Critico'
-                        : alert.tone === 'warning'
-                        ? 'Atencao'
-                        : 'Acompanhar'}
-                    </Badge>
+                          ? 'Atencao'
+                          : 'Acompanhar'}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{alert.description}</p>
                   </div>
-                  <p className="text-sm text-muted-foreground">{alert.description}</p>
-                </div>
 
-                {alert.cta && (
-                  <Button variant="ghost" size="sm" className="gap-1">
-                    {alert.cta}
-                    <ArrowRight className="h-4 w-4" />
-                  </Button>
-                )}
+                  {alert.to && (
+                    <Button variant="ghost" size="sm" onClick={() => navigate(alert.to!)}>
+                      {alert.cta}
+                      <ArrowRight className="ml-1 h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
               </div>
             ))}
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200">
-          <CardHeader>
+        <Card>
+          <CardHeader className="pb-3">
             <CardTitle className="text-base">Indicadores Chave</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-5">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between text-sm">
+          <CardContent className="space-y-4">
+            <div>
+              <div className="mb-2 flex items-center justify-between text-sm">
                 <span>Volume sem pedido</span>
                 <span className="font-medium">{percentualSemPedido.toFixed(1)}%</span>
               </div>
               <Progress value={Math.min(percentualSemPedido, 100)} className="h-2" />
-              <p className="text-xs text-muted-foreground">
-                Percentual do volume de compras ainda sem pedido vinculado.
-              </p>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
@@ -479,19 +467,16 @@ export default function PainelExecutivoPage() {
                 <p className="text-xs text-muted-foreground">Sem pedido</p>
                 <p className="text-xl font-bold">{comprasSemPedidoCount}</p>
               </div>
-
               <div className="rounded-lg bg-slate-50 p-3">
                 <p className="text-xs text-muted-foreground">Sem responsavel</p>
                 <p className="text-xl font-bold">{programacaoSemResponsavel}</p>
               </div>
-
               <div className="rounded-lg bg-slate-50 p-3">
                 <p className="text-xs text-muted-foreground">Abastecimentos</p>
                 <p className="text-xl font-bold">{abastecimentosCount}</p>
               </div>
-
               <div className="rounded-lg bg-slate-50 p-3">
-                <p className="text-xs text-muted-foreground">Ticket medio combustivel</p>
+                <p className="text-xs text-muted-foreground">Ticket medio</p>
                 <p className="text-xl font-bold">{formatCurrencyBR(combustivelMedio)}</p>
               </div>
             </div>
@@ -499,25 +484,22 @@ export default function PainelExecutivoPage() {
         </Card>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+      <div className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
         <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <FileBarChart className="h-4 w-4 text-slate-500" />
-              <CardTitle className="text-base">Composicao da Previsao</CardTitle>
-            </div>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Composicao da Previsao</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
-            <div className="h-72">
+          <CardContent className="grid gap-4 lg:grid-cols-[0.8fr_1.2fr]">
+            <div className="h-52">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={comprasMix}
                     dataKey="value"
                     nameKey="name"
-                    innerRadius={60}
-                    outerRadius={90}
-                    paddingAngle={3}
+                    innerRadius={45}
+                    outerRadius={70}
+                    paddingAngle={2}
                   >
                     {comprasMix.map((_, index) => (
                       <Cell key={index} fill={COLORS[index % COLORS.length]} />
@@ -528,14 +510,15 @@ export default function PainelExecutivoPage() {
               </ResponsiveContainer>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2">
               {comprasMix.map((item, index) => {
-                const percent = totalCompras + programacaoTotal > 0
-                  ? (item.value / (totalCompras + programacaoTotal)) * 100
-                  : 0;
+                const percent =
+                  totalCompras + programacaoTotal > 0
+                    ? (item.value / (totalCompras + programacaoTotal)) * 100
+                    : 0;
 
                 return (
-                  <div key={item.name} className="rounded-xl border p-4">
+                  <div key={item.name} className="rounded-lg border p-3">
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2">
                         <span
@@ -555,10 +538,10 @@ export default function PainelExecutivoPage() {
         </Card>
 
         <Card>
-          <CardHeader>
+          <CardHeader className="pb-3">
             <CardTitle className="text-base">Sem Pedido no Periodo</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-2">
             {semPedidoItems.map((item) => (
               <div key={`${item.origem}-${item.id}`} className="rounded-lg border p-3">
                 <div className="flex items-center justify-between gap-3">
@@ -577,38 +560,39 @@ export default function PainelExecutivoPage() {
               </div>
             ))}
 
-            {semPedidoItems.length === 0 && (
-              <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-                Nenhum item sem pedido no periodo consultado.
-              </div>
-            )}
+            <div className="pt-1">
+              <Button variant="ghost" size="sm" onClick={() => navigate('/compras/espelho')}>
+                Ver espelho geral
+                <ArrowRight className="ml-1 h-4 w-4" />
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
         <Card>
-          <CardHeader>
+          <CardHeader className="pb-3">
             <CardTitle className="text-base">Top Obras por Volume</CardTitle>
           </CardHeader>
-          <CardContent className="h-80">
+          <CardContent className="h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={topObras} layout="vertical" margin={{ left: 40 }}>
+              <BarChart data={topObras} layout="vertical" margin={{ left: 30 }}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis type="number" tickFormatter={(value) => `R$ ${Number(value).toLocaleString('pt-BR')}`} />
-                <YAxis type="category" dataKey="name" width={150} tick={{ fontSize: 11 }} />
+                <YAxis type="category" dataKey="name" width={130} tick={{ fontSize: 11 }} />
                 <Tooltip formatter={(value: number) => formatCurrencyBR(value)} />
-                <Bar dataKey="value" fill="#0f172a" radius={[0, 6, 6, 0]} />
+                <Bar dataKey="value" fill="#0f172a" radius={[0, 5, 5, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader>
+          <CardHeader className="pb-3">
             <CardTitle className="text-base">Top Fornecedores</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3">
             {topFornecedores.map((item, index) => (
               <div key={item.name} className="flex items-center justify-between gap-3 rounded-lg border p-3">
                 <div className="min-w-0">
@@ -624,23 +608,20 @@ export default function PainelExecutivoPage() {
 
       <div className="grid gap-4 xl:grid-cols-2">
         <Card>
-          <CardHeader>
+          <CardHeader className="pb-3">
             <div className="flex items-center gap-2">
               <CarFront className="h-4 w-4 text-slate-500" />
               <CardTitle className="text-base">Combustivel por Veiculo</CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {topVeiculos.map((item, index) => (
-              <div key={item.name} className="rounded-lg border p-4">
+          <CardContent className="space-y-3">
+            {topVeiculos.map((item) => (
+              <div key={item.name} className="rounded-lg border p-3">
                 <div className="flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-xs text-muted-foreground">#{index + 1}</p>
-                    <p className="truncate font-medium">{item.name}</p>
-                  </div>
+                  <p className="truncate font-medium">{item.name}</p>
                   <p className="whitespace-nowrap font-semibold">{formatCurrencyBR(item.value)}</p>
                 </div>
-                <div className="mt-3">
+                <div className="mt-2">
                   <Progress
                     value={topVeiculos[0]?.value ? (item.value / topVeiculos[0].value) * 100 : 0}
                     className="h-2"
@@ -649,22 +630,23 @@ export default function PainelExecutivoPage() {
               </div>
             ))}
 
-            {topVeiculos.length === 0 && (
-              <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
-                Ainda nao existem dados de combustivel suficientes para montar o ranking.
-              </div>
-            )}
+            <div className="pt-1">
+              <Button variant="ghost" size="sm" onClick={() => navigate('/combustivel/dashboard')}>
+                Ver dashboard de combustivel
+                <ArrowRight className="ml-1 h-4 w-4" />
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardHeader>
+          <CardHeader className="pb-3">
             <div className="flex items-center gap-2">
               <Droplets className="h-4 w-4 text-sky-500" />
-              <CardTitle className="text-base">Evolucao Mensal de Combustivel</CardTitle>
+              <CardTitle className="text-base">Evolucao Mensal</CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="h-80">
+          <CardContent className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={combustivelMensal}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -677,22 +659,8 @@ export default function PainelExecutivoPage() {
                   }
                 />
                 <Legend />
-                <Line
-                  yAxisId="left"
-                  type="monotone"
-                  dataKey="valor"
-                  name="Valor"
-                  stroke="#0f172a"
-                  strokeWidth={2}
-                />
-                <Line
-                  yAxisId="right"
-                  type="monotone"
-                  dataKey="litros"
-                  name="Litros"
-                  stroke="#0ea5e9"
-                  strokeWidth={2}
-                />
+                <Line yAxisId="left" type="monotone" dataKey="valor" name="Valor" stroke="#0f172a" strokeWidth={2} />
+                <Line yAxisId="right" type="monotone" dataKey="litros" name="Litros" stroke="#0ea5e9" strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
