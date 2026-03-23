@@ -32,6 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let isMounted = true;
+    let initialised = false;
 
     const loadUserData = async (userId: string) => {
       await Promise.all([fetchProfile(userId), fetchRole(userId)]);
@@ -42,12 +43,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await Promise.all([fetchProfile(userId), fetchRole(userId)]);
     };
 
+    // Get initial session first to avoid race conditions
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      if (!isMounted) return;
+      const nextUser = currentSession?.user ?? null;
+
+      setSession(currentSession);
+      setUser(nextUser);
+      initialised = true;
+
+      if (nextUser) {
+        void loadUserData(nextUser.id);
+      } else {
+        setLoading(false);
+      }
+    });
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      if (!isMounted) return;
       const nextUser = nextSession?.user ?? null;
 
       setSession(nextSession);
+
+      // On INITIAL_SESSION before our getSession resolves, skip to avoid double-processing
+      if (event === "INITIAL_SESSION" && !initialised) return;
+
+      // Token refresh or tab-focus re-auth: never show loading, just silently refresh data
+      if (event === "TOKEN_REFRESHED") {
+        if (nextUser) void refreshUserDataSilently(nextUser.id);
+        return;
+      }
+
       setUser((currentUser) => {
         const currentUserId = currentUser?.id;
         const nextUserId = nextUser?.id ?? null;
@@ -59,28 +87,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return null;
         }
 
+        // Only show loading for actual user changes (login/logout), not tab switches
         if (!currentUserId || currentUserId !== nextUserId) {
           setLoading(true);
-          void loadUserData(nextUserId);
-        } else if (event === "TOKEN_REFRESHED" || event === "SIGNED_IN") {
-          void refreshUserDataSilently(nextUserId);
+          void loadUserData(nextUserId!);
+        } else if (event === "SIGNED_IN") {
+          // Same user re-signed in (e.g. tab refocus) — silent refresh only
+          void refreshUserDataSilently(nextUserId!);
         }
 
         return nextUser;
       });
-    });
-
-    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
-      const nextUser = currentSession?.user ?? null;
-
-      setSession(currentSession);
-      setUser(nextUser);
-
-      if (nextUser) {
-        void loadUserData(nextUser.id);
-      } else {
-        setLoading(false);
-      }
     });
 
     return () => {
