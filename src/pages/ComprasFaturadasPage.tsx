@@ -23,7 +23,6 @@ import { formatCPFCNPJ, formatCurrencyInput, parseCurrencyInput } from '@/lib/fo
 import FornecedorSelect from '@/components/compras/FornecedorSelect';
 import ObraSelect from '@/components/compras/ObraSelect';
 import EmpresaSelect from '@/components/compras/EmpresaSelect';
-import DateRangeFilter from '@/components/DateRangeFilter';
 import { useFormDraft } from '@/hooks/useFormDraft';
 import { toast } from 'sonner';
 import type { Fornecedor } from '@/lib/comprasService';
@@ -114,8 +113,8 @@ export default function ComprasFaturadasPage() {
       setItems(compras);
       setObras(obrasData);
 
-      if (filterEmpresa) {
-        const empresa = empresas.find((e) => e.id === filterEmpresa);
+      if (draftFilterEmpresa) {
+        const empresa = empresas.find((e) => e.id === draftFilterEmpresa);
         if (empresa) {
           setEmpresaLogos({
             logo_esquerda: empresa.logo_esquerda,
@@ -132,21 +131,21 @@ export default function ComprasFaturadasPage() {
     } finally {
       setLoading(false);
     }
-  }, [filterEmpresa]);
+  }, [draftFilterEmpresa]);
 
   useEffect(() => {
     load();
   }, [load]);
 
   const filtered = items.filter((i) => {
-    if (dateFrom && i.data < dateFrom) return false;
-    if (dateTo && i.data > dateTo) return false;
-    if (filterForn && !i.fornecedor.toLowerCase().includes(filterForn.toLowerCase())) return false;
-    if (filterObra && !(i.obra || '').toLowerCase().includes(filterObra.toLowerCase())) return false;
+    if (draftDateFrom && i.data < draftDateFrom) return false;
+    if (draftDateTo && i.data > draftDateTo) return false;
+    if (draftFilterForn && !i.fornecedor.toLowerCase().includes(draftFilterForn.toLowerCase())) return false;
+    if (draftFilterObra && !(i.obra || '').toLowerCase().includes(draftFilterObra.toLowerCase())) return false;
 
-    if (filterEmpresa) {
+    if (draftFilterEmpresa) {
       const allowedObras = new Set(
-        obras.filter((obra) => obra.empresa_id === filterEmpresa).map((obra) => obra.nome.toLowerCase())
+        obras.filter((obra) => obra.empresa_id === draftFilterEmpresa).map((obra) => obra.nome.toLowerCase())
       );
 
       if (!i.obra || !allowedObras.has(i.obra.toLowerCase())) return false;
@@ -258,9 +257,9 @@ export default function ComprasFaturadasPage() {
   async function handleExportPDF() {
     let config = await fetchConfigRelatorio();
 
-    if (filterEmpresa && config) {
+    if (draftFilterEmpresa && config) {
       const empresas = await fetchEmpresas();
-      const empresa = empresas.find((e) => e.id === filterEmpresa);
+      const empresa = empresas.find((e) => e.id === draftFilterEmpresa);
 
       if (empresa) {
         config = {
@@ -352,7 +351,7 @@ export default function ComprasFaturadasPage() {
       </div>
 
       <div className="rounded-xl border bg-card p-4 space-y-4">
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
           <div>
             <Label className="text-xs">Fornecedor</Label>
             <Input
@@ -375,23 +374,14 @@ export default function ComprasFaturadasPage() {
             <EmpresaSelect value={filterEmpresa} onChange={setFilterEmpresa} label="Empresa" allowAll />
           </div>
 
-          <DateRangeFilter
-            dateFrom={dateFrom}
-            dateTo={dateTo}
-            onDateFromChange={setDateFrom}
-            onDateToChange={setDateTo}
-          />
+          <div>
+            <Label className="text-xs">De</Label>
+            <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+          </div>
 
-          <div className="flex items-end gap-2 xl:col-span-2">
-            <Button size="sm" onClick={handleConsultar}>
-              <Search className="mr-1 h-4 w-4" />
-              Consultar
-            </Button>
-
-            <Button variant="outline" size="sm" onClick={handleLimpar}>
-              <RotateCcw className="mr-1 h-4 w-4" />
-              Limpar
-            </Button>
+          <div>
+            <Label className="text-xs">Até</Label>
+            <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
           </div>
         </div>
 
@@ -400,9 +390,21 @@ export default function ComprasFaturadasPage() {
           <Textarea
             value={observation}
             onChange={(e) => setObservation(e.target.value)}
-            rows={3}
+            rows={2}
             placeholder="Observação..."
           />
+        </div>
+
+        <div className="flex justify-end gap-2">
+          <Button size="sm" onClick={handleConsultar}>
+            <Search className="mr-1 h-4 w-4" />
+            Consultar
+          </Button>
+
+          <Button variant="outline" size="sm" onClick={handleLimpar}>
+            <RotateCcw className="mr-1 h-4 w-4" />
+            Limpar
+          </Button>
         </div>
       </div>
 
@@ -437,21 +439,32 @@ export default function ComprasFaturadasPage() {
               <TableRow key={i.id}>
                 <TableCell>{formatDateBR(i.data)}</TableCell>
                 <TableCell className="max-w-[260px]">
-                  <div className="truncate">{i.fornecedor}</div>
+                  <div className="truncate" title={i.fornecedor}>
+                    {i.fornecedor}
+                  </div>
                 </TableCell>
                 <TableCell>{i.pedido || '—'}</TableCell>
                 <TableCell>{i.forma_pagamento || '—'}</TableCell>
                 <TableCell>{i.condicao_pagamento || '—'}</TableCell>
-                <TableCell className="max-w-[240px] whitespace-pre-wrap">
-                  {i.vencimentos || (i.data_liquidacao ? formatDateBR(i.data_liquidacao) : '—')}
+                <TableCell className="max-w-[220px]">
+                  <div
+                    className="truncate"
+                    title={i.vencimentos || (i.data_liquidacao ? formatDateBR(i.data_liquidacao) : '—')}
+                  >
+                    {i.vencimentos || (i.data_liquidacao ? formatDateBR(i.data_liquidacao) : '—')}
+                  </div>
                 </TableCell>
                 <TableCell className="max-w-[160px] break-words">{i.cnpj_cpf || '—'}</TableCell>
                 <TableCell className="text-right font-mono">{formatCurrencyBR(i.valor)}</TableCell>
-                <TableCell className="max-w-[180px]">
-                  <div className="truncate">{i.obra || '—'}</div>
+                <TableCell className="max-w-[190px]">
+                  <div className="truncate" title={i.obra || '—'}>
+                    {i.obra || '—'}
+                  </div>
                 </TableCell>
-                <TableCell className="max-w-[180px]">
-                  <div className="truncate">{i.observacao || '—'}</div>
+                <TableCell className="max-w-[190px]">
+                  <div className="truncate" title={i.observacao || '—'}>
+                    {i.observacao || '—'}
+                  </div>
                 </TableCell>
                 <TableCell>
                   <div className="flex justify-end gap-1">
