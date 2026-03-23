@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { FileDown, FileSpreadsheet, Wallet } from 'lucide-react';
+import { FileDown, FileSpreadsheet, Wallet, Search, RotateCcw } from 'lucide-react';
 import {
   fetchProgramacaoSemanal,
   fetchFornecedores,
@@ -28,16 +28,25 @@ export default function EspelhoSemanalPage() {
   const [items, setItems] = useState<EspelhoItem[]>([]);
   const [loading, setLoading] = useState(true);
   const { canExport } = useModulePermissions();
-  const [filterDate, setFilterDate] = useFormDraft('espelho-sem-date', new Date().toISOString().split('T')[0]);
+
+  const [draftDate, setDraftDate] = useFormDraft('espelho-sem-date', new Date().toISOString().split('T')[0]);
+  const [draftEmpresa, setDraftEmpresa] = useFormDraft('espelho-sem-empresa', '');
+  const [draftResponsavel, setDraftResponsavel] = useFormDraft('espelho-sem-responsavel', '');
   const [observation, setObservation] = useFormDraft('espelho-sem-obs', '');
-  const [filterEmpresa, setFilterEmpresa] = useFormDraft('espelho-sem-empresa', '');
-  const [filterResponsavel, setFilterResponsavel] = useFormDraft('espelho-sem-responsavel', '');
+
+  const [filterDate, setFilterDate] = useState(draftDate);
+  const [filterEmpresa, setFilterEmpresa] = useState(draftEmpresa);
+  const [filterResponsavel, setFilterResponsavel] = useState(draftResponsavel);
+
+  const [appliedDate, setAppliedDate] = useState(draftDate);
+  const [appliedEmpresa, setAppliedEmpresa] = useState(draftEmpresa);
+  const [appliedResponsavel, setAppliedResponsavel] = useState(draftResponsavel);
+
   const [totalGeral, setTotalGeral] = useState(0);
   const [empresaLogos, setEmpresaLogos] = useState<{ logo_esquerda: string | null; logo_direita: string | null }>({
     logo_esquerda: null,
     logo_direita: null,
   });
-  const [empresaCorCabecalho, setEmpresaCorCabecalho] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -50,30 +59,27 @@ export default function EspelhoSemanalPage() {
 
       let allowedObras: Set<string> | null = null;
 
-      if (filterEmpresa) {
+      if (appliedEmpresa) {
         allowedObras = new Set(
-          obras.filter((o) => o.empresa_id === filterEmpresa).map((o) => o.nome.toLowerCase())
+          obras.filter((o) => o.empresa_id === appliedEmpresa).map((o) => o.nome.toLowerCase())
         );
 
-        const empresa = empresas.find((e) => e.id === filterEmpresa);
-        if (empresa) {
+        const empresaSelecionada = empresas.find((e) => e.id === appliedEmpresa);
+        if (empresaSelecionada) {
           setEmpresaLogos({
-            logo_esquerda: empresa.logo_esquerda,
-            logo_direita: empresa.logo_direita,
+            logo_esquerda: empresaSelecionada.logo_esquerda,
+            logo_direita: empresaSelecionada.logo_direita,
           });
-          setEmpresaCorCabecalho(empresa.cor_cabecalho || null);
         } else {
           setEmpresaLogos({ logo_esquerda: null, logo_direita: null });
-          setEmpresaCorCabecalho(null);
         }
       } else {
         setEmpresaLogos({ logo_esquerda: null, logo_direita: null });
-        setEmpresaCorCabecalho(null);
       }
 
-      const filtered = (filterDate ? compras.filter((c) => c.data === filterDate) : compras)
+      const filtered = (appliedDate ? compras.filter((c) => c.data === appliedDate) : compras)
         .filter((c) => !allowedObras || (c.obra && allowedObras.has(c.obra.toLowerCase())))
-        .filter((c) => !filterResponsavel || (c.responsavel || '') === filterResponsavel);
+        .filter((c) => !appliedResponsavel || (c.responsavel || '') === appliedResponsavel);
 
       const espelho = buildEspelhoSemanal(filtered, fornecedores);
       setItems(espelho);
@@ -83,34 +89,58 @@ export default function EspelhoSemanalPage() {
     } finally {
       setLoading(false);
     }
-  }, [filterDate, filterEmpresa, filterResponsavel]);
+  }, [appliedDate, appliedEmpresa, appliedResponsavel]);
 
   useEffect(() => {
     load();
   }, [load]);
 
+  function handleConsultar() {
+    setDraftDate(filterDate);
+    setDraftEmpresa(filterEmpresa);
+    setDraftResponsavel(filterResponsavel);
+
+    setAppliedDate(filterDate);
+    setAppliedEmpresa(filterEmpresa);
+    setAppliedResponsavel(filterResponsavel);
+  }
+
+  function handleLimpar() {
+    const hoje = new Date().toISOString().split('T')[0];
+
+    setFilterDate(hoje);
+    setFilterEmpresa('');
+    setFilterResponsavel('');
+
+    setDraftDate(hoje);
+    setDraftEmpresa('');
+    setDraftResponsavel('');
+
+    setAppliedDate(hoje);
+    setAppliedEmpresa('');
+    setAppliedResponsavel('');
+  }
+
   async function handleExportPDF() {
     let config = await fetchConfigRelatorio();
 
-    if (filterEmpresa && config) {
+    if (appliedEmpresa && (empresaLogos.logo_esquerda || empresaLogos.logo_direita) && config) {
       config = {
         ...config,
         logo_esquerda: empresaLogos.logo_esquerda || config.logo_esquerda || null,
         logo_direita: empresaLogos.logo_direita || config.logo_direita || null,
-        cor_cabecalho: empresaCorCabecalho || config.cor_cabecalho || '#6b7280',
-      };
-    } else if (config) {
-      config = {
-        ...config,
-        cor_cabecalho: '#6b7280',
       };
     }
 
-    exportEspelhoSemanalPDF(items, filterDate ? formatDateBR(filterDate) : '', config, observation);
+    exportEspelhoSemanalPDF(items, appliedDate ? formatDateBR(appliedDate) : '', config, observation);
   }
 
   if (loading) {
-    return <div className="p-6 text-center text-muted-foreground">Carregando...</div>;
+    return (
+      <div className="p-6 text-center text-muted-foreground">
+        Carregando...
+      </div>
+    );
   }
 
   const groupedRows: { item: EspelhoItem; isFirst: boolean; groupSize: number }[] = [];
@@ -138,74 +168,88 @@ export default function EspelhoSemanalPage() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-2">
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-xl font-bold">Espelho Semanal</h2>
+          <h2 className="text-2xl font-bold">Espelho Semanal</h2>
           <p className="text-sm text-muted-foreground">
             Resumo da programação semanal agrupado por fornecedor/obra
           </p>
         </div>
 
-        {canExport('espelho_semanal') && (
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleExportPDF}>
-              <FileDown className="h-4 w-4 mr-1" />
-              PDF
-            </Button>
+        <div className="flex gap-2">
+          {canExport('espelho_semanal') && (
+            <>
+              <Button variant="outline" size="sm" onClick={handleExportPDF}>
+                <FileDown className="mr-1 h-4 w-4" />
+                PDF
+              </Button>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() =>
-                exportEspelhoSemanalXLSX(items, filterDate ? formatDateBR(filterDate) : '', observation)
-              }
-            >
-              <FileSpreadsheet className="h-4 w-4 mr-1" />
-              Excel
-            </Button>
-          </div>
-        )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => exportEspelhoSemanalXLSX(items, appliedDate ? formatDateBR(appliedDate) : '', observation)}
+              >
+                <FileSpreadsheet className="mr-1 h-4 w-4" />
+                Excel
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
-      <div className="flex flex-wrap items-end gap-3">
+      <div className="rounded-xl border bg-card p-4 space-y-4">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div>
+            <Label className="text-xs">Data</Label>
+            <Input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} />
+          </div>
+
+          <div>
+            <EmpresaSelect value={filterEmpresa} onChange={setFilterEmpresa} label="Empresa" allowAll />
+          </div>
+
+          <div>
+            <ResponsavelSelect value={filterResponsavel} onChange={setFilterResponsavel} />
+          </div>
+        </div>
+
         <div>
-          <Label className="text-xs">Data</Label>
-          <Input
-            type="date"
-            value={filterDate}
-            onChange={(e) => setFilterDate(e.target.value)}
-            className="w-44"
+          <Label className="text-xs">Observação do relatório</Label>
+          <Textarea
+            value={observation}
+            onChange={(e) => setObservation(e.target.value)}
+            rows={2}
+            placeholder="Observação..."
           />
         </div>
 
-        <div className="w-48">
-          <EmpresaSelect value={filterEmpresa} onChange={setFilterEmpresa} label="Empresa" allowAll />
-        </div>
+        <div className="flex justify-end gap-2">
+          <Button size="sm" onClick={handleConsultar}>
+            <Search className="mr-1 h-4 w-4" />
+            Consultar
+          </Button>
 
-        <div className="w-48">
-          <ResponsavelSelect value={filterResponsavel} onChange={setFilterResponsavel} />
+          <Button variant="outline" size="sm" onClick={handleLimpar}>
+            <RotateCcw className="mr-1 h-4 w-4" />
+            Limpar
+          </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-muted-foreground text-sm">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Wallet className="h-4 w-4" />
               Total Geral
             </div>
-            <p className="text-2xl font-bold mt-1">{formatCurrencyBR(totalGeral)}</p>
+            <p className="mt-1 text-2xl font-bold">{formatCurrencyBR(totalGeral)}</p>
           </CardContent>
         </Card>
       </div>
 
-      <div>
-        <Label className="text-xs">Observação do relatório</Label>
-        <Textarea value={observation} onChange={(e) => setObservation(e.target.value)} rows={2} />
-      </div>
-
-      <div className="rounded-md border overflow-auto">
+      <div className="overflow-auto rounded-xl border bg-card">
         <Table>
           <TableHeader>
             <TableRow>
@@ -217,8 +261,8 @@ export default function EspelhoSemanalPage() {
               <TableHead>Conta</TableHead>
               <TableHead>Obra</TableHead>
               <TableHead>Nº Pedido</TableHead>
-              <TableHead>Valor por Obra</TableHead>
-              <TableHead>Total Fornecedor</TableHead>
+              <TableHead className="text-right">Valor por Obra</TableHead>
+              <TableHead className="text-right">Total Fornecedor</TableHead>
             </TableRow>
           </TableHeader>
 
@@ -258,10 +302,10 @@ export default function EspelhoSemanalPage() {
 
                 <TableCell>{row.item.obra}</TableCell>
                 <TableCell className="text-center">{row.item.pedido}</TableCell>
-                <TableCell className="font-mono">{formatCurrencyBR(row.item.valor_por_obra)}</TableCell>
+                <TableCell className="text-right font-mono">{formatCurrencyBR(row.item.valor_por_obra)}</TableCell>
 
                 {row.isFirst && (
-                  <TableCell rowSpan={row.groupSize} className="align-middle font-mono font-bold">
+                  <TableCell rowSpan={row.groupSize} className="align-middle text-right font-mono font-bold">
                     {formatCurrencyBR(row.item.total_fornecedor)}
                   </TableCell>
                 )}
@@ -269,11 +313,11 @@ export default function EspelhoSemanalPage() {
             ))}
 
             {items.length > 0 && (
-              <TableRow className="font-bold bg-muted/50">
+              <TableRow className="bg-muted/50 font-bold">
                 <TableCell colSpan={8} className="text-right">
                   TOTAL GERAL
                 </TableCell>
-                <TableCell className="font-mono">{formatCurrencyBR(totalGeral)}</TableCell>
+                <TableCell className="text-right font-mono">{formatCurrencyBR(totalGeral)}</TableCell>
                 <TableCell />
               </TableRow>
             )}
