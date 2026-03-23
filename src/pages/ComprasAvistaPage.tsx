@@ -48,8 +48,8 @@ export default function ComprasAvistaPage() {
   const [items, setItems] = useState<CompraAvista[]>([]);
   const [obras, setObras] = useState<Obra[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showDialog, setShowDialog, clearShowDialog] = useFormDraft('av-showDialog', false);
-  const [editingId, setEditingId, clearEditingId] = useFormDraft<string | null>('av-editingId', null);
+  const [showDialog, setShowDialog] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const [draftDateFrom, setDraftDateFrom] = useFormDraft('av-dateFrom', '');
   const [draftDateTo, setDraftDateTo] = useFormDraft('av-dateTo', '');
@@ -64,7 +64,7 @@ export default function ComprasAvistaPage() {
   const [filterObra, setFilterObra] = useState(draftFilterObra);
   const [filterEmpresa, setFilterEmpresa] = useState(draftFilterEmpresa);
 
-  const [form, setForm, clearForm] = useFormDraft('av-form', emptyForm);
+  const [form, setForm] = useState(emptyForm);
   const [empresaLogos, setEmpresaLogos] = useState<{ logo_esquerda: string | null; logo_direita: string | null }>({
     logo_esquerda: null,
     logo_direita: null,
@@ -145,14 +145,14 @@ export default function ComprasAvistaPage() {
   }
 
   function resetDialogDraft() {
-    clearEditingId();
-    clearForm();
-    clearShowDialog();
+    setEditingId(null);
+    setForm(emptyForm);
+    setShowDialog(false);
   }
 
   function openNew() {
-    clearEditingId();
-    clearForm();
+    setEditingId(null);
+    setForm(emptyForm);
     setShowDialog(true);
   }
 

@@ -23,7 +23,6 @@ import {
 import { formatCurrencyBR, formatDateBR } from '@/lib/comprasService';
 import { exportAbastecimentosPDF, exportAbastecimentosXLSX } from '@/lib/combustivelExport';
 import DateRangeFilter from '@/components/DateRangeFilter';
-import { useFormDraft } from '@/hooks/useFormDraft';
 import { toast } from 'sonner';
 
 const emptyForm = {
@@ -43,12 +42,12 @@ export default function AbastecimentosPage() {
   const [veiculos, setVeiculos] = useState<VeiculoMaquina[]>([]);
   const [combustiveis, setCombustiveis] = useState<TipoCombustivel[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showDialog, setShowDialog, clearShowDialog] = useFormDraft('abs-showDialog', false);
-  const [editingId, setEditingId, clearEditingId] = useFormDraft<string | null>('abs-editingId', null);
+  const [showDialog, setShowDialog] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [filterVeiculo, setFilterVeiculo] = useState('');
-  const [form, setForm, clearForm] = useFormDraft('abs-form', emptyForm);
+  const [form, setForm] = useState(emptyForm);
 
   const load = useCallback(async () => {
     try {
@@ -82,14 +81,14 @@ export default function AbastecimentosPage() {
   const totalLitros = filtered.reduce((s, i) => s + i.quantidade_litros, 0);
 
   function resetDialogDraft() {
-    clearEditingId();
-    clearForm();
-    clearShowDialog();
+    setEditingId(null);
+    setForm(emptyForm);
+    setShowDialog(false);
   }
 
   function openNew() {
-    clearEditingId();
-    clearForm();
+    setEditingId(null);
+    setForm(emptyForm);
     setShowDialog(true);
   }
 

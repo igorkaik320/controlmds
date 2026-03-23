@@ -50,8 +50,8 @@ export default function ProgramacaoSemanalPage() {
   const [items, setItems] = useState<ProgramacaoSemanal[]>([]);
   const [obras, setObras] = useState<Obra[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showDialog, setShowDialog, clearShowDialog] = useFormDraft('ps-showDialog', false);
-  const [editingId, setEditingId, clearEditingId] = useFormDraft<string | null>('ps-editingId', null);
+  const [showDialog, setShowDialog] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const [draftDateFrom, setDraftDateFrom] = useFormDraft('ps-dateFrom', '');
   const [draftDateTo, setDraftDateTo] = useFormDraft('ps-dateTo', '');
@@ -68,7 +68,7 @@ export default function ProgramacaoSemanalPage() {
   const [filterResp, setFilterResp] = useState(draftFilterResp);
   const [filterEmpresa, setFilterEmpresa] = useState(draftFilterEmpresa);
 
-  const [form, setForm, clearForm] = useFormDraft('ps-form', emptyForm);
+  const [form, setForm] = useState(emptyForm);
   const [empresaLogos, setEmpresaLogos] = useState<{ logo_esquerda: string | null; logo_direita: string | null }>({
     logo_esquerda: null,
     logo_direita: null,
@@ -153,14 +153,14 @@ export default function ProgramacaoSemanalPage() {
   }
 
   function resetDialogDraft() {
-    clearEditingId();
-    clearForm();
-    clearShowDialog();
+    setEditingId(null);
+    setForm(emptyForm);
+    setShowDialog(false);
   }
 
   function openNew() {
-    clearEditingId();
-    clearForm();
+    setEditingId(null);
+    setForm(emptyForm);
     setShowDialog(true);
   }
 

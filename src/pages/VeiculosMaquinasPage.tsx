@@ -17,7 +17,6 @@ import {
   deleteVeiculo,
   fetchCategoriasVeiculos
 } from '@/lib/combustivelService';
-import { useFormDraft } from '@/hooks/useFormDraft';
 import { toast } from 'sonner';
 
 const emptyForm = {
@@ -33,10 +32,10 @@ export default function VeiculosMaquinasPage() {
   const [items, setItems] = useState<VeiculoMaquina[]>([]);
   const [categorias, setCategorias] = useState<CategoriaVeiculo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showDialog, setShowDialog, clearShowDialog] = useFormDraft('veic-showDialog', false);
-  const [editingId, setEditingId, clearEditingId] = useFormDraft<string | null>('veic-editingId', null);
+  const [showDialog, setShowDialog] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
-  const [form, setForm, clearForm] = useFormDraft('veic-form', emptyForm);
+  const [form, setForm] = useState(emptyForm);
 
   const load = useCallback(async () => {
     try {
@@ -65,14 +64,14 @@ export default function VeiculosMaquinasPage() {
   );
 
   function resetDialogDraft() {
-    clearEditingId();
-    clearForm();
-    clearShowDialog();
+    setEditingId(null);
+    setForm(emptyForm);
+    setShowDialog(false);
   }
 
   function openNew() {
-    clearEditingId();
-    clearForm();
+    setEditingId(null);
+    setForm(emptyForm);
     setShowDialog(true);
   }
 

@@ -43,9 +43,9 @@ export default function RevisoesCombustivelPage() {
   const [veiculos, setVeiculos] = useState<VeiculoMaquina[]>([]);
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showDialog, setShowDialog, clearShowDialog] = useFormDraft('rev-showDialog', false);
-  const [editingId, setEditingId, clearEditingId] = useFormDraft<string | null>('rev-editingId', null);
-  const [form, setForm, clearForm] = useFormDraft('rev-form', emptyForm);
+  const [showDialog, setShowDialog] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState(emptyForm);
 
   const [draftDateFrom, setDraftDateFrom] = useFormDraft('rev-dateFrom', '');
   const [draftDateTo, setDraftDateTo] = useFormDraft('rev-dateTo', '');
@@ -91,14 +91,14 @@ export default function RevisoesCombustivelPage() {
   const totalGeral = filtered.reduce((sum, item) => sum + item.valor, 0);
 
   function resetDialogDraft() {
-    clearEditingId();
-    clearForm();
-    clearShowDialog();
+    setEditingId(null);
+    setForm(emptyForm);
+    setShowDialog(false);
   }
 
   function openNew() {
-    clearEditingId();
-    clearForm();
+    setEditingId(null);
+    setForm(emptyForm);
     setShowDialog(true);
   }
 

@@ -14,7 +14,6 @@ import {
   updateCategoriaVeiculo,
   deleteCategoriaVeiculo,
 } from '@/lib/combustivelService';
-import { useFormDraft } from '@/hooks/useFormDraft';
 import { toast } from 'sonner';
 
 const emptyForm = {
@@ -34,10 +33,10 @@ export default function CategoriasVeiculosPage() {
   const { user, userRole } = useAuth();
   const [items, setItems] = useState<CategoriaVeiculo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showDialog, setShowDialog, clearShowDialog] = useFormDraft('catv-showDialog', false);
-  const [editingId, setEditingId, clearEditingId] = useFormDraft<string | null>('catv-editingId', null);
+  const [showDialog, setShowDialog] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
-  const [form, setForm, clearForm] = useFormDraft('catv-form', emptyForm);
+  const [form, setForm] = useState(emptyForm);
 
   const load = useCallback(async () => {
     try {
@@ -62,14 +61,14 @@ export default function CategoriasVeiculosPage() {
   });
 
   function resetDialogDraft() {
-    clearEditingId();
-    clearForm();
-    clearShowDialog();
+    setEditingId(null);
+    setForm(emptyForm);
+    setShowDialog(false);
   }
 
   function openNew() {
-    clearEditingId();
-    clearForm();
+    setEditingId(null);
+    setForm(emptyForm);
     setShowDialog(true);
   }
 
