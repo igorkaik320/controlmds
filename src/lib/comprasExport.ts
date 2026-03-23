@@ -389,7 +389,7 @@ export async function exportEspelhoPDF(items: EspelhoItem[], dateStr: string, co
   doc.setFontSize(16);
   doc.text('PREVISÃO DE COMPRAS A VISTA', pageWidth / 2, 12, { align: 'center' });
   doc.setFontSize(12);
-  doc.text('PLANILHA RESUMO RESUMO PREVISÃO DE COMPRAS', pageWidth / 2, 20, { align: 'center' });
+  doc.text('PLANILHA GERAL PREVISÃO DE COMPRAS', pageWidth / 2, 20, { align: 'center' });
   doc.setFontSize(10);
   doc.text(`DATA: ${dateStr || new Date().toLocaleDateString('pt-BR')}`, 14, 30);
 
