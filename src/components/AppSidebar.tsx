@@ -38,6 +38,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ModuleKey } from '@/lib/modulePermissions';
+import { confirmDraftDiscard } from '@/lib/draftGuard';
 
 interface MenuItem {
   title: string;
@@ -156,6 +157,7 @@ export function AppSidebar() {
   }
 
   async function handleSignOut() {
+    if (!confirmDraftDiscard()) return;
     await signOut();
   }
 
