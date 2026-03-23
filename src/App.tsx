@@ -24,6 +24,7 @@ import CategoriasVeiculosPage from "./pages/CategoriasVeiculosPage";
 import TiposCombustivelPage from "./pages/TiposCombustivelPage";
 import AbastecimentosPage from "./pages/AbastecimentosPage";
 import DashboardCombustivelPage from "./pages/DashboardCombustivelPage";
+import RevisoesCombustivelPage from "./pages/RevisoesCombustivelPage";
 import EmpresasPage from "./pages/EmpresasPage";
 import PainelExecutivoPage from "./pages/PainelExecutivoPage";
 import NotFound from "./pages/NotFound";
@@ -142,6 +143,10 @@ const App = () => (
             <Route
               path="/combustivel/abastecimentos"
               element={<ModuleRoute module="abastecimentos"><AbastecimentosPage /></ModuleRoute>}
+            />
+            <Route
+              path="/combustivel/revisoes"
+              element={<ModuleRoute module="revisoes_combustivel"><RevisoesCombustivelPage /></ModuleRoute>}
             />
             <Route
               path="/combustivel/dashboard"
