@@ -3,6 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Transaction, formatCurrency } from '@/lib/cashRegister';
+import AuditInfo from '@/components/AuditInfo';
 
 interface Props {
   transactions: Transaction[];
@@ -109,8 +110,14 @@ export default function TransactionTable({
                   <TableCell className="text-sm">{t.fornecedor || '—'}</TableCell>
                   <TableCell className="text-sm">{t.nota_numero || '—'}</TableCell>
                   <TableCell className="text-sm max-w-[200px] truncate">{t.observation || '—'}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {profileMap[t.created_by] || '—'}
+                  <TableCell className="text-sm">
+                    <AuditInfo
+                      createdBy={t.created_by}
+                      createdAt={t.created_at}
+                      updatedBy={t.updated_by}
+                      updatedAt={t.updated_at}
+                      profileMap={profileMap}
+                    />
                   </TableCell>
 
                   {showActions && (

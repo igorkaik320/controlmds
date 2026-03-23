@@ -16,6 +16,7 @@ export interface CompraFaturada {
   observacao: string | null;
   created_by: string;
   created_at: string;
+  updated_by?: string | null;
   updated_at: string;
 }
 
@@ -33,6 +34,7 @@ export interface CompraAvista {
   observacao: string | null;
   created_by: string;
   created_at: string;
+  updated_by?: string | null;
   updated_at: string;
 }
 
@@ -90,6 +92,7 @@ export interface ProgramacaoSemanal {
   responsavel: string | null;
   created_by: string;
   created_at: string;
+  updated_by?: string | null;
   updated_at: string;
 }
 

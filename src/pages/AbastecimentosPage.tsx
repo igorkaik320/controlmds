@@ -28,6 +28,7 @@ import { exportAbastecimentosPDF, exportAbastecimentosXLSX } from '@/lib/combust
 import DateRangeFilter from '@/components/DateRangeFilter';
 import { toast } from 'sonner';
 import { fetchProfiles } from '@/lib/cashRegister';
+import AuditInfo from '@/components/AuditInfo';
 
 const emptyForm = {
   veiculo_id: '',
@@ -40,12 +41,6 @@ const emptyForm = {
   valor_unitario: '',
   observacao: '',
 };
-
-function formatAuditDate(iso: string) {
-  if (!iso) return '—';
-  const parsed = new Date(iso);
-  return `${parsed.toLocaleDateString('pt-BR')} ${parsed.toLocaleTimeString('pt-BR')}`;
-}
 
 export default function AbastecimentosPage() {
   const { user } = useAuth();
@@ -316,15 +311,14 @@ export default function AbastecimentosPage() {
                 <TableCell className="text-right">{formatCurrencyBR(item.valor_total)}</TableCell>
                 <TableCell className="max-w-[140px]">
                   <div className="text-sm truncate">{item.observacao || '—'}</div>
-                  <div className="text-[11px] text-muted-foreground space-y-0.5 mt-1">
-                    <div>
-                      Criado por {profileMap[item.created_by] || '—'} em {formatAuditDate(item.created_at)}
-                    </div>
-                    {item.updated_by && (
-                      <div>
-                        Atualizado por {profileMap[item.updated_by] || '—'} em {formatAuditDate(item.updated_at || '')}
-                      </div>
-                    )}
+                  <div className="mt-1">
+                    <AuditInfo
+                      createdBy={item.created_by}
+                      createdAt={item.created_at}
+                      updatedBy={item.updated_by}
+                      updatedAt={item.updated_at}
+                      profileMap={profileMap}
+                    />
                   </div>
                 </TableCell>
                 <TableCell>

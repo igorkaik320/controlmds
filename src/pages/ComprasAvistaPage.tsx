@@ -28,6 +28,8 @@ import { toast } from 'sonner';
 import type { Fornecedor } from '@/lib/comprasService';
 import { fetchObras, Obra } from '@/lib/obrasService';
 import { fetchEmpresas } from '@/lib/empresasService';
+import { fetchProfiles } from '@/lib/cashRegister';
+import AuditInfo from '@/components/AuditInfo';
 
 const emptyForm = {
   data: '',
@@ -50,6 +52,7 @@ export default function ComprasAvistaPage() {
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [profileMap, setProfileMap] = useState<Record<string, string>>({});
 
   const [draftDateFrom, setDraftDateFrom] = useFormDraft('av-dateFrom', '');
   const [draftDateTo, setDraftDateTo] = useFormDraft('av-dateTo', '');
@@ -72,14 +75,16 @@ export default function ComprasAvistaPage() {
 
   const load = useCallback(async () => {
     try {
-      const [compras, obrasData, empresas] = await Promise.all([
+      const [compras, obrasData, empresas, profiles] = await Promise.all([
         fetchComprasAvista(),
         fetchObras(),
         fetchEmpresas(),
+        fetchProfiles(),
       ]);
 
       setItems(compras);
       setObras(obrasData);
+      setProfileMap(profiles);
 
       if (draftFilterEmpresa) {
         const empresa = empresas.find((e) => e.id === draftFilterEmpresa);
@@ -191,14 +196,13 @@ export default function ComprasAvistaPage() {
         valor: parseCurrencyInput(form.valor),
         obra: form.obra || null,
         observacao: form.observacao || null,
-        created_by: user.id,
       };
 
       if (editingId) {
-        await updateCompraAvista(editingId, payload);
+        await updateCompraAvista(editingId, { ...payload, updated_by: user.id });
         toast.success('Registro atualizado');
       } else {
-        await saveCompraAvista(payload as any);
+        await saveCompraAvista({ ...payload, created_by: user.id } as any);
         toast.success('Registro cadastrado');
       }
 
@@ -405,6 +409,15 @@ export default function ComprasAvistaPage() {
                 <TableCell className="max-w-[190px]">
                   <div className="truncate" title={i.observacao || '—'}>
                     {i.observacao || '—'}
+                  </div>
+                  <div className="mt-1">
+                    <AuditInfo
+                      createdBy={i.created_by}
+                      createdAt={i.created_at}
+                      updatedBy={i.updated_by}
+                      updatedAt={i.updated_at}
+                      profileMap={profileMap}
+                    />
                   </div>
                 </TableCell>
                 <TableCell>
