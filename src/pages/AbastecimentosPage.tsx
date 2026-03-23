@@ -164,7 +164,7 @@ export default function AbastecimentosPage() {
       };
 
       if (editingId) {
-        await updateAbastecimento(editingId, payload as any);
+        await updateAbastecimento(editingId, { ...payload, updated_by: user.id } as any);
         toast.success('Atualizado');
       } else {
         await saveAbastecimento(payload);
