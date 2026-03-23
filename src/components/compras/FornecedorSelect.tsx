@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import type { Fornecedor } from '@/lib/comprasService';
+import { fetchFornecedores, type Fornecedor } from '@/lib/comprasService';
+import { toast } from 'sonner';
 
 interface Props {
   value: string;
-  onChange: (fornecedorId: string) => void;
+  onChange: (fornecedor: string) => void;
   fornecedores?: Fornecedor[];
   label?: string;
   placeholder?: string;
@@ -20,19 +21,51 @@ function digitsOnly(value: string) {
   return value.replace(/\D/g, '');
 }
 
-export default function FornecedorSearchSelect({
+export default function FornecedorSelect({
   value,
   onChange,
-  fornecedores = [],
+  fornecedores: fornecedoresProp,
   label = 'Fornecedor *',
-  placeholder = 'Digite nome, razão social ou CNPJ/CPF',
+  placeholder = 'Digite nome, razao social ou CNPJ/CPF',
   onFornecedorSelect,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const [loadedFornecedores, setLoadedFornecedores] = useState<Fornecedor[]>([]);
+
+  useEffect(() => {
+    if (fornecedoresProp) return;
+
+    let cancelled = false;
+
+    async function loadFornecedores() {
+      try {
+        const fornecedores = await fetchFornecedores();
+        if (!cancelled) {
+          setLoadedFornecedores(fornecedores);
+        }
+      } catch (error: any) {
+        if (!cancelled) {
+          toast.error(error.message || 'Nao foi possivel carregar os fornecedores');
+        }
+      }
+    }
+
+    loadFornecedores();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [fornecedoresProp]);
+
+  const fornecedores = fornecedoresProp ?? loadedFornecedores;
 
   const selectedFornecedor = useMemo(
-    () => fornecedores.find((fornecedor) => fornecedor.id === value) || null,
+    () =>
+      fornecedores.find(
+        (fornecedor) =>
+          fornecedor.id === value || normalize(fornecedor.nome_fornecedor) === normalize(value || '')
+      ) || null,
     [fornecedores, value]
   );
 
@@ -41,8 +74,9 @@ export default function FornecedorSearchSelect({
       setQuery(selectedFornecedor.nome_fornecedor);
       return;
     }
-    setQuery('');
-  }, [selectedFornecedor]);
+
+    setQuery(value || '');
+  }, [selectedFornecedor, value]);
 
   const filteredFornecedores = useMemo(() => {
     const term = normalize(query);
@@ -60,7 +94,7 @@ export default function FornecedorSearchSelect({
   }, [fornecedores, query]);
 
   function selectFornecedor(fornecedor: Fornecedor) {
-    onChange(fornecedor.id);
+    onChange(fornecedor.nome_fornecedor);
     setQuery(fornecedor.nome_fornecedor);
     setOpen(false);
     onFornecedorSelect?.(fornecedor);
@@ -74,8 +108,9 @@ export default function FornecedorSearchSelect({
         <Input
           value={query}
           onChange={(e) => {
-            setQuery(e.target.value);
-            onChange('');
+            const nextValue = e.target.value;
+            setQuery(nextValue);
+            onChange(nextValue);
             setOpen(true);
           }}
           onFocus={() => setOpen(true)}
@@ -94,7 +129,7 @@ export default function FornecedorSearchSelect({
               >
                 <div className="font-medium">{fornecedor.nome_fornecedor}</div>
                 <div className="text-xs text-muted-foreground">
-                  {fornecedor.razao_social || 'Sem razão social'}
+                  {fornecedor.razao_social || 'Sem razao social'}
                   {fornecedor.cnpj_cpf ? ` • ${fornecedor.cnpj_cpf}` : ''}
                 </div>
               </button>
