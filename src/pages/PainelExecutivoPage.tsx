@@ -3,17 +3,19 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import DateRangeFilter from '@/components/DateRangeFilter';
 import {
   AlertTriangle,
   ArrowRight,
-  BarChart3,
   CalendarClock,
   CarFront,
-  DollarSign,
   Droplets,
   FileBarChart,
+  FileWarning,
   Fuel,
   PackageSearch,
+  RotateCcw,
+  Search,
   ShoppingCart,
   TrendingUp,
 } from 'lucide-react';
@@ -28,6 +30,9 @@ import {
   PieChart,
   Pie,
   Cell,
+  LineChart,
+  Line,
+  Legend,
 } from 'recharts';
 import {
   fetchComprasAvista,
@@ -55,8 +60,35 @@ type KpiCard = {
   icon: React.ComponentType<{ className?: string }>;
 };
 
+type CompraSemPedido = {
+  id: string;
+  origem: 'A Vista' | 'Faturada';
+  data: string;
+  fornecedor: string;
+  obra: string;
+  valor: number;
+};
+
+function formatDateBR(date: string) {
+  if (!date) return '';
+  const [y, m, d] = date.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+function monthLabel(isoDate: string) {
+  const [year, month] = isoDate.split('-');
+  return `${month}/${year.slice(2)}`;
+}
+
 export default function PainelExecutivoPage() {
   const [loading, setLoading] = useState(true);
+
+  const [draftDateFrom, setDraftDateFrom] = useState('');
+  const [draftDateTo, setDraftDateTo] = useState('');
+
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+
   const [comprasAvistaTotal, setComprasAvistaTotal] = useState(0);
   const [comprasFaturadasTotal, setComprasFaturadasTotal] = useState(0);
   const [comprasSemPedidoTotal, setComprasSemPedidoTotal] = useState(0);
@@ -66,12 +98,20 @@ export default function PainelExecutivoPage() {
   const [combustivelTotal, setCombustivelTotal] = useState(0);
   const [combustivelLitros, setCombustivelLitros] = useState(0);
   const [abastecimentosCount, setAbastecimentosCount] = useState(0);
+
   const [topObras, setTopObras] = useState<Array<{ name: string; value: number }>>([]);
   const [topFornecedores, setTopFornecedores] = useState<Array<{ name: string; value: number }>>([]);
   const [topVeiculos, setTopVeiculos] = useState<Array<{ name: string; value: number }>>([]);
+  const [comprasMix, setComprasMix] = useState<Array<{ name: string; value: number }>>([]);
+  const [combustivelMensal, setCombustivelMensal] = useState<Array<{ month: string; valor: number; litros: number }>>(
+    []
+  );
+  const [semPedidoItems, setSemPedidoItems] = useState<CompraSemPedido[]>([]);
 
   const load = useCallback(async () => {
     try {
+      setLoading(true);
+
       const [comprasAvista, comprasFaturadas, programacao, abastecimentos] = await Promise.all([
         fetchComprasAvista(),
         fetchComprasFaturadas(),
@@ -79,32 +119,45 @@ export default function PainelExecutivoPage() {
         fetchAbastecimentos(),
       ]);
 
-      const totalAvista = comprasAvista.reduce((sum, item) => sum + item.valor, 0);
-      const totalFaturadas = comprasFaturadas.reduce((sum, item) => sum + item.valor, 0);
-      const semPedidoAvista = comprasAvista.filter((item) => !item.pedido?.trim());
-      const semPedidoFaturadas = comprasFaturadas.filter((item) => !item.pedido?.trim());
+      const inRange = (itemDate: string) => {
+        if (dateFrom && itemDate < dateFrom) return false;
+        if (dateTo && itemDate > dateTo) return false;
+        return true;
+      };
+
+      const avistaFiltered = comprasAvista.filter((item) => inRange(item.data));
+      const faturadasFiltered = comprasFaturadas.filter((item) => inRange(item.data));
+      const programacaoFiltered = programacao.filter((item) => inRange(item.data));
+      const abastecimentosFiltered = abastecimentos.filter((item) => inRange(item.data));
+
+      const totalAvista = avistaFiltered.reduce((sum, item) => sum + item.valor, 0);
+      const totalFaturadas = faturadasFiltered.reduce((sum, item) => sum + item.valor, 0);
+
+      const semPedidoAvista = avistaFiltered.filter((item) => !item.pedido?.trim());
+      const semPedidoFaturadas = faturadasFiltered.filter((item) => !item.pedido?.trim());
+
       const totalSemPedido =
         semPedidoAvista.reduce((sum, item) => sum + item.valor, 0) +
         semPedidoFaturadas.reduce((sum, item) => sum + item.valor, 0);
 
-      const totalProgramacao = programacao.reduce((sum, item) => sum + item.valor, 0);
-      const totalCombustivel = abastecimentos.reduce((sum, item) => sum + item.valor_total, 0);
-      const totalLitros = abastecimentos.reduce((sum, item) => sum + item.quantidade_litros, 0);
+      const totalProgramacao = programacaoFiltered.reduce((sum, item) => sum + item.valor, 0);
+      const totalCombustivel = abastecimentosFiltered.reduce((sum, item) => sum + item.valor_total, 0);
+      const totalLitros = abastecimentosFiltered.reduce((sum, item) => sum + item.quantidade_litros, 0);
 
       const obrasMap = new Map<string, number>();
-      [...comprasAvista, ...comprasFaturadas, ...programacao].forEach((item) => {
+      [...avistaFiltered, ...faturadasFiltered, ...programacaoFiltered].forEach((item) => {
         const obra = item.obra?.trim() || 'Sem obra informada';
         obrasMap.set(obra, (obrasMap.get(obra) || 0) + item.valor);
       });
 
       const fornecedoresMap = new Map<string, number>();
-      [...comprasAvista, ...comprasFaturadas, ...programacao].forEach((item) => {
+      [...avistaFiltered, ...faturadasFiltered, ...programacaoFiltered].forEach((item) => {
         const fornecedor = item.fornecedor?.trim() || 'Sem fornecedor';
         fornecedoresMap.set(fornecedor, (fornecedoresMap.get(fornecedor) || 0) + item.valor);
       });
 
       const veiculosMap = new Map<string, number>();
-      abastecimentos.forEach((item) => {
+      abastecimentosFiltered.forEach((item) => {
         const veiculoNome =
           item.veiculo?.placa?.trim() ||
           item.veiculo?.modelo?.trim() ||
@@ -112,15 +165,45 @@ export default function PainelExecutivoPage() {
         veiculosMap.set(veiculoNome, (veiculosMap.get(veiculoNome) || 0) + item.valor_total);
       });
 
+      const mensalMap = new Map<string, { valor: number; litros: number }>();
+      abastecimentosFiltered.forEach((item) => {
+        const key = item.data.slice(0, 7);
+        const current = mensalMap.get(key) || { valor: 0, litros: 0 };
+        current.valor += item.valor_total;
+        current.litros += item.quantidade_litros;
+        mensalMap.set(key, current);
+      });
+
+      const semPedidoList: CompraSemPedido[] = [
+        ...semPedidoAvista.map((item) => ({
+          id: item.id,
+          origem: 'A Vista' as const,
+          data: item.data,
+          fornecedor: item.fornecedor,
+          obra: item.obra || 'Sem obra',
+          valor: item.valor,
+        })),
+        ...semPedidoFaturadas.map((item) => ({
+          id: item.id,
+          origem: 'Faturada' as const,
+          data: item.data,
+          fornecedor: item.fornecedor,
+          obra: item.obra || 'Sem obra',
+          valor: item.valor,
+        })),
+      ]
+        .sort((a, b) => b.data.localeCompare(a.data))
+        .slice(0, 8);
+
       setComprasAvistaTotal(totalAvista);
       setComprasFaturadasTotal(totalFaturadas);
       setComprasSemPedidoTotal(totalSemPedido);
       setComprasSemPedidoCount(semPedidoAvista.length + semPedidoFaturadas.length);
       setProgramacaoTotal(totalProgramacao);
-      setProgramacaoSemResponsavel(programacao.filter((item) => !item.responsavel?.trim()).length);
+      setProgramacaoSemResponsavel(programacaoFiltered.filter((item) => !item.responsavel?.trim()).length);
       setCombustivelTotal(totalCombustivel);
       setCombustivelLitros(totalLitros);
-      setAbastecimentosCount(abastecimentos.length);
+      setAbastecimentosCount(abastecimentosFiltered.length);
 
       setTopObras(
         Array.from(obrasMap.entries())
@@ -142,12 +225,32 @@ export default function PainelExecutivoPage() {
           .sort((a, b) => b.value - a.value)
           .slice(0, 5)
       );
+
+      setComprasMix(
+        [
+          { name: 'A Vista', value: totalAvista },
+          { name: 'Faturadas', value: totalFaturadas },
+          { name: 'Programacao', value: totalProgramacao },
+        ].filter((item) => item.value > 0)
+      );
+
+      setCombustivelMensal(
+        Array.from(mensalMap.entries())
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([month, values]) => ({
+            month: monthLabel(month),
+            valor: values.valor,
+            litros: values.litros,
+          }))
+      );
+
+      setSemPedidoItems(semPedidoList);
     } catch (e: any) {
       toast.error(e.message || 'Nao foi possivel carregar o painel executivo.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [dateFrom, dateTo]);
 
   useEffect(() => {
     load();
@@ -155,8 +258,7 @@ export default function PainelExecutivoPage() {
 
   const totalCompras = comprasAvistaTotal + comprasFaturadasTotal;
   const percentualSemPedido = totalCompras > 0 ? (comprasSemPedidoTotal / totalCompras) * 100 : 0;
-  const combustivelMedio =
-    abastecimentosCount > 0 ? combustivelTotal / abastecimentosCount : 0;
+  const combustivelMedio = abastecimentosCount > 0 ? combustivelTotal / abastecimentosCount : 0;
 
   const heroCards: KpiCard[] = [
     {
@@ -169,7 +271,7 @@ export default function PainelExecutivoPage() {
       title: 'Compras sem Pedido',
       value: formatCurrencyBR(comprasSemPedidoTotal),
       helper: `${comprasSemPedidoCount} lancamentos ainda sem pedido vinculado.`,
-      icon: PackageSearch,
+      icon: FileWarning,
     },
     {
       title: 'Programacao Semanal',
@@ -224,11 +326,17 @@ export default function PainelExecutivoPage() {
     return nextAlerts.slice(0, 3);
   }, [comprasSemPedidoCount, comprasSemPedidoTotal, programacaoSemResponsavel, topVeiculos]);
 
-  const comprasMix = [
-    { name: 'A Vista', value: comprasAvistaTotal },
-    { name: 'Faturadas', value: comprasFaturadasTotal },
-    { name: 'Programacao', value: programacaoTotal },
-  ].filter((item) => item.value > 0);
+  function handleConsultar() {
+    setDateFrom(draftDateFrom);
+    setDateTo(draftDateTo);
+  }
+
+  function handleLimpar() {
+    setDraftDateFrom('');
+    setDraftDateTo('');
+    setDateFrom('');
+    setDateTo('');
+  }
 
   if (loading) {
     return (
@@ -252,6 +360,39 @@ export default function PainelExecutivoPage() {
           Atualizar agora
         </Button>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Periodo de Analise</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap items-end gap-4">
+            <DateRangeFilter
+              dateFrom={draftDateFrom}
+              dateTo={draftDateTo}
+              onDateFromChange={setDraftDateFrom}
+              onDateToChange={setDraftDateTo}
+            />
+
+            <div className="flex gap-2">
+              <Button onClick={handleConsultar}>
+                <Search className="mr-1 h-4 w-4" />
+                Consultar
+              </Button>
+              <Button variant="outline" onClick={handleLimpar}>
+                <RotateCcw className="mr-1 h-4 w-4" />
+                Limpar
+              </Button>
+            </div>
+          </div>
+
+          <p className="text-sm text-muted-foreground">
+            {dateFrom || dateTo
+              ? `Periodo aplicado: ${dateFrom ? formatDateBR(dateFrom) : '...'} ate ${dateTo ? formatDateBR(dateTo) : '...'}`
+              : 'Periodo aplicado: todos os registros'}
+          </p>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {heroCards.map((card) => (
@@ -415,18 +556,32 @@ export default function PainelExecutivoPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Top Fornecedores</CardTitle>
+            <CardTitle className="text-base">Sem Pedido no Periodo</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {topFornecedores.map((item, index) => (
-              <div key={item.name} className="flex items-center justify-between gap-3 rounded-lg border p-3">
-                <div className="min-w-0">
-                  <p className="text-xs text-muted-foreground">#{index + 1}</p>
-                  <p className="truncate font-medium">{item.name}</p>
+          <CardContent className="space-y-3">
+            {semPedidoItems.map((item) => (
+              <div key={`${item.origem}-${item.id}`} className="rounded-lg border p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <Badge variant={item.origem === 'A Vista' ? 'outline' : 'secondary'}>
+                        {item.origem}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">{formatDateBR(item.data)}</span>
+                    </div>
+                    <p className="mt-2 truncate font-medium">{item.fornecedor}</p>
+                    <p className="text-sm text-muted-foreground truncate">{item.obra}</p>
+                  </div>
+                  <p className="whitespace-nowrap font-semibold">{formatCurrencyBR(item.valor)}</p>
                 </div>
-                <p className="whitespace-nowrap font-semibold">{formatCurrencyBR(item.value)}</p>
               </div>
             ))}
+
+            {semPedidoItems.length === 0 && (
+              <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+                Nenhum item sem pedido no periodo consultado.
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -449,6 +604,25 @@ export default function PainelExecutivoPage() {
           </CardContent>
         </Card>
 
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Top Fornecedores</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {topFornecedores.map((item, index) => (
+              <div key={item.name} className="flex items-center justify-between gap-3 rounded-lg border p-3">
+                <div className="min-w-0">
+                  <p className="text-xs text-muted-foreground">#{index + 1}</p>
+                  <p className="truncate font-medium">{item.name}</p>
+                </div>
+                <p className="whitespace-nowrap font-semibold">{formatCurrencyBR(item.value)}</p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-2">
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
@@ -482,44 +656,45 @@ export default function PainelExecutivoPage() {
             )}
           </CardContent>
         </Card>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-emerald-500" />
-              <CardTitle className="text-base">Leitura Executiva de Compras</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm text-muted-foreground">
-            <p>
-              O volume total da previsao esta concentrado em {topObras[0]?.name || 'obras principais'} e o
-              principal ponto de risco continua sendo o montante sem pedido vinculado.
-            </p>
-            <p>
-              Essa area pode evoluir depois para mostrar comparativo por quinzena, remessas e regularizacao
-              posterior de pedidos.
-            </p>
-          </CardContent>
-        </Card>
 
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
               <Droplets className="h-4 w-4 text-sky-500" />
-              <CardTitle className="text-base">Leitura Executiva de Combustivel</CardTitle>
+              <CardTitle className="text-base">Evolucao Mensal de Combustivel</CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="space-y-3 text-sm text-muted-foreground">
-            <p>
-              O modulo de combustivel agora entra como um bloco proprio da diretoria, destacando gasto total,
-              ticket medio e concentracao por veiculo.
-            </p>
-            <p>
-              Depois podemos adicionar tendencia mensal, comparativo entre categorias e alertas de consumo fora
-              da media.
-            </p>
+          <CardContent className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={combustivelMensal}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="month" />
+                <YAxis yAxisId="left" tickFormatter={(value) => `R$ ${Number(value).toLocaleString('pt-BR')}`} />
+                <YAxis yAxisId="right" orientation="right" tickFormatter={(value) => `${value}L`} />
+                <Tooltip
+                  formatter={(value: number, name: string) =>
+                    name === 'valor' ? formatCurrencyBR(value) : `${value.toFixed(1)} L`
+                  }
+                />
+                <Legend />
+                <Line
+                  yAxisId="left"
+                  type="monotone"
+                  dataKey="valor"
+                  name="Valor"
+                  stroke="#0f172a"
+                  strokeWidth={2}
+                />
+                <Line
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="litros"
+                  name="Litros"
+                  stroke="#0ea5e9"
+                  strokeWidth={2}
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>
