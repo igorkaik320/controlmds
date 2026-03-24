@@ -11,9 +11,9 @@ import {
   fetchAbastecimentos,
   fetchVeiculos,
   fetchTiposCombustivel,
-  fetchPostosCombustivel
+  fetchPostosCombustivel,
 } from '@/lib/combustivelService';
-import { formatCurrencyBR } from '@/lib/comprasService';
+import { formatCurrencyBR, fetchResponsaveis, Responsavel } from '@/lib/comprasService';
 import DateRangeFilter from '@/components/DateRangeFilter';
 import {
   BarChart,
@@ -51,6 +51,7 @@ type AppliedFilters = {
   obra: string;
   posto: string;
   combustivel: string;
+  responsavel: string;
 };
 
 export default function DashboardCombustivelPage() {
@@ -59,13 +60,14 @@ export default function DashboardCombustivelPage() {
   const [combustiveis, setCombustiveis] = useState<TipoCombustivel[]>([]);
   const [postos, setPostos] = useState<PostoCombustivel[]>([]);
   const [loading, setLoading] = useState(true);
+  const [responsaveis, setResponsaveis] = useState<Responsavel[]>([]);
 
   const [draftDateFrom, setDraftDateFrom] = useState('');
   const [draftDateTo, setDraftDateTo] = useState('');
   const [draftVeiculo, setDraftVeiculo] = useState('all');
   const [draftObra, setDraftObra] = useState('all');
   const [draftPosto, setDraftPosto] = useState('all');
-  const [draftCombustivel, setDraftCombustivel] = useState('all');
+  const [draftResponsavel, setDraftResponsavel] = useState('all');
 
   const [filters, setFilters] = useState<AppliedFilters>({
     dateFrom: '',
@@ -74,20 +76,23 @@ export default function DashboardCombustivelPage() {
     obra: 'all',
     posto: 'all',
     combustivel: 'all',
+    responsavel: 'all',
   });
 
   const load = useCallback(async () => {
     try {
-      const [abs, veic, comb, postosData] = await Promise.all([
+      const [abs, veic, comb, postosData, responsaveisData] = await Promise.all([
         fetchAbastecimentos(),
         fetchVeiculos(),
         fetchTiposCombustivel(),
-        fetchPostosCombustivel()
+        fetchPostosCombustivel(),
+        fetchResponsaveis(),
       ]);
       setItems(abs);
       setVeiculos(veic);
       setCombustiveis(comb);
       setPostos(postosData);
+      setResponsaveis(responsaveisData);
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -116,6 +121,7 @@ export default function DashboardCombustivelPage() {
     if (filters.obra !== 'all' && (item.obra_id || '') !== filters.obra) return false;
     if (filters.posto !== 'all' && (item.posto_id || '') !== filters.posto) return false;
     if (filters.combustivel !== 'all' && item.combustivel_id !== filters.combustivel) return false;
+    if (filters.responsavel !== 'all' && (item.responsavel_id || '') !== filters.responsavel) return false;
     return true;
   });
 
@@ -194,7 +200,8 @@ export default function DashboardCombustivelPage() {
       veiculo: draftVeiculo,
       obra: draftObra,
       posto: draftPosto,
-      combustivel: draftCombustivel,
+      combustivel: 'all',
+      responsavel: draftResponsavel,
     });
   }
 
@@ -204,7 +211,7 @@ export default function DashboardCombustivelPage() {
     setDraftVeiculo('all');
     setDraftObra('all');
     setDraftPosto('all');
-    setDraftCombustivel('all');
+    setDraftResponsavel('all');
 
     setFilters({
       dateFrom: '',
@@ -213,6 +220,7 @@ export default function DashboardCombustivelPage() {
       obra: 'all',
       posto: 'all',
       combustivel: 'all',
+      responsavel: 'all',
     });
   }
 
@@ -289,16 +297,16 @@ export default function DashboardCombustivelPage() {
             </div>
 
             <div>
-              <Label className="text-xs">Combustivel</Label>
-              <Select value={draftCombustivel} onValueChange={setDraftCombustivel}>
-                <SelectTrigger className="w-48">
+              <Label className="text-xs">Responsável</Label>
+              <Select value={draftResponsavel} onValueChange={setDraftResponsavel}>
+                <SelectTrigger className="w-56">
                   <SelectValue placeholder="Todos" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos</SelectItem>
-                  {combustiveis.map((combustivel) => (
-                    <SelectItem key={combustivel.id} value={combustivel.id}>
-                      {combustivel.nome}
+                  {responsaveis.map((resp) => (
+                    <SelectItem key={resp.id} value={resp.id}>
+                      {resp.nome}
                     </SelectItem>
                   ))}
                 </SelectContent>

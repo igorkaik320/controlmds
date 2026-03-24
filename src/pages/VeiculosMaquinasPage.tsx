@@ -8,12 +8,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useModulePermissions } from '@/hooks/useModulePermissions';
-import { VeiculoMaquina, fetchVeiculos, saveVeiculo, updateVeiculo, deleteVeiculo } from '@/lib/combustivelService';
+import {
+  VeiculoMaquina,
+  fetchVeiculos,
+  saveVeiculo,
+  updateVeiculo,
+  deleteVeiculo,
+} from '@/lib/combustivelService';
+import { fetchResponsaveis, Responsavel } from '@/lib/comprasService';
 import { toast } from 'sonner';
 
 const emptyForm = {
   tipo: 'veiculo' as 'veiculo' | 'maquina',
   placa: '',
+  responsavel_id: '',
 };
 
 export default function VeiculosMaquinasPage() {
@@ -25,10 +33,13 @@ export default function VeiculosMaquinasPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [form, setForm] = useState(emptyForm);
+  const [responsaveis, setResponsaveis] = useState<Responsavel[]>([]);
 
   const load = useCallback(async () => {
     try {
-      setItems(await fetchVeiculos());
+      const [veiculos, responsaveisData] = await Promise.all([fetchVeiculos(), fetchResponsaveis()]);
+      setItems(veiculos);
+      setResponsaveis(responsaveisData);
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -62,6 +73,7 @@ export default function VeiculosMaquinasPage() {
     setForm({
       tipo: item.tipo,
       placa: item.placa,
+      responsavel_id: item.responsavel_id || '',
     });
     setShowDialog(true);
   }
@@ -85,6 +97,7 @@ export default function VeiculosMaquinasPage() {
         marca: '',
         categoria_id: null,
         categoria: '',
+        responsavel_id: form.responsavel_id || null,
         created_by: user.id,
       };
 
@@ -141,8 +154,9 @@ export default function VeiculosMaquinasPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Tipo</TableHead>
-              <TableHead>Placa</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead>Placa</TableHead>
+                <TableHead>Responsável</TableHead>
               <TableHead></TableHead>
             </TableRow>
           </TableHeader>
@@ -159,6 +173,7 @@ export default function VeiculosMaquinasPage() {
               <TableRow key={item.id}>
                 <TableCell>{item.tipo === 'veiculo' ? 'Veiculo' : 'Maquina'}</TableCell>
                 <TableCell>{item.placa}</TableCell>
+                <TableCell>{item.responsavel?.nome || '—'}</TableCell>
                 <TableCell>
                   <div className="flex gap-1">
                     {canEdit('veiculos_maquinas') && (
@@ -218,6 +233,25 @@ export default function VeiculosMaquinasPage() {
                 onChange={(e) => setForm((prev) => ({ ...prev, placa: e.target.value.toUpperCase() }))}
                 placeholder="RXE-5D11"
               />
+            </div>
+            <div>
+              <Label>Responsável</Label>
+              <Select
+                value={form.responsavel_id}
+                onValueChange={(value) => setForm((prev) => ({ ...prev, responsavel_id: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o responsavel" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Nenhum</SelectItem>
+                  {responsaveis.map((responsavel) => (
+                    <SelectItem key={responsavel.id} value={responsavel.id}>
+                      {responsavel.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 

@@ -93,7 +93,7 @@ export interface RevisaoCombustivel {
 export async function fetchVeiculos(): Promise<VeiculoMaquina[]> {
   const { data, error } = await supabase
     .from('veiculos_maquinas')
-    .select('*')
+    .select('*, responsavel:responsaveis(*)')
     .order('modelo');
 
   if (error) throw error;
