@@ -14,7 +14,6 @@ export interface VeiculoMaquina {
   responsavel_id?: string | null;
   created_by: string;
   created_at: string;
-  responsavel?: Responsavel | null;
 }
 
 export interface TipoCombustivel {
@@ -93,7 +92,7 @@ export interface RevisaoCombustivel {
 export async function fetchVeiculos(): Promise<VeiculoMaquina[]> {
   const { data, error } = await supabase
     .from('veiculos_maquinas')
-    .select('*, responsavel:responsaveis(*)')
+    .select('*')
     .order('modelo');
 
   if (error) throw error;

@@ -38,7 +38,11 @@ export default function VeiculosMaquinasPage() {
   const load = useCallback(async () => {
     try {
       const [veiculos, responsaveisData] = await Promise.all([fetchVeiculos(), fetchResponsaveis()]);
-      setItems(veiculos);
+      const mapped = veiculos.map((veiculo) => ({
+        ...veiculo,
+        responsavel: responsaveisData.find((r) => r.id === veiculo.responsavel_id) || null,
+      }));
+      setItems(mapped);
       setResponsaveis(responsaveisData);
     } catch (e: any) {
       toast.error(e.message);

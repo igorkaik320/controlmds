@@ -76,7 +76,11 @@ export default function AbastecimentosPage() {
         fetchProfiles(),
         fetchResponsaveis(),
       ]);
-      setItems(abs);
+      const mapped = abs.map((item) => ({
+        ...item,
+        responsavel: responsaveisData.find((r) => r.id === item.responsavel_id) || null,
+      }));
+      setItems(mapped);
       setVeiculos(veic);
       setObras(obrasData);
       setCombustiveis(comb);
