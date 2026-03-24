@@ -17,6 +17,7 @@ export const MODULES = [
   { key: 'veiculos_maquinas', label: 'Veículos/Máquinas' },
   { key: 'postos_combustivel', label: 'Postos de Combustível' },
   { key: 'tipos_combustivel', label: 'Tipos de Combustível' },
+  { key: 'categorias_veiculos', label: 'Categorias de Veículos' },
   { key: 'usuarios', label: 'Usuários' },
   { key: 'auditoria', label: 'Auditoria' },
   { key: 'config_relatorio', label: 'Config. Relatório' },
