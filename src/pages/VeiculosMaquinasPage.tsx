@@ -177,7 +177,7 @@ function openNew() {
               <TableRow key={item.id}>
                 <TableCell>{item.tipo === 'veiculo' ? 'Veiculo' : 'Maquina'}</TableCell>
                 <TableCell>{item.placa}</TableCell>
-                <TableCell>{item.responsavel?.nome || '—'}</TableCell>
+                <TableCell>{(item as any).responsavel?.nome || '—'}</TableCell>
                 <TableCell>
                   <div className="flex gap-1">
                     {canEdit('veiculos_maquinas') && (
