@@ -28,7 +28,7 @@ import {
   Cell,
   Legend,
   LineChart,
-  Line
+  Line,
 } from 'recharts';
 import { toast } from 'sonner';
 import { Fuel, TrendingUp, Droplets, DollarSign, RotateCcw, Search } from 'lucide-react';
@@ -41,7 +41,7 @@ const COLORS = [
   '#6366f1',
   '#ec4899',
   '#8b5cf6',
-  '#14b8a6'
+  '#14b8a6',
 ];
 
 type AppliedFilters = {
@@ -121,7 +121,8 @@ export default function DashboardCombustivelPage() {
     if (filters.obra !== 'all' && (item.obra_id || '') !== filters.obra) return false;
     if (filters.posto !== 'all' && (item.posto_id || '') !== filters.posto) return false;
     if (filters.combustivel !== 'all' && item.combustivel_id !== filters.combustivel) return false;
-    if (filters.responsavel !== 'all' && (item.responsavel_id || '') !== filters.responsavel) return false;
+    const itemResponsavelId = item.responsavel_id || item.veiculo?.responsavel_id || '';
+    if (filters.responsavel !== 'all' && itemResponsavelId !== filters.responsavel) return false;
     return true;
   });
 
@@ -231,7 +232,6 @@ export default function DashboardCombustivelPage() {
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold">Dashboard de Combustivel</h2>
-
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Filtros</CardTitle>
@@ -244,7 +244,6 @@ export default function DashboardCombustivelPage() {
               onDateFromChange={setDraftDateFrom}
               onDateToChange={setDraftDateTo}
             />
-
             <div>
               <Label className="text-xs">Veiculo</Label>
               <Select value={draftVeiculo} onValueChange={setDraftVeiculo}>
@@ -261,7 +260,6 @@ export default function DashboardCombustivelPage() {
                 </SelectContent>
               </Select>
             </div>
-
             <div>
               <Label className="text-xs">Obra</Label>
               <Select value={draftObra} onValueChange={setDraftObra}>
@@ -278,7 +276,6 @@ export default function DashboardCombustivelPage() {
                 </SelectContent>
               </Select>
             </div>
-
             <div>
               <Label className="text-xs">Posto</Label>
               <Select value={draftPosto} onValueChange={setDraftPosto}>
@@ -295,7 +292,6 @@ export default function DashboardCombustivelPage() {
                 </SelectContent>
               </Select>
             </div>
-
             <div>
               <Label className="text-xs">Responsável</Label>
               <Select value={draftResponsavel} onValueChange={setDraftResponsavel}>
@@ -312,7 +308,6 @@ export default function DashboardCombustivelPage() {
                 </SelectContent>
               </Select>
             </div>
-
             <div className="flex gap-2">
               <Button onClick={handleConsultar}>
                 <Search className="h-4 w-4 mr-1" />
@@ -326,7 +321,6 @@ export default function DashboardCombustivelPage() {
           </div>
         </CardContent>
       </Card>
-
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -337,7 +331,6 @@ export default function DashboardCombustivelPage() {
             <div className="text-2xl font-bold">{formatCurrencyBR(totalGasto)}</div>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Litros</CardTitle>
@@ -347,7 +340,6 @@ export default function DashboardCombustivelPage() {
             <div className="text-2xl font-bold">{totalLitros.toFixed(2)} L</div>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Abastecimentos</CardTitle>
@@ -357,7 +349,6 @@ export default function DashboardCombustivelPage() {
             <div className="text-2xl font-bold">{totalAbast}</div>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Media por Abast.</CardTitle>
@@ -368,7 +359,6 @@ export default function DashboardCombustivelPage() {
           </CardContent>
         </Card>
       </div>
-
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
@@ -386,7 +376,6 @@ export default function DashboardCombustivelPage() {
             </ResponsiveContainer>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Por Tipo de Combustivel</CardTitle>
@@ -413,7 +402,6 @@ export default function DashboardCombustivelPage() {
             </ResponsiveContainer>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Consumo por Obra (R$)</CardTitle>
@@ -424,13 +412,12 @@ export default function DashboardCombustivelPage() {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
                 <YAxis tickFormatter={(value) => `R$ ${value.toLocaleString('pt-BR')}`} />
-                <Tooltip formatter={(value: number) => formatCurrencyBR(value)} />
+                <Tooltip formatter={(value) => formatCurrencyBR(value)} />
                 <Bar dataKey="valor" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Consumo por Posto (R$)</CardTitle>
@@ -441,13 +428,12 @@ export default function DashboardCombustivelPage() {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
                 <YAxis tickFormatter={(value) => `R$ ${value.toLocaleString('pt-BR')}`} />
-                <Tooltip formatter={(value: number) => formatCurrencyBR(value)} />
+                <Tooltip formatter={(value) => formatCurrencyBR(value)} />
                 <Bar dataKey="valor" fill="#f59e0b" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
-
         <Card className="md:col-span-2">
           <CardHeader>
             <CardTitle className="text-base">Evolucao Mensal</CardTitle>
