@@ -246,6 +246,19 @@ export default function PainelExecutivoPage() {
     }
   }, [dateFrom, dateTo]);
 
+  const handleVerEspelho = useCallback(() => {
+    const params = new URLSearchParams();
+    if (dateFrom) params.set('dateFrom', dateFrom);
+    if (dateTo) params.set('dateTo', dateTo);
+    params.set('semPedido', '1');
+
+    const search = params.toString();
+    navigate({
+      pathname: '/compras/espelho',
+      search: search ? `?${search}` : '',
+    });
+  }, [dateFrom, dateTo, navigate]);
+
   useEffect(() => {
     load();
   }, [load]);
@@ -561,7 +574,7 @@ export default function PainelExecutivoPage() {
             ))}
 
             <div className="pt-1">
-              <Button variant="ghost" size="sm" onClick={() => navigate('/compras/espelho')}>
+              <Button variant="ghost" size="sm" onClick={handleVerEspelho}>
                 Ver espelho geral
                 <ArrowRight className="ml-1 h-4 w-4" />
               </Button>

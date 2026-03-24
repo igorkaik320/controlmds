@@ -25,6 +25,7 @@ import DateRangeFilter from '@/components/DateRangeFilter';
 import { useFormDraft } from '@/hooks/useFormDraft';
 import { useModulePermissions } from '@/hooks/useModulePermissions';
 import { toast } from 'sonner';
+import { useSearchParams } from 'react-router-dom';
 
 type FonteDados = 'avista' | 'faturadas' | 'ambos';
 
@@ -33,12 +34,27 @@ type Filtros = {
   dateTo: string;
   fonte: FonteDados;
   empresa: string;
+  semPedidoOnly: boolean;
 };
+
+function parseFonteParam(value: string | null): FonteDados | undefined {
+  if (value === 'avista' || value === 'faturadas' || value === 'ambos') {
+    return value;
+  }
+  return undefined;
+}
 
 export default function EspelhoGeralPage() {
   const [items, setItems] = useState<EspelhoItem[]>([]);
   const [loading, setLoading] = useState(true);
   const { canExport } = useModulePermissions();
+
+  const [searchParams] = useSearchParams();
+  const searchDateFrom = searchParams.get('dateFrom') ?? '';
+  const searchDateTo = searchParams.get('dateTo') ?? '';
+  const searchFonteValue = parseFonteParam(searchParams.get('fonte'));
+  const searchEmpresa = searchParams.get('empresa') ?? '';
+  const searchSemPedido = searchParams.get('semPedido') === '1';
 
   const [draftDateFrom, setDraftDateFrom] = useFormDraft('espelho-dateFrom', '');
   const [draftDateTo, setDraftDateTo] = useFormDraft('espelho-dateTo', '');
@@ -46,17 +62,58 @@ export default function EspelhoGeralPage() {
   const [draftEmpresa, setDraftEmpresa] = useFormDraft('espelho-empresa', '');
   const [observation, setObservation] = useFormDraft('espelho-obs', '');
 
-  const [dateFrom, setDateFrom] = useState(draftDateFrom);
-  const [dateTo, setDateTo] = useState(draftDateTo);
-  const [fonte, setFonte] = useState<FonteDados>(draftFonte);
-  const [empresa, setEmpresa] = useState(draftEmpresa);
+  const initialDateFrom = searchDateFrom || draftDateFrom;
+  const initialDateTo = searchDateTo || draftDateTo;
+  const initialFonte = searchFonteValue ?? draftFonte;
+  const initialEmpresa = searchEmpresa || draftEmpresa;
+
+  const [dateFrom, setDateFrom] = useState(initialDateFrom);
+  const [dateTo, setDateTo] = useState(initialDateTo);
+  const [fonte, setFonte] = useState<FonteDados>(initialFonte);
+  const [empresa, setEmpresa] = useState(initialEmpresa);
+  const [semPedidoOnly, setSemPedidoOnly] = useState(searchSemPedido);
 
   const [appliedFilters, setAppliedFilters] = useState<Filtros>({
-    dateFrom: draftDateFrom,
-    dateTo: draftDateTo,
-    fonte: draftFonte,
-    empresa: draftEmpresa,
+    dateFrom: initialDateFrom,
+    dateTo: initialDateTo,
+    fonte: initialFonte,
+    empresa: initialEmpresa,
+    semPedidoOnly: searchSemPedido,
   });
+
+  useEffect(() => {
+    if (searchDateFrom && searchDateFrom !== dateFrom) {
+      setDraftDateFrom(searchDateFrom);
+      setDateFrom(searchDateFrom);
+    }
+  }, [searchDateFrom, dateFrom, setDraftDateFrom]);
+
+  useEffect(() => {
+    if (searchDateTo && searchDateTo !== dateTo) {
+      setDraftDateTo(searchDateTo);
+      setDateTo(searchDateTo);
+    }
+  }, [searchDateTo, dateTo, setDraftDateTo]);
+
+  useEffect(() => {
+    if (searchFonteValue && searchFonteValue !== fonte) {
+      setDraftFonte(searchFonteValue);
+      setFonte(searchFonteValue);
+    }
+  }, [searchFonteValue, fonte, setDraftFonte]);
+
+  useEffect(() => {
+    if (searchEmpresa && searchEmpresa !== empresa) {
+      setDraftEmpresa(searchEmpresa);
+      setEmpresa(searchEmpresa);
+    }
+  }, [searchEmpresa, empresa, setDraftEmpresa]);
+
+  useEffect(() => {
+    if (searchSemPedido !== semPedidoOnly) {
+      setSemPedidoOnly(searchSemPedido);
+    }
+  }, [searchSemPedido, semPedidoOnly]);
 
   const [totalAvista, setTotalAvista] = useState(0);
   const [totalFaturadas, setTotalFaturadas] = useState(0);
@@ -123,6 +180,10 @@ export default function EspelhoGeralPage() {
         comprasParaEspelho = [...comprasParaEspelho, ...fatFiltered];
       }
 
+      if (appliedFilters.semPedidoOnly) {
+        comprasParaEspelho = comprasParaEspelho.filter((c) => !c.pedido?.trim());
+      }
+
       setItems(buildEspelho(comprasParaEspelho, fornecedores));
 
       const avTotal = avFiltered.reduce((s, c) => s + c.valor, 0);
@@ -167,6 +228,7 @@ export default function EspelhoGeralPage() {
       dateTo,
       fonte,
       empresa,
+      semPedidoOnly,
     });
   }
 
@@ -180,12 +242,14 @@ export default function EspelhoGeralPage() {
     setDraftDateTo('');
     setDraftFonte('ambos');
     setDraftEmpresa('');
+    setSemPedidoOnly(false);
 
     setAppliedFilters({
       dateFrom: '',
       dateTo: '',
       fonte: 'ambos',
       empresa: '',
+      semPedidoOnly: false,
     });
   }
 
