@@ -25,6 +25,7 @@ import { useFormDraft } from '@/hooks/useFormDraft';
 import VeiculoSearchSelect from '@/components/compras/VeiculoSearchSelect';
 import FornecedorSearchSelect from '@/components/compras/FornecedorSelect';
 import { toast } from 'sonner';
+import { useDataRefreshFlash } from '@/hooks/useDataRefreshFlash';
 
 const emptyForm = {
   veiculo_id: '',
@@ -37,6 +38,7 @@ const emptyForm = {
 };
 
 export default function RevisoesCombustivelPage() {
+  const { contentRef, flashAfterUpdate } = useDataRefreshFlash();
   const { user } = useAuth();
   const { canCreate, canEdit, canDelete } = useModulePermissions();
   const [items, setItems] = useState<RevisaoCombustivel[]>([]);
@@ -46,6 +48,8 @@ export default function RevisoesCombustivelPage() {
   const [showDialog, setShowDialog] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
+  /** Remonta o select de fornecedor para limpar o campo de busca ao abrir o dialog. */
+  const [fornecedorFieldKey, setFornecedorFieldKey] = useState(0);
 
   const [draftDateFrom, setDraftDateFrom] = useFormDraft('rev-dateFrom', '');
   const [draftDateTo, setDraftDateTo] = useFormDraft('rev-dateTo', '');
@@ -93,16 +97,19 @@ export default function RevisoesCombustivelPage() {
   function resetDialogDraft() {
     setEditingId(null);
     setForm(emptyForm);
+    setFornecedorFieldKey((k) => k + 1);
     setShowDialog(false);
   }
 
   function openNew() {
     setEditingId(null);
     setForm(emptyForm);
+    setFornecedorFieldKey((k) => k + 1);
     setShowDialog(true);
   }
 
   function openEdit(item: RevisaoCombustivel) {
+    setFornecedorFieldKey((k) => k + 1);
     setEditingId(item.id);
     setForm({
       veiculo_id: item.veiculo_id,
@@ -121,6 +128,7 @@ export default function RevisoesCombustivelPage() {
     setDraftDateTo(dateTo);
     setDraftVeiculo(filterVeiculo);
     setDraftFornecedor(filterFornecedor);
+    flashAfterUpdate();
   }
 
   function handleLimpar() {
@@ -132,11 +140,12 @@ export default function RevisoesCombustivelPage() {
     setDraftDateTo('');
     setDraftVeiculo('all');
     setDraftFornecedor('all');
+    flashAfterUpdate();
   }
 
   async function handleSubmit() {
     if (!user || !form.veiculo_id || !form.fornecedor_id || !form.data || !form.valor || !form.quilometragem_atual || !form.quilometragem_proxima) {
-      toast.error('Preencha os campos obrigatorios');
+      toast.error('Preencha os campos obrigatorios e escolha o fornecedor na lista');
       return;
     }
 
@@ -287,7 +296,7 @@ export default function RevisoesCombustivelPage() {
         </div>
       </div>
 
-      <div className="rounded-xl border bg-card">
+      <div ref={contentRef} className="rounded-xl border bg-card">
         <div className="border-b px-4 py-3">
           <h3 className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
             Resultado da Consulta
@@ -412,7 +421,9 @@ export default function RevisoesCombustivelPage() {
               />
 
               <FornecedorSearchSelect
+                key={fornecedorFieldKey}
                 value={form.fornecedor_id}
+                valueMode="id"
                 onChange={(fornecedorId) => setForm((prev) => ({ ...prev, fornecedor_id: fornecedorId }))}
                 fornecedores={fornecedores}
               />

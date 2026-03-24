@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -126,6 +126,8 @@ export default function EspelhoGeralPage() {
     logo_direita: null,
   });
 
+  const consultFlashPendingRef = useRef(false);
+
   const load = useCallback(async () => {
     try {
       setLoading(true);
@@ -199,6 +201,10 @@ export default function EspelhoGeralPage() {
       toast.error(e.message);
     } finally {
       setLoading(false);
+      if (consultFlashPendingRef.current) {
+        consultFlashPendingRef.current = false;
+        toast.success('Dados atualizados', { duration: 2200 });
+      }
     }
   }, [appliedFilters]);
 
@@ -206,7 +212,35 @@ export default function EspelhoGeralPage() {
     load();
   }, [load]);
 
-  const totalGeral = items.reduce((s, i) => s + i.valor_por_obra, 0);
+  const totalGeral = useMemo(() => items.reduce((s, i) => s + i.valor_por_obra, 0), [items]);
+
+  const groupedRows = useMemo(() => {
+    const rows: { item: EspelhoItem; isFirst: boolean; groupSize: number }[] = [];
+    let idx = 0;
+
+    while (idx < items.length) {
+      const forn = items[idx].fornecedor;
+      let j = idx;
+
+      while (j < items.length && items[j].fornecedor === forn) {
+        j++;
+      }
+
+      const size = j - idx;
+
+      for (let k = idx; k < j; k++) {
+        rows.push({
+          item: items[k],
+          isFirst: k === idx,
+          groupSize: size,
+        });
+      }
+
+      idx = j;
+    }
+
+    return rows;
+  }, [items]);
 
   function formatPeriodoLabel() {
     if (appliedFilters.dateFrom && appliedFilters.dateTo) {
@@ -218,6 +252,7 @@ export default function EspelhoGeralPage() {
   }
 
   function handleConsultar() {
+    consultFlashPendingRef.current = true;
     setDraftDateFrom(dateFrom);
     setDraftDateTo(dateTo);
     setDraftFonte(fonte);
@@ -233,6 +268,7 @@ export default function EspelhoGeralPage() {
   }
 
   function handleLimpar() {
+    consultFlashPendingRef.current = true;
     setDateFrom('');
     setDateTo('');
     setFonte('ambos');
@@ -279,30 +315,6 @@ export default function EspelhoGeralPage() {
         <p>Carregando...</p>
       </div>
     );
-  }
-
-  const groupedRows: { item: EspelhoItem; isFirst: boolean; groupSize: number }[] = [];
-  let idx = 0;
-
-  while (idx < items.length) {
-    const forn = items[idx].fornecedor;
-    let j = idx;
-
-    while (j < items.length && items[j].fornecedor === forn) {
-      j++;
-    }
-
-    const size = j - idx;
-
-    for (let k = idx; k < j; k++) {
-      groupedRows.push({
-        item: items[k],
-        isFirst: k === idx,
-        groupSize: size,
-      });
-    }
-
-    idx = j;
   }
 
   return (

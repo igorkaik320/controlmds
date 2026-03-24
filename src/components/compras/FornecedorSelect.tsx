@@ -4,6 +4,9 @@ import { Label } from '@/components/ui/label';
 import { fetchFornecedores, type Fornecedor } from '@/lib/comprasService';
 import { toast } from 'sonner';
 
+/** `name` (default): value/onChange usam o nome — compras e relatórios. `id`: usam o UUID — FKs (ex.: revisões). */
+export type FornecedorSelectValueMode = 'name' | 'id';
+
 interface Props {
   value: string;
   onChange: (fornecedor: string) => void;
@@ -11,6 +14,7 @@ interface Props {
   label?: string;
   placeholder?: string;
   onFornecedorSelect?: (fornecedor: Fornecedor) => void;
+  valueMode?: FornecedorSelectValueMode;
 }
 
 function normalize(value: string) {
@@ -28,6 +32,7 @@ export default function FornecedorSelect({
   label = 'Fornecedor *',
   placeholder = 'Digite nome, razao social ou CNPJ/CPF',
   onFornecedorSelect,
+  valueMode = 'name',
 }: Props) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -60,23 +65,30 @@ export default function FornecedorSelect({
 
   const fornecedores = fornecedoresProp ?? loadedFornecedores;
 
-  const selectedFornecedor = useMemo(
-    () =>
+  const selectedFornecedor = useMemo(() => {
+    if (valueMode === 'id') {
+      return fornecedores.find((fornecedor) => fornecedor.id === value) || null;
+    }
+    return (
       fornecedores.find(
         (fornecedor) =>
           fornecedor.id === value || normalize(fornecedor.nome_fornecedor) === normalize(value || '')
-      ) || null,
-    [fornecedores, value]
-  );
+      ) || null
+    );
+  }, [fornecedores, value, valueMode]);
 
   useEffect(() => {
+    if (valueMode === 'id') {
+      const f = value ? fornecedores.find((x) => x.id === value) : null;
+      if (f) setQuery(f.nome_fornecedor);
+      return;
+    }
     if (selectedFornecedor) {
       setQuery(selectedFornecedor.nome_fornecedor);
       return;
     }
-
     setQuery(value || '');
-  }, [selectedFornecedor, value]);
+  }, [valueMode, value, fornecedores, selectedFornecedor]);
 
   const filteredFornecedores = useMemo(() => {
     const term = normalize(query);
@@ -94,7 +106,7 @@ export default function FornecedorSelect({
   }, [fornecedores, query]);
 
   function selectFornecedor(fornecedor: Fornecedor) {
-    onChange(fornecedor.nome_fornecedor);
+    onChange(valueMode === 'id' ? fornecedor.id : fornecedor.nome_fornecedor);
     setQuery(fornecedor.nome_fornecedor);
     setOpen(false);
     onFornecedorSelect?.(fornecedor);
@@ -110,7 +122,11 @@ export default function FornecedorSelect({
           onChange={(e) => {
             const nextValue = e.target.value;
             setQuery(nextValue);
-            onChange(nextValue);
+            if (valueMode === 'id') {
+              onChange('');
+            } else {
+              onChange(nextValue);
+            }
             setOpen(true);
           }}
           onFocus={() => setOpen(true)}

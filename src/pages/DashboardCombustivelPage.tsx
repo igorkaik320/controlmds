@@ -32,6 +32,7 @@ import {
 } from 'recharts';
 import { toast } from 'sonner';
 import { Fuel, TrendingUp, Droplets, DollarSign, RotateCcw, Search } from 'lucide-react';
+import { useDataRefreshFlash } from '@/hooks/useDataRefreshFlash';
 
 const COLORS = [
   'hsl(var(--primary))',
@@ -55,6 +56,7 @@ type AppliedFilters = {
 };
 
 export default function DashboardCombustivelPage() {
+  const { contentRef, flashAfterUpdate } = useDataRefreshFlash();
   const [items, setItems] = useState<Abastecimento[]>([]);
   const [veiculos, setVeiculos] = useState<VeiculoMaquina[]>([]);
   const [combustiveis, setCombustiveis] = useState<TipoCombustivel[]>([]);
@@ -204,6 +206,7 @@ export default function DashboardCombustivelPage() {
       combustivel: 'all',
       responsavel: draftResponsavel,
     });
+    flashAfterUpdate();
   }
 
   function handleLimpar() {
@@ -223,6 +226,7 @@ export default function DashboardCombustivelPage() {
       combustivel: 'all',
       responsavel: 'all',
     });
+    flashAfterUpdate();
   }
 
   if (loading) {
@@ -321,6 +325,7 @@ export default function DashboardCombustivelPage() {
           </div>
         </CardContent>
       </Card>
+      <div ref={contentRef} className="space-y-6 rounded-xl">
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -471,6 +476,7 @@ export default function DashboardCombustivelPage() {
             </ResponsiveContainer>
           </CardContent>
         </Card>
+      </div>
       </div>
     </div>
   );

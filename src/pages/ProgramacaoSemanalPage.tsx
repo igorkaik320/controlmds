@@ -31,6 +31,7 @@ import { fetchObras, Obra } from '@/lib/obrasService';
 import { fetchEmpresas } from '@/lib/empresasService';
 import { fetchProfiles } from '@/lib/cashRegister';
 import AuditInfo from '@/components/AuditInfo';
+import { useDataRefreshFlash } from '@/hooks/useDataRefreshFlash';
 
 const emptyForm = {
   data: '',
@@ -139,6 +140,7 @@ export default function ProgramacaoSemanalPage() {
     setDraftFilterObra(filterObra);
     setDraftFilterResp(filterResp);
     setDraftFilterEmpresa(filterEmpresa);
+    flashAfterUpdate();
   }
 
   function handleLimpar() {
@@ -155,6 +157,7 @@ export default function ProgramacaoSemanalPage() {
     setDraftFilterObra('');
     setDraftFilterResp('');
     setDraftFilterEmpresa('');
+    flashAfterUpdate();
   }
 
   function resetDialogDraft() {
@@ -383,7 +386,7 @@ export default function ProgramacaoSemanalPage() {
         </div>
       </div>
 
-      <div className="overflow-auto rounded-xl border bg-card">
+      <div ref={contentRef} className="overflow-auto rounded-xl border bg-card">
         <Table>
           <TableHeader>
             <TableRow>

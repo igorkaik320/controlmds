@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -101,6 +101,8 @@ export default function PainelExecutivoPage() {
     []
   );
   const [semPedidoItems, setSemPedidoItems] = useState<CompraSemPedido[]>([]);
+
+  const consultFlashPendingRef = useRef(false);
 
   const load = useCallback(async () => {
     try {
@@ -243,6 +245,10 @@ export default function PainelExecutivoPage() {
       toast.error(e.message || 'Nao foi possivel carregar o painel executivo.');
     } finally {
       setLoading(false);
+      if (consultFlashPendingRef.current) {
+        consultFlashPendingRef.current = false;
+        toast.success('Dados atualizados', { duration: 2200 });
+      }
     }
   }, [dateFrom, dateTo]);
 
@@ -336,7 +342,14 @@ export default function PainelExecutivoPage() {
           </p>
         </div>
 
-        <Button variant="outline" size="sm" onClick={load}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            consultFlashPendingRef.current = true;
+            void load();
+          }}
+        >
           Atualizar agora
         </Button>
       </div>

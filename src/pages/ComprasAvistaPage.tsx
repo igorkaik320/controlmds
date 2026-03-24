@@ -30,6 +30,7 @@ import { fetchObras, Obra } from '@/lib/obrasService';
 import { fetchEmpresas } from '@/lib/empresasService';
 import { fetchProfiles } from '@/lib/cashRegister';
 import AuditInfo from '@/components/AuditInfo';
+import { useDataRefreshFlash } from '@/hooks/useDataRefreshFlash';
 
 const emptyForm = {
   data: '',
@@ -45,6 +46,7 @@ const emptyForm = {
 };
 
 export default function ComprasAvistaPage() {
+  const { contentRef, flashAfterUpdate } = useDataRefreshFlash();
   const { user } = useAuth();
   const { canCreate, canEdit, canDelete, canExport } = useModulePermissions();
   const [items, setItems] = useState<CompraAvista[]>([]);
@@ -133,6 +135,7 @@ export default function ComprasAvistaPage() {
     setDraftFilterForn(filterForn);
     setDraftFilterObra(filterObra);
     setDraftFilterEmpresa(filterEmpresa);
+    flashAfterUpdate();
   }
 
   function handleLimpar() {
@@ -147,6 +150,7 @@ export default function ComprasAvistaPage() {
     setDraftFilterForn('');
     setDraftFilterObra('');
     setDraftFilterEmpresa('');
+    flashAfterUpdate();
   }
 
   function resetDialogDraft() {
@@ -360,7 +364,7 @@ export default function ComprasAvistaPage() {
         </div>
       </div>
 
-      <div className="overflow-auto rounded-xl border bg-card">
+      <div ref={contentRef} className="overflow-auto rounded-xl border bg-card">
         <Table>
           <TableHeader>
             <TableRow>

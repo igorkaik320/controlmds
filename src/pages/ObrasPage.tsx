@@ -60,21 +60,45 @@ export default function ObrasPage() {
   async function handleSubmit() {
     if (!user || !form.nome.trim()) { toast.error('Nome é obrigatório'); return; }
     try {
+      const now = new Date().toISOString();
       if (editingId) {
         await updateObra(editingId, form.nome, form.descricao || null, form.empresa_id || null);
+        setItems((prev) =>
+          prev
+            .map((item) =>
+              item.id === editingId
+                ? {
+                    ...item,
+                    nome: form.nome,
+                    descricao: form.descricao || null,
+                    empresa_id: form.empresa_id || null,
+                  }
+                : item
+            )
+            .sort((a, b) => a.nome.localeCompare(b.nome))
+        );
         toast.success('Obra atualizada');
       } else {
-        await saveObra(form.nome, form.descricao || null, user.id, form.empresa_id || null);
+        const created = await saveObra(form.nome, form.descricao || null, user.id, form.empresa_id || null);
+        const row: Obra = {
+          ...created,
+          created_at: created.created_at || now,
+          updated_at: created.updated_at || now,
+        };
+        setItems((prev) => [...prev, row].sort((a, b) => a.nome.localeCompare(b.nome)));
         toast.success('Obra cadastrada');
       }
       setShowDialog(false);
-      load();
     } catch (e: any) { toast.error(e.message); }
   }
 
   async function handleDelete(id: string) {
     if (!confirm('Excluir esta obra?')) return;
-    try { await deleteObra(id); load(); toast.success('Excluída'); } catch (e: any) { toast.error(e.message); }
+    try {
+      await deleteObra(id);
+      setItems((prev) => prev.filter((item) => item.id !== id));
+      toast.success('Excluída');
+    } catch (e: any) { toast.error(e.message); }
   }
 
   if (loading) return <div className="flex min-h-screen items-center justify-center"><p>Carregando...</p></div>;

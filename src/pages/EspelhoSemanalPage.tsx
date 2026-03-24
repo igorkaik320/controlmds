@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -48,6 +48,8 @@ export default function EspelhoSemanalPage() {
     logo_direita: null,
   });
 
+  const consultFlashPendingRef = useRef(false);
+
   const load = useCallback(async () => {
     try {
       const [compras, fornecedores, obras, empresas] = await Promise.all([
@@ -96,6 +98,7 @@ export default function EspelhoSemanalPage() {
   }, [load]);
 
   function handleConsultar() {
+    consultFlashPendingRef.current = true;
     setDraftDate(filterDate);
     setDraftEmpresa(filterEmpresa);
     setDraftResponsavel(filterResponsavel);
@@ -106,6 +109,7 @@ export default function EspelhoSemanalPage() {
   }
 
   function handleLimpar() {
+    consultFlashPendingRef.current = true;
     const hoje = new Date().toISOString().split('T')[0];
 
     setFilterDate(hoje);
