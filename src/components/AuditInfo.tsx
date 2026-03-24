@@ -1,4 +1,5 @@
 import React from 'react';
+import { parseDateTimeSafe } from '@/lib/formatters';
 
 interface Props {
   createdBy?: string | null;
@@ -10,8 +11,8 @@ interface Props {
 
 function formatAuditDate(iso?: string | null) {
   if (!iso) return '—';
-  const parsed = new Date(iso);
-  if (Number.isNaN(parsed.getTime())) return '—';
+  const parsed = parseDateTimeSafe(iso);
+  if (!parsed) return '—';
   return `${parsed.toLocaleDateString('pt-BR')} ${parsed.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
 }
 

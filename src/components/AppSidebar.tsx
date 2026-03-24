@@ -79,7 +79,7 @@ export function AppSidebar() {
     label: 'Financeiro',
     defaultOpen: true,
     items: [
-      { title: 'Controle de Caixa', url: '/', icon: Landmark, module: 'controle_caixa' },
+      { title: 'Controle de Caixa', url: '/controle-caixa', icon: Landmark, module: 'controle_caixa' },
     ],
   });
 

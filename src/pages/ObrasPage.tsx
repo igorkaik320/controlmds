@@ -12,6 +12,7 @@ import { Obra, fetchObras, saveObra, updateObra, deleteObra } from '@/lib/obrasS
 import { fetchEmpresas, Empresa } from '@/lib/empresasService';
 import EmpresaSelect from '@/components/compras/EmpresaSelect';
 import { toast } from 'sonner';
+import { formatDateSafe } from '@/lib/formatters';
 
 export default function ObrasPage() {
   const { user, userRole } = useAuth();
@@ -114,7 +115,7 @@ export default function ObrasPage() {
                 <TableCell className="font-medium">{i.nome}</TableCell>
                 <TableCell>{i.empresa_id ? empresaMap.get(i.empresa_id) || '-' : '-'}</TableCell>
                 <TableCell>{i.descricao}</TableCell>
-                <TableCell>{new Date(i.created_at).toLocaleDateString('pt-BR')}</TableCell>
+                <TableCell>{formatDateSafe(i.created_at)}</TableCell>
                 <TableCell>
                   <div className="flex gap-1">
                     {canEdit('obras') && (

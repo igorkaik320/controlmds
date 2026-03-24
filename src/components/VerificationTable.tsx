@@ -2,6 +2,7 @@ import { Trash2 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { formatCurrency, Verification } from '@/lib/cashRegister';
+import { parseDateTimeSafe } from '@/lib/formatters';
 
 interface Props {
   verifications: Verification[];
@@ -11,12 +12,21 @@ interface Props {
 }
 
 function formatDate(iso: string) {
+  if (!iso) return '—';
+
   const [y, m, d] = iso.split('-');
+  if (!y || !m || !d) return '—';
+
   return `${d}/${m}/${y}`;
 }
 
 function formatDateTime(iso: string) {
-  return new Date(iso).toLocaleString('pt-BR');
+  if (!iso) return '—';
+
+  const date = parseDateTimeSafe(iso);
+  if (!date) return '—';
+
+  return date.toLocaleString('pt-BR');
 }
 
 export default function VerificationTable({ verifications, profileMap, onDelete, canDelete = false }: Props) {

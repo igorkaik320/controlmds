@@ -60,3 +60,47 @@ export function currencyInputToString(formatted: string): string {
   const num = parseCurrencyInput(formatted);
   return num ? String(num) : '';
 }
+
+function toIsoFromBrDateTime(value: string): string | null {
+  const match = value.match(/^(\d{2})\/(\d{2})\/(\d{4})(?:[ ,]+(\d{2}):(\d{2})(?::(\d{2}))?)?$/);
+  if (!match) return null;
+
+  const [, dd, mm, yyyy, hh = '00', min = '00', ss = '00'] = match;
+  return `${yyyy}-${mm}-${dd}T${hh}:${min}:${ss}`;
+}
+
+export function parseDateTimeSafe(value?: string | null): Date | null {
+  if (!value) return null;
+
+  const direct = new Date(value);
+  if (!Number.isNaN(direct.getTime())) return direct;
+
+  const normalizedSpace = value.includes(' ') && !value.includes('T') ? value.replace(' ', 'T') : value;
+  const normalizedTimezone = normalizedSpace.replace(/([+-]\d{2})$/, '$1:00');
+  const retry = new Date(normalizedTimezone);
+  if (!Number.isNaN(retry.getTime())) return retry;
+
+  const isoFromBr = toIsoFromBrDateTime(value);
+  if (!isoFromBr) return null;
+
+  const parsedBr = new Date(isoFromBr);
+  if (Number.isNaN(parsedBr.getTime())) return null;
+
+  return parsedBr;
+}
+
+export function formatDateSafe(value?: string | null): string {
+  if (!value) return '—';
+
+  // Evita deslocamento de fuso quando a string já contém data YYYY-MM-DD.
+  const ymd = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (ymd) {
+    const [, yyyy, mm, dd] = ymd;
+    return `${dd}/${mm}/${yyyy}`;
+  }
+
+  const parsed = parseDateTimeSafe(value);
+  if (!parsed) return '—';
+
+  return parsed.toLocaleDateString('pt-BR');
+}

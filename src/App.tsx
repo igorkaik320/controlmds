@@ -56,6 +56,49 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <AppLayout>{children}</AppLayout>;
 }
 
+function HomeRoute() {
+  const { user, loading, userRole } = useAuth();
+  const { canAccess, loading: permLoading } = useModulePermissions();
+
+  if (!user && loading) return <LoadingScreen />;
+  if (!user) return <Navigate to="/auth" />;
+  if (permLoading) return <LoadingScreen />;
+
+  if (userRole === "admin") return <Navigate to="/painel-executivo" replace />;
+
+  const firstAccessibleRoute: Array<{ module: ModuleKey; path: string }> = [
+    { module: "compras_faturadas", path: "/compras/faturadas" },
+    { module: "compras_avista", path: "/compras/avista" },
+    { module: "espelho_geral", path: "/compras/espelho" },
+    { module: "programacao_semanal", path: "/compras/programacao-semanal" },
+    { module: "espelho_semanal", path: "/compras/espelho-semanal" },
+    { module: "combustivel_dashboard", path: "/combustivel/dashboard" },
+    { module: "abastecimentos", path: "/combustivel/abastecimentos" },
+    { module: "revisoes_combustivel", path: "/combustivel/revisoes" },
+    { module: "empresas", path: "/empresas" },
+    { module: "fornecedores", path: "/fornecedores" },
+    { module: "obras", path: "/obras" },
+    { module: "responsaveis", path: "/responsaveis" },
+    { module: "veiculos_maquinas", path: "/veiculos" },
+    { module: "postos_combustivel", path: "/postos-combustivel" },
+    { module: "tipos_combustivel", path: "/tipos-combustivel" },
+    { module: "controle_caixa", path: "/controle-caixa" },
+  ];
+
+  const target = firstAccessibleRoute.find((entry) => canAccess(entry.module));
+  if (target) return <Navigate to={target.path} replace />;
+
+  return (
+    <AppLayout>
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4">
+        <Lock className="h-12 w-12 text-muted-foreground" />
+        <h2 className="text-xl font-bold">Sem modulo liberado</h2>
+        <p className="text-muted-foreground">Seu usuário ainda não tem acesso a nenhum módulo.</p>
+      </div>
+    </AppLayout>
+  );
+}
+
 function ModuleRoute({ children, module }: { children: React.ReactNode; module: ModuleKey }) {
   const { user, loading } = useAuth();
   const { canAccess, loading: permLoading } = useModulePermissions();
@@ -110,7 +153,8 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
-            <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+            <Route path="/" element={<HomeRoute />} />
+            <Route path="/controle-caixa" element={<ProtectedRoute><Index /></ProtectedRoute>} />
 
             <Route
               path="/compras/faturadas"
