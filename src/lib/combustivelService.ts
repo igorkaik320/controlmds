@@ -291,7 +291,7 @@ export async function deleteCategoriaVeiculo(id: string) {
 export async function fetchAbastecimentos(): Promise<Abastecimento[]> {
   const { data, error } = await supabase
     .from('abastecimentos')
-    .select('*, veiculo:veiculos_maquinas(*, responsavel:responsaveis(*)), combustivel:tipos_combustivel(*), posto:postos_combustivel(*), obra:obras(*), responsavel:responsaveis(*)')
+    .select('*, veiculo:veiculos_maquinas(*), combustivel:tipos_combustivel(*), posto:postos_combustivel(*), obra:obras(*)')
     .order('data', { ascending: false });
 
   if (error) throw error;
