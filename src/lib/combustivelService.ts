@@ -49,6 +49,7 @@ export interface Abastecimento {
   veiculo_id: string;
   obra_id?: string | null;
   posto_id?: string | null;
+  responsavel_id?: string | null;
   nfe: string | null;
   data: string;
   combustivel_id: string;

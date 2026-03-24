@@ -35,6 +35,7 @@ const emptyForm = {
   veiculo_id: '',
   obra_id: '',
   posto_id: '',
+  responsavel_id: '',
   nfe: '',
   data: '',
   combustivel_id: '',

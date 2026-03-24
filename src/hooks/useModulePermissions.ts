@@ -15,6 +15,7 @@ export const MODULES = [
   { key: 'abastecimentos', label: 'Abastecimentos' },
   { key: 'revisoes_combustivel', label: 'Revisoes' },
   { key: 'veiculos_maquinas', label: 'Veículos/Máquinas' },
+  { key: 'postos_combustivel', label: 'Postos de Combustível' },
   { key: 'tipos_combustivel', label: 'Tipos de Combustível' },
   { key: 'usuarios', label: 'Usuários' },
   { key: 'auditoria', label: 'Auditoria' },
