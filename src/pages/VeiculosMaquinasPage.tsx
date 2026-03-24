@@ -21,7 +21,7 @@ import { toast } from 'sonner';
 const emptyForm = {
   tipo: 'veiculo' as 'veiculo' | 'maquina',
   placa: '',
-  responsavel_id: '',
+  responsavel_id: '_none',
 };
 
 export default function VeiculosMaquinasPage() {
@@ -66,18 +66,18 @@ export default function VeiculosMaquinasPage() {
     setShowDialog(false);
   }
 
-  function openNew() {
-    setEditingId(null);
-    setForm(emptyForm);
-    setShowDialog(true);
-  }
+function openNew() {
+  setEditingId(null);
+  setForm({ ...emptyForm });
+  setShowDialog(true);
+}
 
   function openEdit(item: VeiculoMaquina) {
     setEditingId(item.id);
     setForm({
       tipo: item.tipo,
       placa: item.placa,
-      responsavel_id: item.responsavel_id || '',
+      responsavel_id: item.responsavel_id || '_none',
     });
     setShowDialog(true);
   }
@@ -101,7 +101,7 @@ export default function VeiculosMaquinasPage() {
         marca: '',
         categoria_id: null,
         categoria: '',
-        responsavel_id: form.responsavel_id || null,
+        responsavel_id: form.responsavel_id === '_none' ? null : form.responsavel_id,
         created_by: user.id,
       };
 
@@ -248,7 +248,7 @@ export default function VeiculosMaquinasPage() {
                   <SelectValue placeholder="Selecione o responsavel" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Nenhum</SelectItem>
+                  <SelectItem value="_none">Nenhum</SelectItem>
                   {responsaveis.map((responsavel) => (
                     <SelectItem key={responsavel.id} value={responsavel.id}>
                       {responsavel.nome}
