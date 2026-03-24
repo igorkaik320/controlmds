@@ -56,6 +56,7 @@ export default function ProgramacaoSemanalPage() {
   const [showDialog, setShowDialog] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [profileMap, setProfileMap] = useState<Record<string, string>>({});
+  const { contentRef, flashAfterUpdate } = useDataRefreshFlash();
 
   const [draftDateFrom, setDraftDateFrom] = useFormDraft('ps-dateFrom', '');
   const [draftDateTo, setDraftDateTo] = useFormDraft('ps-dateTo', '');
