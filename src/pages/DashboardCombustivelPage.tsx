@@ -433,7 +433,7 @@ export default function DashboardCombustivelPage() {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
                 <YAxis tickFormatter={(value) => `R$ ${value.toLocaleString('pt-BR')}`} />
-                <Tooltip formatter={(value) => formatCurrencyBR(value)} />
+                <Tooltip formatter={(value: any) => formatCurrencyBR(Number(value))} />
                 <Bar dataKey="valor" fill="#f59e0b" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
