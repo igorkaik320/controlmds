@@ -23,12 +23,13 @@ import {
   fetchPostosCombustivel,
 } from '@/lib/combustivelService';
 import { Obra, fetchObras } from '@/lib/obrasService';
-import { formatCurrencyBR, formatDateBR } from '@/lib/comprasService';
+import { formatCurrencyBR, formatDateBR, fetchResponsaveis, Responsavel } from '@/lib/comprasService';
 import { exportAbastecimentosPDF, exportAbastecimentosXLSX } from '@/lib/combustivelExport';
 import DateRangeFilter from '@/components/DateRangeFilter';
 import { toast } from 'sonner';
 import { fetchProfiles } from '@/lib/cashRegister';
 import AuditInfo from '@/components/AuditInfo';
+import ResponsavelSelect from '@/components/compras/ResponsavelSelect';
 
 const emptyForm = {
   veiculo_id: '',
@@ -58,18 +59,21 @@ export default function AbastecimentosPage() {
   const [filterVeiculo, setFilterVeiculo] = useState('all');
   const [filterObra, setFilterObra] = useState('all');
   const [filterPosto, setFilterPosto] = useState('all');
+  const [filterResponsavel, setFilterResponsavel] = useState('all');
   const [form, setForm] = useState(emptyForm);
+  const [responsaveis, setResponsaveis] = useState<Responsavel[]>([]);
   const [profileMap, setProfileMap] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
     try {
-      const [abs, veic, obrasData, comb, postosData, profiles] = await Promise.all([
+      const [abs, veic, obrasData, comb, postosData, profiles, responsaveisData] = await Promise.all([
         fetchAbastecimentos(),
         fetchVeiculos(),
         fetchObras(),
         fetchTiposCombustivel(),
         fetchPostosCombustivel(),
         fetchProfiles(),
+        fetchResponsaveis(),
       ]);
       setItems(abs);
       setVeiculos(veic);
@@ -77,6 +81,7 @@ export default function AbastecimentosPage() {
       setCombustiveis(comb);
       setPostos(postosData);
       setProfileMap(profiles);
+      setResponsaveis(responsaveisData);
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -93,7 +98,8 @@ export default function AbastecimentosPage() {
     if (dateTo && item.data > dateTo) return false;
     if (filterVeiculo !== 'all' && item.veiculo_id !== filterVeiculo) return false;
     if (filterObra !== 'all' && (item.obra_id || '') !== filterObra) return false;
-    if (filterPosto !== 'all' && (item.posto_id || '') !== filterPosto) return false;
+  if (filterPosto !== 'all' && (item.posto_id || '') !== filterPosto) return false;
+  if (filterResponsavel !== 'all' && (item.responsavel_id || '') !== filterResponsavel) return false;
     return true;
   });
 
@@ -148,6 +154,7 @@ export default function AbastecimentosPage() {
         veiculo_id: form.veiculo_id,
         obra_id: form.obra_id || null,
         posto_id: form.posto_id || null,
+        responsavel_id: form.responsavel_id || null,
         nfe: form.nfe || null,
         data: form.data,
         combustivel_id: form.combustivel_id,
@@ -265,6 +272,23 @@ export default function AbastecimentosPage() {
               {postos.map((posto) => (
                 <SelectItem key={posto.id} value={posto.id}>
                   {posto.nome}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <Label className="text-xs">Responsável</Label>
+          <Select value={filterResponsavel} onValueChange={setFilterResponsavel}>
+            <SelectTrigger className="w-56">
+              <SelectValue placeholder="Todos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              {responsaveis.map((resp) => (
+                <SelectItem key={resp.id} value={resp.id}>
+                  {resp.nome}
                 </SelectItem>
               ))}
             </SelectContent>

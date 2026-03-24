@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { Responsavel } from '@/lib/comprasService';
 import type { Obra } from './obrasService';
 
 // ---- Types ----
@@ -10,8 +11,10 @@ export interface VeiculoMaquina {
   marca: string;
   categoria: string;
   categoria_id?: string | null;
+  responsavel_id?: string | null;
   created_by: string;
   created_at: string;
+  responsavel?: Responsavel | null;
 }
 
 export interface TipoCombustivel {
@@ -61,6 +64,7 @@ export interface Abastecimento {
   combustivel?: TipoCombustivel;
   obra?: Obra | null;
   posto?: PostoCombustivel | null;
+  responsavel?: Responsavel | null;
 }
 
 export interface RevisaoCombustivel {
@@ -287,7 +291,7 @@ export async function deleteCategoriaVeiculo(id: string) {
 export async function fetchAbastecimentos(): Promise<Abastecimento[]> {
   const { data, error } = await supabase
     .from('abastecimentos')
-    .select('*, veiculo:veiculos_maquinas(*), combustivel:tipos_combustivel(*), posto:postos_combustivel(*), obra:obras(*)')
+    .select('*, veiculo:veiculos_maquinas(*, responsavel:responsaveis(*)), combustivel:tipos_combustivel(*), posto:postos_combustivel(*), obra:obras(*), responsavel:responsaveis(*)')
     .order('data', { ascending: false });
 
   if (error) throw error;
@@ -298,6 +302,7 @@ export async function saveAbastecimento(a: {
   veiculo_id: string;
   obra_id?: string | null;
   posto_id?: string | null;
+  responsavel_id?: string | null;
   nfe?: string;
   data: string;
   combustivel_id: string;
