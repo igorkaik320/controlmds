@@ -36,6 +36,8 @@ import {
   distributeInstallmentValues,
   Installment,
   normalizeVencimentos,
+  toBrDateString,
+  toIsoDateString,
 } from '@/lib/parcelas';
 
 const emptyForm = {
@@ -66,7 +68,7 @@ function formatDraftValue(value: number) {
 function buildDraftsFromInstallments(installments: Installment[]): ParcelaDraft[] {
   return installments.map((installment) => ({
     id: createDraftId(),
-    due: installment.due,
+    due: toIsoDateString(installment.due),
     value: formatDraftValue(installment.value),
   }));
 }
@@ -81,13 +83,18 @@ function installmentsFromDrafts(drafts: ParcelaDraft[]) {
 }
 
 function serializeParcels(drafts: ParcelaDraft[]): string | null {
-  const normalized = installmentsFromDrafts(drafts);
+  const normalized = installmentsFromDrafts(drafts)
+    .map((installment) => ({
+      ...installment,
+      due: toBrDateString(installment.due),
+    }))
+    .filter((installment) => Boolean(installment.due));
   if (normalized.length === 0) return null;
   return JSON.stringify(normalized);
 }
 
 function joinDueText(drafts: ParcelaDraft[]) {
-  return drafts.map((draft) => draft.due).filter(Boolean).join(' | ');
+  return drafts.map((draft) => toBrDateString(draft.due)).filter(Boolean).join(' | ');
 }
 
 function totalFromDrafts(drafts: ParcelaDraft[]) {
@@ -120,6 +127,12 @@ function buildVencimentosFromCondition(data: string, condicao: string): string {
 }
 
 function extractFirstDueDateIso(vencimentos: string): string | null {
+  const isoMatch = vencimentos.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) {
+    const [, yyyy, mm, dd] = isoMatch;
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
   const match = vencimentos.match(/(\d{2})\/(\d{2})\/(\d{4})/);
   if (!match) return null;
   const [, dd, mm, yyyy] = match;
@@ -205,7 +218,7 @@ export default function ComprasFaturadasPage() {
     const installments = distributeInstallmentValues(totalValue, dueDates.length || 1);
     const autoDrafts = dueDates.map((due, idx) => ({
       id: createDraftId(),
-      due,
+      due: toIsoDateString(due),
       value: formatDraftValue(installments[idx]),
     }));
 
@@ -270,6 +283,11 @@ function openNew() {
 }
 
   function openEdit(item: CompraFaturada) {
+    const normalizedDueDates = normalizeVencimentos(
+      item.vencimentos,
+      item.data_liquidacao ? formatDateBR(item.data_liquidacao) : ''
+    );
+
     setEditingId(item.id);
     setForm({
       data: item.data,
@@ -277,7 +295,7 @@ function openNew() {
       pedido: item.pedido || '',
       forma_pagamento: item.forma_pagamento || '',
       condicao_pagamento: item.condicao_pagamento || '',
-      vencimentos: item.vencimentos || (item.data_liquidacao ? formatDateBR(item.data_liquidacao) : ''),
+      vencimentos: normalizedDueDates.join(' | '),
       cnpj_cpf: item.cnpj_cpf || '',
       valor: formatCurrencyInput(String(Math.round(item.valor * 100))),
       obra: item.obra || '',
@@ -296,15 +314,19 @@ function openNew() {
     }
 
     try {
+    const vencimentosFromParcelas = joinDueText(parcelas);
+    const vencimentosNormalized = normalizeVencimentos(form.vencimentos).join(' | ');
+    const vencimentosFinal = vencimentosFromParcelas || vencimentosNormalized;
+
     const payload = {
       data: form.data,
       fornecedor: form.fornecedor,
       pedido: form.pedido || null,
       forma_pagamento: form.forma_pagamento || null,
       condicao_pagamento: form.condicao_pagamento || null,
-      vencimentos: form.vencimentos || null,
+      vencimentos: vencimentosFinal || null,
       parcelas: serializeParcels(parcelas),
-      data_liquidacao: extractFirstDueDateIso(form.vencimentos),
+      data_liquidacao: extractFirstDueDateIso(vencimentosFinal),
       cnpj_cpf: form.cnpj_cpf || null,
       valor: parseCurrencyInput(form.valor),
       obra: form.obra || null,
