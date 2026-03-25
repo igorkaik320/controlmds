@@ -9,6 +9,7 @@ export interface CompraFaturada {
   forma_pagamento: string | null;
   condicao_pagamento: string | null;
   vencimentos: string | null;
+  parcelas?: string | null;
   data_liquidacao: string | null;
   cnpj_cpf: string | null;
   valor: number;

@@ -7,6 +7,7 @@ import {
   formatCurrencyBR,
   formatDateBR,
 } from './comprasService';
+import { buildInstallmentsFromItem, Installment } from './parcelas';
 
 function hexToRgb(hex: string): [number, number, number] {
   const h = hex.replace('#', '');
@@ -172,32 +173,6 @@ function buildEspelhoXlsxData(title1: string, title2: string, items: EspelhoItem
   return data;
 }
 
-function normalizeVencimentos(vencimentos?: string | null, fallback?: string): string[] {
-  if (!vencimentos?.trim()) {
-    return fallback ? [fallback] : [];
-  }
-
-  const parts = vencimentos
-    .split(/[|,;\n\r]+/)
-    .map((segment) => segment.trim())
-    .filter(Boolean);
-
-  if (parts.length > 0) return parts;
-  return fallback ? [fallback] : [];
-}
-
-function distributeInstallmentValues(total: number, count: number) {
-  const installments = Math.max(count, 1);
-  const cents = Math.round(total * 100);
-  const base = Math.floor(cents / installments);
-  const remainder = cents - base * installments;
-
-  return Array.from({ length: installments }, (_, idx) => {
-    const extra = idx >= installments - remainder ? 1 : 0;
-    return (base + extra) / 100;
-  });
-}
-
 // ---- Faturadas PDF ----
 export async function exportFaturadasPDF(items: CompraFaturada[], config?: ConfigRelatorio | null, observation?: string) {
   const { default: jsPDF } = await import('jspdf');
@@ -216,32 +191,27 @@ export async function exportFaturadasPDF(items: CompraFaturada[], config?: Confi
 
   const rows: any[][] = [];
   for (const item of items) {
-    const dueDates = normalizeVencimentos(
-      item.vencimentos,
-      item.data_liquidacao ? formatDateBR(item.data_liquidacao) : formatDateBR(item.data)
-    );
-    const installments = distributeInstallmentValues(item.valor, dueDates.length || 1);
+    const installments = buildInstallmentsFromItem(item);
+    const rowSpan = Math.max(installments.length, 1);
 
-    for (let idx = 0; idx < dueDates.length; idx++) {
-      const due = dueDates[idx];
-      const valueStr = formatCurrencyBR(installments[idx]);
+    installments.forEach((installment, idx) => {
       if (idx === 0) {
         rows.push([
-          formatDateBR(item.data),
-          item.fornecedor,
-          item.pedido || '',
-          item.forma_pagamento || '',
-          item.condicao_pagamento || '',
-          due,
-          item.cnpj_cpf || '',
-          valueStr,
-          item.obra || '',
-          item.observacao || '',
+          { content: formatDateBR(item.data), rowSpan, styles: { halign: 'center', valign: 'middle' } },
+          { content: item.fornecedor, rowSpan, styles: { valign: 'middle' } },
+          { content: item.pedido || '', rowSpan, styles: { halign: 'center', valign: 'middle' } },
+          { content: item.forma_pagamento || '', rowSpan, styles: { halign: 'center', valign: 'middle' } },
+          { content: item.condicao_pagamento || '', rowSpan, styles: { halign: 'center', valign: 'middle' } },
+          { content: installment.due, styles: { halign: 'center', valign: 'middle' } },
+          { content: item.cnpj_cpf || '', rowSpan, styles: { valign: 'middle' } },
+          { content: formatCurrencyBR(installment.value), styles: { halign: 'right', valign: 'middle' } },
+          { content: item.obra || '', rowSpan, styles: { valign: 'middle' } },
+          { content: item.observacao || '', rowSpan, styles: { valign: 'middle' } },
         ]);
       } else {
-        rows.push(['', '', '', '', '', due, '', valueStr, '', '']);
+        rows.push(['', '', '', '', '', installment.due, '', formatCurrencyBR(installment.value), '', '']);
       }
-    }
+    });
   }
 
   const total = items.reduce((s, i) => s + i.valor, 0);
@@ -298,15 +268,8 @@ export async function exportFaturadasXLSX(items: CompraFaturada[], observation?:
   ];
 
   for (const item of items) {
-    const dueDates = normalizeVencimentos(
-      item.vencimentos,
-      item.data_liquidacao ? formatDateBR(item.data_liquidacao) : formatDateBR(item.data)
-    );
-    const installments = distributeInstallmentValues(item.valor, dueDates.length || 1);
-
-    for (let idx = 0; idx < dueDates.length; idx++) {
-      const due = dueDates[idx];
-      const valueStr = formatCurrencyBR(installments[idx]);
+    const installments = buildInstallmentsFromItem(item);
+    installments.forEach((installment, idx) => {
       if (idx === 0) {
         data.push([
           formatDateBR(item.data),
@@ -314,16 +277,16 @@ export async function exportFaturadasXLSX(items: CompraFaturada[], observation?:
           item.pedido || '',
           item.forma_pagamento || '',
           item.condicao_pagamento || '',
-          due,
+          installment.due,
           item.cnpj_cpf || '',
-          valueStr,
+          installment.value,
           item.obra || '',
           item.observacao || '',
         ]);
       } else {
-        data.push(['', '', '', '', '', due, '', valueStr, '', '']);
+        data.push(['', '', '', '', '', installment.due, '', installment.value, '', '']);
       }
-    }
+    });
   }
 
   data.push([
@@ -334,7 +297,7 @@ export async function exportFaturadasXLSX(items: CompraFaturada[], observation?:
     '',
     '',
     'TOTAL',
-    formatCurrencyBR(items.reduce((s, i) => s + i.valor, 0)),
+    items.reduce((s, i) => s + i.valor, 0),
     '',
     '',
   ]);

@@ -31,6 +31,12 @@ import { fetchEmpresas } from '@/lib/empresasService';
 import { fetchProfiles } from '@/lib/cashRegister';
 import AuditInfo from '@/components/AuditInfo';
 import { useDataRefreshFlash } from '@/hooks/useDataRefreshFlash';
+import {
+  buildInstallmentsFromItem,
+  distributeInstallmentValues,
+  Installment,
+  normalizeVencimentos,
+} from '@/lib/parcelas';
 
 const emptyForm = {
   data: '',
@@ -44,6 +50,49 @@ const emptyForm = {
   obra: '',
   observacao: '',
 };
+
+type ParcelaDraft = {
+  id: string;
+  due: string;
+  value: string;
+};
+
+const createDraftId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+
+function formatDraftValue(value: number) {
+  return formatCurrencyInput(String(Math.round(value * 100)));
+}
+
+function buildDraftsFromInstallments(installments: Installment[]): ParcelaDraft[] {
+  return installments.map((installment) => ({
+    id: createDraftId(),
+    due: installment.due,
+    value: formatDraftValue(installment.value),
+  }));
+}
+
+function installmentsFromDrafts(drafts: ParcelaDraft[]) {
+  return drafts
+    .map((draft) => {
+      const value = parseCurrencyInput(draft.value);
+      return draft.due ? { due: draft.due, value } : null;
+    })
+    .filter((entry): entry is Installment => Boolean(entry) && entry.value >= 0);
+}
+
+function serializeParcels(drafts: ParcelaDraft[]): string | null {
+  const normalized = installmentsFromDrafts(drafts);
+  if (normalized.length === 0) return null;
+  return JSON.stringify(normalized);
+}
+
+function joinDueText(drafts: ParcelaDraft[]) {
+  return drafts.map((draft) => draft.due).filter(Boolean).join(' | ');
+}
+
+function totalFromDrafts(drafts: ParcelaDraft[]) {
+  return drafts.reduce((sum, draft) => sum + parseCurrencyInput(draft.value), 0);
+}
 
 function parseConditionDays(condicao: string): number[] {
   const matches = condicao.match(/\d+/g);
@@ -106,6 +155,8 @@ export default function ComprasFaturadasPage() {
     logo_esquerda: null,
     logo_direita: null,
   });
+  const [parcelas, setParcelas] = useState<ParcelaDraft[]>([]);
+  const [parcelasMode, setParcelasMode] = useState<'auto' | 'manual'>('auto');
 
   const load = useCallback(async () => {
     try {
@@ -143,6 +194,23 @@ export default function ComprasFaturadasPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (parcelasMode !== 'auto') return;
+
+    const dueText =
+      form.vencimentos || buildVencimentosFromCondition(form.data, form.condicao_pagamento);
+    const dueDates = normalizeVencimentos(dueText, form.data ? formatDateBR(form.data) : '');
+    const totalValue = parseCurrencyInput(form.valor);
+    const installments = distributeInstallmentValues(totalValue, dueDates.length || 1);
+    const autoDrafts = dueDates.map((due, idx) => ({
+      id: createDraftId(),
+      due,
+      value: formatDraftValue(installments[idx]),
+    }));
+
+    setParcelas(autoDrafts);
+  }, [form.vencimentos, form.valor, form.data, form.condicao_pagamento, parcelasMode]);
 
   const filtered = items.filter((i) => {
     if (draftDateFrom && i.data < draftDateFrom) return false;
@@ -189,13 +257,17 @@ export default function ComprasFaturadasPage() {
     setEditingId(null);
     setForm(emptyForm);
     setShowDialog(false);
+    setParcelas([]);
+    setParcelasMode('auto');
   }
 
-  function openNew() {
-    setEditingId(null);
-    setForm(emptyForm);
-    setShowDialog(true);
-  }
+function openNew() {
+  setEditingId(null);
+  setForm(emptyForm);
+  setShowDialog(true);
+  setParcelas([]);
+  setParcelasMode('auto');
+}
 
   function openEdit(item: CompraFaturada) {
     setEditingId(item.id);
@@ -212,6 +284,9 @@ export default function ComprasFaturadasPage() {
       observacao: item.observacao || '',
     });
     setShowDialog(true);
+    const installments = buildInstallmentsFromItem(item);
+    setParcelas(buildDraftsFromInstallments(installments));
+    setParcelasMode(item.parcelas ? 'manual' : 'auto');
   }
 
   async function handleSubmit() {
@@ -221,25 +296,26 @@ export default function ComprasFaturadasPage() {
     }
 
     try {
-      const payload = {
-        data: form.data,
-        fornecedor: form.fornecedor,
-        pedido: form.pedido || null,
-        forma_pagamento: form.forma_pagamento || null,
-        condicao_pagamento: form.condicao_pagamento || null,
-        vencimentos: form.vencimentos || null,
-        data_liquidacao: extractFirstDueDateIso(form.vencimentos),
-        cnpj_cpf: form.cnpj_cpf || null,
-        valor: parseCurrencyInput(form.valor),
-        obra: form.obra || null,
-        observacao: form.observacao || null,
-      };
+    const payload = {
+      data: form.data,
+      fornecedor: form.fornecedor,
+      pedido: form.pedido || null,
+      forma_pagamento: form.forma_pagamento || null,
+      condicao_pagamento: form.condicao_pagamento || null,
+      vencimentos: form.vencimentos || null,
+      parcelas: serializeParcels(parcelas),
+      data_liquidacao: extractFirstDueDateIso(form.vencimentos),
+      cnpj_cpf: form.cnpj_cpf || null,
+      valor: parseCurrencyInput(form.valor),
+      obra: form.obra || null,
+      observacao: form.observacao || null,
+    };
 
-      if (editingId) {
-        await updateCompraFaturada(editingId, { ...payload, updated_by: user.id });
-        toast.success('Registro atualizado');
-      } else {
-        await saveCompraFaturada({ ...payload, created_by: user.id } as any);
+    if (editingId) {
+      await updateCompraFaturada(editingId, payload);
+      toast.success('Registro atualizado');
+    } else {
+      await saveCompraFaturada({ ...payload, created_by: user.id } as any);
         toast.success('Registro cadastrado');
       }
 
@@ -260,6 +336,52 @@ export default function ComprasFaturadasPage() {
     } catch (e: any) {
       toast.error(e.message);
     }
+  }
+
+  function applyManualParcels(
+    updated: ParcelaDraft[],
+    options?: { updateValor?: boolean; updateVencimentos?: boolean; markManual?: boolean }
+  ) {
+    const { updateValor = true, updateVencimentos = true, markManual = true } = options || {};
+    setParcelas(updated);
+    if (markManual) setParcelasMode('manual');
+    if (updateVencimentos) {
+      setForm((prev) => ({ ...prev, vencimentos: joinDueText(updated) }));
+    }
+    if (updateValor) {
+      const totalValue = totalFromDrafts(updated);
+      setForm((prev) => ({
+        ...prev,
+        valor: formatCurrencyInput(String(Math.round(totalValue * 100))),
+      }));
+    }
+  }
+
+  function handleParcelaDueChange(id: string, due: string) {
+    const updated = parcelas.map((draft) => (draft.id === id ? { ...draft, due } : draft));
+    applyManualParcels(updated, { updateValor: false });
+  }
+
+  function handleParcelaValueChange(id: string, value: string) {
+    const updated = parcelas.map((draft) =>
+      draft.id === id ? { ...draft, value: formatCurrencyInput(value) } : draft
+    );
+    applyManualParcels(updated);
+  }
+
+  function handleRemoveParcela(id: string) {
+    applyManualParcels(parcelas.filter((draft) => draft.id !== id));
+  }
+
+  function handleAddParcela() {
+    applyManualParcels([...parcelas, { id: createDraftId(), due: '', value: '' }], {
+      updateValor: false,
+      updateVencimentos: false,
+    });
+  }
+
+  function resetParcelasToAuto() {
+    setParcelasMode('auto');
   }
 
   async function handleExportPDF() {
@@ -303,6 +425,7 @@ export default function ComprasFaturadasPage() {
         vencimentos: autoVencimentos || prev.vencimentos,
       };
     });
+    setParcelasMode('auto');
   }
 
   function handleDateChange(value: string) {
@@ -314,6 +437,7 @@ export default function ComprasFaturadasPage() {
         vencimentos: autoVencimentos || prev.vencimentos,
       };
     });
+    setParcelasMode('auto');
   }
 
   if (loading) {
@@ -567,6 +691,46 @@ export default function ComprasFaturadasPage() {
                 rows={3}
                 placeholder="Ex: 19/04/2026 | 19/05/2026 | 18/06/2026"
               />
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Parcelas</Label>
+                <Button variant="outline" size="sm" onClick={resetParcelasToAuto}>
+                  Recalcular automático
+                </Button>
+              </div>
+              <div className="space-y-2 max-h-48 overflow-y-auto rounded border border-muted/50 bg-muted/20 p-2">
+                {parcelas.map((parcela) => (
+                  <div key={parcela.id} className="grid gap-2 sm:grid-cols-[1.5fr,1fr,auto]">
+                    <Input
+                      type="date"
+                      value={parcela.due}
+                      onChange={(e) => handleParcelaDueChange(parcela.id, e.target.value)}
+                      className="w-full"
+                    />
+                    <Input
+                      value={parcela.value}
+                      onChange={(e) => handleParcelaValueChange(parcela.id, e.target.value)}
+                      className="w-full"
+                    />
+                    <Button variant="ghost" size="icon" onClick={() => handleRemoveParcela(parcela.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                {parcelas.length === 0 && (
+                  <p className="text-xs text-muted-foreground">Nenhuma parcela identificada</p>
+                )}
+              </div>
+              <div className="flex items-center justify-between">
+                <Button variant="outline" size="sm" onClick={handleAddParcela}>
+                  <Plus className="h-4 w-4 mr-1" /> Adicionar parcela
+                </Button>
+                <span className="text-xs text-muted-foreground">
+                  Total parcelas: {formatCurrencyBR(totalFromDrafts(parcelas))}
+                </span>
+              </div>
             </div>
 
             <div>
