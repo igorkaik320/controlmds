@@ -209,7 +209,10 @@ export async function exportFaturadasPDF(items: CompraFaturada[], config?: Confi
           { content: item.observacao || '', rowSpan, styles: { valign: 'middle' } },
         ]);
       } else {
-        rows.push(['', '', '', '', '', installment.due, '', formatCurrencyBR(installment.value), '', '']);
+        rows.push([
+          { content: installment.due, styles: { halign: 'center', valign: 'middle' } },
+          { content: formatCurrencyBR(installment.value), styles: { halign: 'right', valign: 'middle' } },
+        ]);
       }
     });
   }
