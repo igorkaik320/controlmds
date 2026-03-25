@@ -63,7 +63,7 @@ export function buildInstallmentsFromItem(item: {
   const parsed = parseParcelasJson(item.parcelas);
   if (parsed.length > 0) return parsed;
 
-  const fallbackDate = item.data_liquidacao ? formatDateBR(item.data_liquidacao) : formatDateBR(item.data);
+  const fallbackDate = item.data_liquidacao ? formatDateSafe(item.data_liquidacao) : formatDateSafe(item.data);
   const dueDates = normalizeVencimentos(item.vencimentos, fallbackDate);
   if (dueDates.length === 0) {
     return [{ due: fallbackDate, value: item.valor }];
