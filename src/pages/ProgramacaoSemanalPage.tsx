@@ -213,7 +213,7 @@ export default function ProgramacaoSemanalPage() {
       };
 
       if (editingId) {
-        await updateProgramacaoSemanal(editingId, payload);
+        await updateProgramacaoSemanal(editingId, { ...payload, updated_by: user.id });
         toast.success('Registro atualizado');
       } else {
         await saveProgramacaoSemanal({ ...payload, created_by: user.id } as any);
