@@ -172,6 +172,32 @@ function buildEspelhoXlsxData(title1: string, title2: string, items: EspelhoItem
   return data;
 }
 
+function normalizeVencimentos(vencimentos?: string | null, fallback?: string): string[] {
+  if (!vencimentos?.trim()) {
+    return fallback ? [fallback] : [];
+  }
+
+  const parts = vencimentos
+    .split(/[|,;\n\r]+/)
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+
+  if (parts.length > 0) return parts;
+  return fallback ? [fallback] : [];
+}
+
+function distributeInstallmentValues(total: number, count: number) {
+  const installments = Math.max(count, 1);
+  const cents = Math.round(total * 100);
+  const base = Math.floor(cents / installments);
+  const remainder = cents - base * installments;
+
+  return Array.from({ length: installments }, (_, idx) => {
+    const extra = idx >= installments - remainder ? 1 : 0;
+    return (base + extra) / 100;
+  });
+}
+
 // ---- Faturadas PDF ----
 export async function exportFaturadasPDF(items: CompraFaturada[], config?: ConfigRelatorio | null, observation?: string) {
   const { default: jsPDF } = await import('jspdf');
@@ -188,18 +214,35 @@ export async function exportFaturadasPDF(items: CompraFaturada[], config?: Confi
   doc.setFontSize(10);
   doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, 28);
 
-  const rows = items.map((i) => [
-    formatDateBR(i.data),
-    i.fornecedor,
-    i.pedido || '',
-    i.forma_pagamento || '',
-    i.condicao_pagamento || '',
-    i.vencimentos || (i.data_liquidacao ? formatDateBR(i.data_liquidacao) : ''),
-    i.cnpj_cpf || '',
-    formatCurrencyBR(i.valor),
-    i.obra || '',
-    i.observacao || '',
-  ]);
+  const rows: any[][] = [];
+  for (const item of items) {
+    const dueDates = normalizeVencimentos(
+      item.vencimentos,
+      item.data_liquidacao ? formatDateBR(item.data_liquidacao) : formatDateBR(item.data)
+    );
+    const installments = distributeInstallmentValues(item.valor, dueDates.length || 1);
+
+    for (let idx = 0; idx < dueDates.length; idx++) {
+      const due = dueDates[idx];
+      const valueStr = formatCurrencyBR(installments[idx]);
+      if (idx === 0) {
+        rows.push([
+          formatDateBR(item.data),
+          item.fornecedor,
+          item.pedido || '',
+          item.forma_pagamento || '',
+          item.condicao_pagamento || '',
+          due,
+          item.cnpj_cpf || '',
+          valueStr,
+          item.obra || '',
+          item.observacao || '',
+        ]);
+      } else {
+        rows.push(['', '', '', '', '', due, '', valueStr, '', '']);
+      }
+    }
+  }
 
   const total = items.reduce((s, i) => s + i.valor, 0);
   rows.push(['', '', '', '', '', '', 'TOTAL', formatCurrencyBR(total), '', '']);
@@ -252,20 +295,49 @@ export async function exportFaturadasXLSX(items: CompraFaturada[], observation?:
 
   const data: any[][] = [
     ['Data', 'Fornecedor', 'Nº Pedido', 'Forma Pgto', 'Condição', 'Vencimentos', 'CNPJ/CPF', 'Valor', 'Obra', 'Observação'],
-    ...items.map((i) => [
-      formatDateBR(i.data),
-      i.fornecedor,
-      i.pedido || '',
-      i.forma_pagamento || '',
-      i.condicao_pagamento || '',
-      i.vencimentos || (i.data_liquidacao ? formatDateBR(i.data_liquidacao) : ''),
-      i.cnpj_cpf || '',
-      i.valor,
-      i.obra || '',
-      i.observacao || '',
-    ]),
-    ['', '', '', '', '', '', 'TOTAL', items.reduce((s, i) => s + i.valor, 0), '', ''],
   ];
+
+  for (const item of items) {
+    const dueDates = normalizeVencimentos(
+      item.vencimentos,
+      item.data_liquidacao ? formatDateBR(item.data_liquidacao) : formatDateBR(item.data)
+    );
+    const installments = distributeInstallmentValues(item.valor, dueDates.length || 1);
+
+    for (let idx = 0; idx < dueDates.length; idx++) {
+      const due = dueDates[idx];
+      const valueStr = formatCurrencyBR(installments[idx]);
+      if (idx === 0) {
+        data.push([
+          formatDateBR(item.data),
+          item.fornecedor,
+          item.pedido || '',
+          item.forma_pagamento || '',
+          item.condicao_pagamento || '',
+          due,
+          item.cnpj_cpf || '',
+          valueStr,
+          item.obra || '',
+          item.observacao || '',
+        ]);
+      } else {
+        data.push(['', '', '', '', '', due, '', valueStr, '', '']);
+      }
+    }
+  }
+
+  data.push([
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    'TOTAL',
+    formatCurrencyBR(items.reduce((s, i) => s + i.valor, 0)),
+    '',
+    '',
+  ]);
 
   if (observation?.trim()) {
     data.push([]);
