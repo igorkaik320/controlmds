@@ -1,4 +1,4 @@
-import { formatDateBR } from './formatters';
+import { formatDateSafe } from './formatters';
 
 export interface Installment {
   due: string;
