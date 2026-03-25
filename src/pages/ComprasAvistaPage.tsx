@@ -203,7 +203,7 @@ export default function ComprasAvistaPage() {
       };
 
       if (editingId) {
-        await updateCompraAvista(editingId, { ...payload, updated_by: user.id });
+        await updateCompraAvista(editingId, payload);
         toast.success('Registro atualizado');
       } else {
         await saveCompraAvista({ ...payload, created_by: user.id } as any);
