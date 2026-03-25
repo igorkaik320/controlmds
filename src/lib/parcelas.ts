@@ -6,19 +6,61 @@ export interface Installment {
 }
 
 const SPLIT_RE = /[|,;]+/;
+const BR_DATE_RE = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+const ISO_DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+export function toBrDateString(value?: string | null): string {
+  if (!value?.trim()) return '';
+  const trimmed = value.trim();
+
+  const brMatch = trimmed.match(BR_DATE_RE);
+  if (brMatch) return trimmed;
+
+  const isoMatch = trimmed.match(ISO_DATE_RE);
+  if (isoMatch) {
+    const [, yyyy, mm, dd] = isoMatch;
+    return `${dd}/${mm}/${yyyy}`;
+  }
+
+  const safe = formatDateSafe(trimmed);
+  return safe === '—' ? trimmed : safe;
+}
+
+export function toIsoDateString(value?: string | null): string {
+  if (!value?.trim()) return '';
+  const trimmed = value.trim();
+
+  const isoMatch = trimmed.match(ISO_DATE_RE);
+  if (isoMatch) return trimmed;
+
+  const brMatch = trimmed.match(BR_DATE_RE);
+  if (brMatch) {
+    const [, dd, mm, yyyy] = brMatch;
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  const safe = toBrDateString(trimmed);
+  const safeMatch = safe.match(BR_DATE_RE);
+  if (!safeMatch) return '';
+
+  const [, dd, mm, yyyy] = safeMatch;
+  return `${yyyy}-${mm}-${dd}`;
+}
 
 export function normalizeVencimentos(text?: string | null, fallback?: string): string[] {
   if (!text?.trim()) {
-    return fallback ? [fallback] : [];
+    const fallbackDate = toBrDateString(fallback);
+    return fallbackDate ? [fallbackDate] : [];
   }
 
   const parts = text
     .split(SPLIT_RE)
-    .map((segment) => segment.trim())
+    .map((segment) => toBrDateString(segment))
     .filter((segment) => segment.length > 0);
 
   if (parts.length > 0) return parts;
-  if (fallback) return [fallback];
+  const fallbackDate = toBrDateString(fallback);
+  if (fallbackDate) return [fallbackDate];
   return [];
 }
 
@@ -43,9 +85,11 @@ export function parseParcelasJson(raw?: string | null): Installment[] {
     return parsed
       .map((entry) => {
         if (!entry || typeof entry.due !== 'string') return null;
+        const due = toBrDateString(entry.due);
+        if (!due) return null;
         const value = typeof entry.value === 'number' ? entry.value : parseFloat(entry.value);
         if (Number.isNaN(value)) return null;
-        return { due: entry.due, value };
+        return { due, value };
       })
       .filter((entry): entry is Installment => Boolean(entry));
   } catch {
