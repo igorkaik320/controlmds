@@ -39,6 +39,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { ModuleKey } from '@/lib/modulePermissions';
 import { confirmDraftDiscard } from '@/lib/draftGuard';
+import { MdsLogo } from './MdsLogo';
 
 interface MenuItem {
   title: string;
@@ -165,19 +166,22 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" className="border-r border-slate-700/40 bg-[#233247]">
       <SidebarContent className="bg-[#233247]">
         {!collapsed && (
-          <div className="border-b border-white/10 bg-[#1d2a3c] px-4 py-5">
-            <div className="space-y-1">
-              <h2 className="text-lg font-bold tracking-tight text-white">ControlMDS</h2>
+          <div className="border-b border-white/10 bg-[#0f1a2d] px-4 pt-6 pb-4">
+            <div className="mb-3">
+              <MdsLogo
+                lettersClassName="text-3xl font-black uppercase tracking-[0.05em] text-white"
+                textClassName="text-sm font-semibold uppercase tracking-[0.35em] text-blue-200 -mt-1 translate-y-2"
+              />
+            </div>
+            <div className="space-y-2">
               <p className="text-sm text-white/75">{profile?.display_name}</p>
-              <div className="pt-1">
-                <span className="inline-flex rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium text-white/90">
-                  {userRole === 'admin'
-                    ? 'Administrador'
-                    : userRole === 'conferente'
-                    ? 'Conferente'
-                    : 'Operador'}
-                </span>
-              </div>
+              <span className="inline-flex rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium text-white/90">
+                {userRole === 'admin'
+                  ? 'Administracao'
+                  : userRole === 'conferente'
+                  ? 'Conferente'
+                  : 'Operador'}
+              </span>
             </div>
           </div>
         )}
