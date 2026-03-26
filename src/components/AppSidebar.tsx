@@ -166,19 +166,18 @@ export function AppSidebar() {
       <SidebarContent className="bg-[#233247]">
         {!collapsed && (
           <div className="border-b border-white/10 bg-[#1d2a3c] px-4 py-5">
-            <div className="mb-2">
-              <span className="text-2xl font-extrabold tracking-tight text-white">MDS</span>
-              <span className="ml-1.5 text-lg font-light tracking-wide text-blue-400">Gestão</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <p className="truncate text-sm text-white/75">{profile?.display_name}</p>
-              <span className="inline-flex shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-medium text-white/90">
-                {userRole === 'admin'
-                  ? 'Admin'
-                  : userRole === 'conferente'
-                  ? 'Conferente'
-                  : 'Operador'}
-              </span>
+            <div className="space-y-1">
+              <h2 className="text-lg font-bold tracking-tight text-white">ControlMDS</h2>
+              <p className="text-sm text-white/75">{profile?.display_name}</p>
+              <div className="pt-1">
+                <span className="inline-flex rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium text-white/90">
+                  {userRole === 'admin'
+                    ? 'Administrador'
+                    : userRole === 'conferente'
+                    ? 'Conferente'
+                    : 'Operador'}
+                </span>
+              </div>
             </div>
           </div>
         )}
