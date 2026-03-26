@@ -171,14 +171,15 @@ export function AppSidebar() {
               <div className="space-y-0.5">
                 <h2 className="text-lg font-bold tracking-tight text-white">MDS Gestão</h2>
                 <p className="text-sm text-white/75">{profile?.display_name}</p>
-              <div className="pt-1">
-                <span className="inline-flex rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium text-white/90">
-                  {userRole === 'admin'
-                    ? 'Administrador'
-                    : userRole === 'conferente'
-                    ? 'Conferente'
-                    : 'Operador'}
-                </span>
+                <div className="pt-1">
+                  <span className="inline-flex rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium text-white/90">
+                    {userRole === 'admin'
+                      ? 'Administrador'
+                      : userRole === 'conferente'
+                      ? 'Conferente'
+                      : 'Operador'}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
