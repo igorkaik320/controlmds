@@ -165,19 +165,17 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" className="border-r border-slate-700/40 bg-[#233247]">
       <SidebarContent className="bg-[#233247]">
         {!collapsed && (
-          <div className="border-b border-white/10 bg-[#1d2a3c] px-4 py-5">
-            <div className="flex items-center gap-4">
-              <img src="/favicon.png" alt="MDS Gestão" className="h-14 w-14 shrink-0 rounded-lg bg-white p-1 object-contain" />
-              <div className="min-w-0 space-y-0.5">
-                <p className="truncate text-sm font-medium text-white">{profile?.display_name}</p>
-                <span className="inline-flex rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium text-white/90">
-                  {userRole === 'admin'
-                    ? 'Administrador'
-                    : userRole === 'conferente'
-                    ? 'Conferente'
-                    : 'Operador'}
-                </span>
-              </div>
+          <div className="border-b border-white/10 bg-[#1d2a3c] px-4 py-4">
+            <img src="/logo-sidebar.png" alt="MDS Gestão" className="mb-3 h-10 w-auto rounded-md object-contain" />
+            <div className="flex items-center gap-2">
+              <p className="truncate text-sm font-medium text-white/80">{profile?.display_name}</p>
+              <span className="inline-flex shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-medium text-white/90">
+                {userRole === 'admin'
+                  ? 'Admin'
+                  : userRole === 'conferente'
+                  ? 'Conferente'
+                  : 'Operador'}
+              </span>
             </div>
           </div>
         )}
