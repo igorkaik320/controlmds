@@ -166,7 +166,7 @@ export function AppSidebar() {
       <SidebarContent className="bg-[#233247]">
         {!collapsed && (
           <div className="border-b border-white/10 bg-[#1d2a3c] px-4 py-4">
-            <img src="/logo-sidebar.png" alt="MDS Gestão" className="mb-3 h-10 w-auto rounded-md object-contain" />
+            <img src="/logo-sidebar.png" alt="MDS Gestão" className="mb-3 h-14 w-auto rounded-md object-contain" />
             <div className="flex items-center gap-2">
               <p className="truncate text-sm font-medium text-white/80">{profile?.display_name}</p>
               <span className="inline-flex shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-medium text-white/90">
