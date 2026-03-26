@@ -8,7 +8,15 @@ import VerificationTable from "@/components/VerificationTable";
 import InitBalanceDialog from "@/components/InitBalanceDialog";
 import NewTransactionDialog from "@/components/NewTransactionDialog";
 import VerificationDialog from "@/components/VerificationDialog";
-import DateRangeFilter from "@/components/DateRangeFilter";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import LogoSettings from "@/components/LogoSettings";
 import { useAuth } from "@/lib/auth";
 import { useModulePermissions } from "@/hooks/useModulePermissions";
@@ -48,6 +56,8 @@ export default function Index() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [typeFilter, setTypeFilter] = useState<"all" | "inicializacao" | "entrada" | "saida">("all");
+  const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
 
   const canViewCash = canView("controle_caixa");
   const canCreateCash = canCreate("controle_caixa");
@@ -76,6 +86,14 @@ export default function Index() {
   }, [loadData]);
 
   const transactions = filterByDateRange(allTransactions, dateFrom, dateTo);
+  const filteredTransactions = [...transactions]
+    .filter((tx) => typeFilter === "all" || tx.type === typeFilter)
+    .sort((a, b) => {
+      const da = new Date(a.date).getTime();
+      const db = new Date(b.date).getTime();
+      const diff = db - da;
+      return sortOrder === "asc" ? -diff : diff;
+    });
   const verifications = filterByDateRange(allVerifications, dateFrom, dateTo);
   const summary = getSummary(transactions, verifications);
   const currentBalance = getCurrentBalance(allTransactions);
@@ -310,20 +328,62 @@ export default function Index() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6 space-y-6">
-        <DateRangeFilter
-          dateFrom={dateFrom}
-          dateTo={dateTo}
-          onDateFromChange={setDateFrom}
-          onDateToChange={setDateTo}
-        />
+      <main className="mx-auto w-full max-w-[1600px] px-4 py-6 space-y-6">
+        <div className="rounded-xl border bg-card p-4 space-y-4">
+          <div className="grid gap-4 md:grid-cols-6">
+            <div>
+              <Label className="text-xs uppercase tracking-[0.3em] text-slate-500">De</Label>
+              <Input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label className="text-xs uppercase tracking-[0.3em] text-slate-500">Até</Label>
+              <Input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <Label className="text-xs uppercase tracking-[0.3em] text-slate-500">Tipo</Label>
+              <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value as any)} className="mt-1">
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="entrada">Entradas</SelectItem>
+                  <SelectItem value="saida">Saídas</SelectItem>
+                  <SelectItem value="inicializacao">Inicializações</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="md:col-span-2">
+              <Label className="text-xs uppercase tracking-[0.3em] text-slate-500">Ordenar</Label>
+              <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as any)} className="mt-1">
+                <SelectTrigger>
+                  <SelectValue placeholder="Mais recentes" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="desc">Mais recentes</SelectItem>
+                  <SelectItem value="asc">Mais antigas</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
 
         <DashboardCards summary={summary} />
 
         <div>
           <h2 className="text-lg font-semibold mb-3">Lançamentos</h2>
           <TransactionTable
-            transactions={transactions}
+            transactions={filteredTransactions}
             onEdit={handleEdit}
             onDelete={handleDelete}
             profileMap={profileMap}
