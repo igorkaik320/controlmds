@@ -10,13 +10,7 @@ import NewTransactionDialog from "@/components/NewTransactionDialog";
 import VerificationDialog from "@/components/VerificationDialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import LogoSettings from "@/components/LogoSettings";
 import { useAuth } from "@/lib/auth";
 import { useModulePermissions } from "@/hooks/useModulePermissions";
@@ -333,21 +327,11 @@ export default function Index() {
           <div className="grid gap-4 md:grid-cols-6">
             <div>
               <Label className="text-xs uppercase tracking-[0.3em] text-slate-500">De</Label>
-              <Input
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                className="mt-1"
-              />
+              <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="mt-1" />
             </div>
             <div>
               <Label className="text-xs uppercase tracking-[0.3em] text-slate-500">Até</Label>
-              <Input
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                className="mt-1"
-              />
+              <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="mt-1" />
             </div>
             <div className="md:col-span-2">
               <Label className="text-xs uppercase tracking-[0.3em] text-slate-500">Tipo</Label>
@@ -439,3 +423,4 @@ export default function Index() {
     </div>
   );
 }
+5;
