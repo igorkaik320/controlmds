@@ -167,7 +167,7 @@ export function AppSidebar() {
         {!collapsed && (
           <div className="border-b border-white/10 bg-[#1d2a3c] px-4 py-5">
             <div className="space-y-1">
-              <h2 className="text-lg font-bold tracking-tight text-white">ControlMDS</h2>
+              <h2 className="text-lg font-bold tracking-tight text-white">MDS Gestão</h2>
               <p className="text-sm text-white/75">{profile?.display_name}</p>
               <div className="pt-1">
                 <span className="inline-flex rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium text-white/90">
