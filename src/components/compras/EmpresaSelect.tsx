@@ -38,4 +38,3 @@ export default function EmpresaSelect({ value, onChange, label = "Empresa", allo
     </div>
   );
 }
-1;
