@@ -85,20 +85,14 @@ export function AppSidebar() {
   });
 
   groups.push({
-    label: 'Suprimentos (Compras)',
+    label: 'Suprimentos',
     defaultOpen: true,
     items: [
-      { title: 'Compras Faturadas', url: '/suprimentos/compras/faturadas', icon: Receipt, module: 'compras_faturadas' },
-      { title: 'Compras a Vista', url: '/suprimentos/compras/avista', icon: ShoppingCart, module: 'compras_avista' },
-      { title: 'Espelho Geral', url: '/suprimentos/compras/espelho', icon: Eye, module: 'espelho_geral' },
-      { title: 'Programacao Semanal', url: '/suprimentos/compras/programacao-semanal', icon: CalendarDays, module: 'programacao_semanal' },
-      { title: 'Espelho Semanal', url: '/suprimentos/compras/espelho-semanal', icon: BarChart3, module: 'espelho_semanal' },
-      {
-        title: 'Parcelas Faturadas',
-        url: '/suprimentos/compras/parcelas-faturadas',
-        icon: CalendarDays,
-        module: 'compras_faturadas',
-      },
+      { title: 'Compras Faturadas', url: '/compras/faturadas', icon: Receipt, module: 'compras_faturadas' },
+      { title: 'Compras a Vista', url: '/compras/avista', icon: ShoppingCart, module: 'compras_avista' },
+      { title: 'Espelho Geral', url: '/compras/espelho', icon: Eye, module: 'espelho_geral' },
+      { title: 'Programacao Semanal', url: '/compras/programacao-semanal', icon: CalendarDays, module: 'programacao_semanal' },
+      { title: 'Espelho Semanal', url: '/compras/espelho-semanal', icon: BarChart3, module: 'espelho_semanal' },
     ],
   });
 
