@@ -335,7 +335,7 @@ export default function Index() {
             </div>
             <div className="md:col-span-2">
               <Label className="text-xs uppercase tracking-[0.3em] text-slate-500">Tipo</Label>
-              <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value as any)}>
+              <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value as any)} className="mt-1">
                 <SelectTrigger>
                   <SelectValue placeholder="Todos" />
                 </SelectTrigger>
@@ -349,7 +349,7 @@ export default function Index() {
             </div>
             <div className="md:col-span-2">
               <Label className="text-xs uppercase tracking-[0.3em] text-slate-500">Ordenar</Label>
-              <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as any)}>
+              <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as any)} className="mt-1">
                 <SelectTrigger>
                   <SelectValue placeholder="Mais recentes" />
                 </SelectTrigger>
@@ -423,3 +423,4 @@ export default function Index() {
     </div>
   );
 }
+5;
