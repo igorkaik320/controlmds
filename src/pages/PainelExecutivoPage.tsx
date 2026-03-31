@@ -201,13 +201,13 @@ export default function PainelExecutivoPage() {
           obra: item.obra || 'Sem obra',
           valor: item.valor,
         })),
-        ...semPedidoFaturadas.map((item) => ({
-          id: item.id,
+        ...semPedidoFaturadas.map((entry) => ({
+          id: entry.item.id,
           origem: 'Faturada' as const,
-          data: item.data,
-          fornecedor: item.fornecedor,
-          obra: item.obra || 'Sem obra',
-          valor: item.valor,
+          data: entry.item.data,
+          fornecedor: entry.item.fornecedor,
+          obra: entry.item.obra || 'Sem obra',
+          valor: entry.valor,
         })),
       ]
         .sort((a, b) => b.data.localeCompare(a.data))
