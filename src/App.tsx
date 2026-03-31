@@ -49,11 +49,26 @@ function LoadingScreen() {
   );
 }
 
+function PendingApprovalScreen() {
+  const { signOut } = useAuth();
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background px-4">
+      <Clock className="h-14 w-14 text-muted-foreground" />
+      <h2 className="text-xl font-bold">Aguardando aprovação</h2>
+      <p className="max-w-md text-center text-muted-foreground">
+        Seu cadastro foi realizado com sucesso. Um administrador precisa liberar seu acesso antes que você possa utilizar o sistema.
+      </p>
+      <button onClick={signOut} className="mt-4 text-sm text-primary underline hover:no-underline">Sair</button>
+    </div>
+  );
+}
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
+  const { user, loading, isPending } = useAuth();
 
   if (!user && loading) return <LoadingScreen />;
   if (!user) return <Navigate to="/auth" />;
+  if (isPending) return <PendingApprovalScreen />;
 
   return <AppLayout>{children}</AppLayout>;
 }
