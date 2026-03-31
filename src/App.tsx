@@ -28,6 +28,7 @@ import DashboardCombustivelPage from "./pages/DashboardCombustivelPage";
 import RevisoesCombustivelPage from "./pages/RevisoesCombustivelPage";
 import EmpresasPage from "./pages/EmpresasPage";
 import PainelExecutivoPage from "./pages/PainelExecutivoPage";
+import FaturadosParcelasPage from "./pages/FaturadosParcelasPage";
 import NotFound from "./pages/NotFound";
 import type { ModuleKey } from "@/lib/modulePermissions";
 import { Lock } from "lucide-react";
@@ -67,11 +68,11 @@ function HomeRoute() {
   if (userRole === "admin") return <Navigate to="/painel-executivo" replace />;
 
   const firstAccessibleRoute: Array<{ module: ModuleKey; path: string }> = [
-    { module: "compras_faturadas", path: "/compras/faturadas" },
-    { module: "compras_avista", path: "/compras/avista" },
-    { module: "espelho_geral", path: "/compras/espelho" },
-    { module: "programacao_semanal", path: "/compras/programacao-semanal" },
-    { module: "espelho_semanal", path: "/compras/espelho-semanal" },
+    { module: "compras_faturadas", path: "/suprimentos/compras/faturadas" },
+    { module: "compras_avista", path: "/suprimentos/compras/avista" },
+    { module: "espelho_geral", path: "/suprimentos/compras/espelho" },
+    { module: "programacao_semanal", path: "/suprimentos/compras/programacao-semanal" },
+    { module: "espelho_semanal", path: "/suprimentos/compras/espelho-semanal" },
     { module: "combustivel_dashboard", path: "/combustivel/dashboard" },
     { module: "abastecimentos", path: "/combustivel/abastecimentos" },
     { module: "revisoes_combustivel", path: "/combustivel/revisoes" },
@@ -155,27 +156,43 @@ const App = () => (
             <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
             <Route path="/" element={<HomeRoute />} />
             <Route path="/controle-caixa" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+            <Route
+              path="/suprimentos/compras/parcelas-faturadas"
+              element={
+                <ModuleRoute module="parcelas_faturadas">
+                  <FaturadosParcelasPage />
+                </ModuleRoute>
+              }
+            />
 
             <Route
-              path="/compras/faturadas"
+              path="/suprimentos/compras/faturadas"
               element={<ModuleRoute module="compras_faturadas"><ComprasFaturadasPage /></ModuleRoute>}
             />
             <Route
-              path="/compras/avista"
+              path="/suprimentos/compras/avista"
               element={<ModuleRoute module="compras_avista"><ComprasAvistaPage /></ModuleRoute>}
             />
             <Route
-              path="/compras/espelho"
+              path="/suprimentos/compras/espelho"
               element={<ModuleRoute module="espelho_geral"><EspelhoGeralPage /></ModuleRoute>}
             />
             <Route
-              path="/compras/programacao-semanal"
+              path="/suprimentos/compras/programacao-semanal"
               element={<ModuleRoute module="programacao_semanal"><ProgramacaoSemanalPage /></ModuleRoute>}
             />
             <Route
-              path="/compras/espelho-semanal"
+              path="/suprimentos/compras/espelho-semanal"
               element={<ModuleRoute module="espelho_semanal"><EspelhoSemanalPage /></ModuleRoute>}
             />
+
+            {/* Backward-compatible redirects (old routes -> new routes) */}
+            <Route path="/financeiro/faturados-parcelas" element={<Navigate to="/suprimentos/compras/parcelas-faturadas" replace />} />
+            <Route path="/compras/faturadas" element={<Navigate to="/suprimentos/compras/faturadas" replace />} />
+            <Route path="/compras/avista" element={<Navigate to="/suprimentos/compras/avista" replace />} />
+            <Route path="/compras/espelho" element={<Navigate to="/suprimentos/compras/espelho" replace />} />
+            <Route path="/compras/programacao-semanal" element={<Navigate to="/suprimentos/compras/programacao-semanal" replace />} />
+            <Route path="/compras/espelho-semanal" element={<Navigate to="/suprimentos/compras/espelho-semanal" replace />} />
 
             <Route path="/empresas" element={<ModuleRoute module="empresas"><EmpresasPage /></ModuleRoute>} />
             <Route path="/fornecedores" element={<ModuleRoute module="fornecedores"><FornecedoresPage /></ModuleRoute>} />

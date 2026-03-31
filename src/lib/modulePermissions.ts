@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 export const MODULES = [
   { key: 'controle_caixa', label: 'Controle de Caixa' },
   { key: 'compras_faturadas', label: 'Compras Faturadas' },
+  { key: 'parcelas_faturadas', label: 'Parcelas Faturadas' },
   { key: 'compras_avista', label: 'Compras a Vista' },
   { key: 'espelho_geral', label: 'Espelho Geral' },
   { key: 'programacao_semanal', label: 'Programacao Semanal' },

@@ -85,24 +85,33 @@ export function AppSidebar() {
   });
 
   groups.push({
-    label: 'Previsao de Compras',
+    label: 'Suprimentos (Compras)',
     defaultOpen: true,
     items: [
-      { title: 'Compras Faturadas', url: '/compras/faturadas', icon: Receipt, module: 'compras_faturadas' },
-      { title: 'Compras a Vista', url: '/compras/avista', icon: ShoppingCart, module: 'compras_avista' },
-      { title: 'Espelho Geral', url: '/compras/espelho', icon: Eye, module: 'espelho_geral' },
-      { title: 'Programacao Semanal', url: '/compras/programacao-semanal', icon: CalendarDays, module: 'programacao_semanal' },
-      { title: 'Espelho Semanal', url: '/compras/espelho-semanal', icon: BarChart3, module: 'espelho_semanal' },
+      { title: 'Compras Faturadas', url: '/suprimentos/compras/faturadas', icon: Receipt, module: 'compras_faturadas' },
+      { title: 'Compras a Vista', url: '/suprimentos/compras/avista', icon: ShoppingCart, module: 'compras_avista' },
+      { title: 'Espelho Geral', url: '/suprimentos/compras/espelho', icon: Eye, module: 'espelho_geral' },
+      { title: 'Programacao Semanal', url: '/suprimentos/compras/programacao-semanal', icon: CalendarDays, module: 'programacao_semanal' },
+      { title: 'Espelho Semanal', url: '/suprimentos/compras/espelho-semanal', icon: BarChart3, module: 'espelho_semanal' },
+      {
+        title: 'Parcelas Faturadas',
+        url: '/suprimentos/compras/parcelas-faturadas',
+        icon: CalendarDays,
+        module: 'parcelas_faturadas',
+      },
     ],
   });
 
   groups.push({
-    label: 'Controle de Combustivel',
+    label: 'Gestao de Ativos',
     defaultOpen: false,
     items: [
       { title: 'Dashboard', url: '/combustivel/dashboard', icon: Fuel, module: 'combustivel_dashboard' },
       { title: 'Abastecimentos', url: '/combustivel/abastecimentos', icon: Droplets, module: 'abastecimentos' },
       { title: 'Revisoes', url: '/combustivel/revisoes', icon: Wrench, module: 'revisoes_combustivel' },
+      { title: 'Veiculos/Maquinas', url: '/veiculos', icon: Car, module: 'veiculos_maquinas' },
+      { title: 'Postos de Combustivel', url: '/postos-combustivel', icon: MapPinned, module: 'postos_combustivel' },
+      { title: 'Tipos de Combustivel', url: '/tipos-combustivel', icon: Droplets, module: 'tipos_combustivel' },
     ],
   });
 
@@ -114,9 +123,6 @@ export function AppSidebar() {
       { title: 'Fornecedores', url: '/fornecedores', icon: Truck, module: 'fornecedores' },
       { title: 'Obras', url: '/obras', icon: Building2, module: 'obras' },
       { title: 'Responsaveis', url: '/responsaveis', icon: UserCheck, module: 'responsaveis' },
-      { title: 'Veiculos/Maquinas', url: '/veiculos', icon: Car, module: 'veiculos_maquinas' },
-      { title: 'Postos de Combustivel', url: '/postos-combustivel', icon: MapPinned, module: 'postos_combustivel' },
-      { title: 'Tipos de Combustivel', url: '/tipos-combustivel', icon: Droplets, module: 'tipos_combustivel' },
     ],
   });
 
