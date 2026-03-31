@@ -14,6 +14,7 @@ interface AuthCtx {
   session: Session | null;
   profile: Profile | null;
   userRole: AppRole;
+  isPending: boolean;
   loading: boolean;
   signUp: (email: string, password: string, displayName: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
