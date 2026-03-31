@@ -349,7 +349,7 @@ export default function Index() {
             </div>
             <div className="md:col-span-2">
               <Label className="text-xs uppercase tracking-[0.3em] text-slate-500">Ordenar</Label>
-              <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as any)} className="mt-1">
+              <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as any)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Mais recentes" />
                 </SelectTrigger>
