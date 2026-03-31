@@ -28,6 +28,7 @@ import DashboardCombustivelPage from "./pages/DashboardCombustivelPage";
 import RevisoesCombustivelPage from "./pages/RevisoesCombustivelPage";
 import EmpresasPage from "./pages/EmpresasPage";
 import PainelExecutivoPage from "./pages/PainelExecutivoPage";
+import FaturadosParcelasPage from "./pages/FaturadosParcelasPage";
 import NotFound from "./pages/NotFound";
 import type { ModuleKey } from "@/lib/modulePermissions";
 import { Lock } from "lucide-react";
