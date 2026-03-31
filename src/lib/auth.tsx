@@ -118,11 +118,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
 
     if (data && data.length > 0) {
+      setIsPending(false);
       const roles = data.map((r) => r.role as AppRole);
       if (roles.includes("admin")) setUserRole("admin");
       else if (roles.includes("conferente")) setUserRole("conferente");
       else setUserRole("operador");
     } else {
+      setIsPending(true);
       setUserRole("operador");
     }
   }
