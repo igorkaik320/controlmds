@@ -335,7 +335,7 @@ export default function Index() {
             </div>
             <div className="md:col-span-2">
               <Label className="text-xs uppercase tracking-[0.3em] text-slate-500">Tipo</Label>
-              <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value as any)} className="mt-1">
+              <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value as any)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Todos" />
                 </SelectTrigger>
