@@ -98,7 +98,7 @@ export function AppSidebar() {
   });
 
   groups.push({
-    label: 'Controle de Combustivel',
+    label: 'Gestao de Ativos',
     defaultOpen: false,
     items: [
       { title: 'Dashboard', url: '/combustivel/dashboard', icon: Fuel, module: 'combustivel_dashboard' },
