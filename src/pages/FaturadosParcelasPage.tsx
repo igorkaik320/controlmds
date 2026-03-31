@@ -8,7 +8,11 @@ import { fetchComprasFaturadas, formatCurrencyBR } from "@/lib/comprasService";
 import { fetchEmpresas, Empresa } from "@/lib/empresasService";
 import { fetchObras, Obra } from "@/lib/obrasService";
 import { buildInstallmentsFromItem, toIsoDateString } from "@/lib/parcelas";
+import { verificarLimiteGlobal, AlertaSimples } from "@/lib/limitesSimples";
 import EmpresaSelect from "@/components/compras/EmpresaSelect";
+import { AlertaSimplesCard } from "@/components/limites/AlertaSimplesCard";
+import { ConfigurarLimiteModal } from "@/components/limites/ConfigurarLimiteModal";
+import { Settings } from "lucide-react";
 
 const monthFormatter = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" });
 const dayFormatter = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "long" });
@@ -55,6 +59,8 @@ export default function FaturadosParcelasPage() {
   const [companies, setCompanies] = useState<Empresa[]>([]);
   const [obras, setObras] = useState<Obra[]>([]);
   const [exportingPdf, setExportingPdf] = useState(false);
+  const [alertas, setAlertas] = useState<AlertaSimples[]>([]);
+  const [refreshKey, setRefreshKey] = useState(0);
   const tableRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -184,6 +190,17 @@ export default function FaturadosParcelasPage() {
     }
     return Array.from(map.values()).sort((a, b) => (a.key > b.key ? -1 : a.key < b.key ? 1 : 0));
   }, [visibleInstallments]);
+
+  // Verificar limites simples
+  useEffect(() => {
+    if (!selectedMonth || months.length === 0) return;
+
+    const selectedMonthData = months.find(m => m.key === selectedMonth);
+    if (!selectedMonthData) return;
+
+    const alerta = verificarLimiteGlobal(selectedMonth, selectedMonthData.total);
+    setAlertas(alerta && alerta.tipo !== 'normal' ? [alerta] : []);
+  }, [selectedMonth, months, refreshKey]);
 
   useEffect(() => {
     if (!selectedMonth && months.length > 0) {
@@ -341,25 +358,66 @@ export default function FaturadosParcelasPage() {
       </header>
 
       <section className="space-y-4">
+        {/* Alertas de Limites */}
+        {alertas.length > 0 && (
+          <div className="space-y-3">
+            {alertas.map((alerta, index) => (
+              <AlertaSimplesCard key={index} alerta={alerta} />
+            ))}
+          </div>
+        )}
+        
         <div className="grid gap-4 md:grid-cols-3">
           {months.map((month) => {
             const isSelected = month.key === selectedMonth;
+            const alerta = verificarLimiteGlobal(month.key, month.total);
+            const hasAlerta = alerta && alerta.tipo !== 'normal';
+            
             return (
               <Card
                 key={month.key}
                 onClick={() => setSelectedMonth(month.key)}
                 className={`cursor-pointer border transition ${
-                  isSelected ? "border-blue-500 bg-blue-500/10 shadow-sm" : "border-slate-200 hover:border-slate-400"
+                  isSelected 
+                    ? "border-blue-500 bg-blue-500/10 shadow-sm" 
+                    : alerta?.tipo === 'perigo'
+                    ? "border-red-200 bg-red-50 hover:border-red-400"
+                    : alerta?.tipo === 'alerta'
+                    ? "border-yellow-200 bg-yellow-50 hover:border-yellow-400"
+                    : "border-slate-200 hover:border-slate-400"
                 }`}
               >
                 <CardHeader className="space-y-2">
-                  <CardTitle className="text-base">{month.label}</CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base">{month.label}</CardTitle>
+                    {hasAlerta && (
+                      <div className={`h-2 w-2 rounded-full ${
+                        alerta.tipo === 'perigo' ? 'bg-red-500' :
+                        alerta.tipo === 'alerta' ? 'bg-yellow-500' :
+                        'bg-green-500'
+                      }`} />
+                    )}
+                  </div>
                   <CardDescription className="text-sm text-muted-foreground">
                     {month.parcels} parcela{month.parcels === 1 ? "" : "s"}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-2xl font-semibold">{formatCurrencyBR(month.total)}</p>
+                  {alerta && (
+                    <div className="mt-2 space-y-1">
+                      <p className="text-xs text-muted-foreground">
+                        {alerta.percentual.toFixed(1)}% do limite
+                      </p>
+                      <p className={`text-xs font-medium ${
+                        alerta.valorDisponivel < 0 ? 'text-red-600' :
+                        alerta.valorDisponivel < (alerta.valorLimite * 0.2) ? 'text-yellow-600' :
+                        'text-green-600'
+                      }`}>
+                        Disponível: {formatCurrencyBR(alerta.valorDisponivel)}
+                      </p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             );
@@ -391,6 +449,15 @@ export default function FaturadosParcelasPage() {
             {monthDetails && (
               <p className="text-sm font-semibold text-blue-600 sm:order-0">{formatCurrencyBR(monthDetails.total)}</p>
             )}
+
+            <ConfigurarLimiteModal 
+              onLimiteCriado={() => setRefreshKey(prev => prev + 1)}
+            >
+              <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                <Settings className="h-4 w-4 mr-2" />
+                Configurar Limite
+              </Button>
+            </ConfigurarLimiteModal>
 
             <Button
               type="button"
