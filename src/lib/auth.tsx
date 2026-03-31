@@ -83,8 +83,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const nextUserId = nextUser?.id ?? null;
 
         if (!nextUser) {
-          setProfile(null);
+        setProfile(null);
           setUserRole("operador");
+          setIsPending(false);
           setLoading(false);
           return null;
         }
