@@ -93,6 +93,7 @@ export function AppSidebar() {
       { title: 'Espelho Geral', url: '/compras/espelho', icon: Eye, module: 'espelho_geral' },
       { title: 'Programacao Semanal', url: '/compras/programacao-semanal', icon: CalendarDays, module: 'programacao_semanal' },
       { title: 'Espelho Semanal', url: '/compras/espelho-semanal', icon: BarChart3, module: 'espelho_semanal' },
+      { title: 'Parcelas Faturadas', url: '/compras/parcelas-faturadas', icon: CalendarDays, module: 'parcelas_faturadas' },
     ],
   });
 

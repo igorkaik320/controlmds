@@ -177,6 +177,10 @@ const App = () => (
               path="/compras/espelho-semanal"
               element={<ModuleRoute module="espelho_semanal"><EspelhoSemanalPage /></ModuleRoute>}
             />
+            <Route
+              path="/compras/parcelas-faturadas"
+              element={<ModuleRoute module="parcelas_faturadas"><FaturadosParcelasPage /></ModuleRoute>}
+            />
 
             <Route path="/empresas" element={<ModuleRoute module="empresas"><EmpresasPage /></ModuleRoute>} />
             <Route path="/fornecedores" element={<ModuleRoute module="fornecedores"><FornecedoresPage /></ModuleRoute>} />

@@ -7,6 +7,7 @@ export const MODULES = [
   { key: 'espelho_geral', label: 'Espelho Geral' },
   { key: 'programacao_semanal', label: 'Programacao Semanal' },
   { key: 'espelho_semanal', label: 'Espelho Semanal' },
+  { key: 'parcelas_faturadas', label: 'Parcelas Faturadas' },
   { key: 'fornecedores', label: 'Fornecedores' },
   { key: 'obras', label: 'Obras' },
   { key: 'responsaveis', label: 'Responsaveis' },
