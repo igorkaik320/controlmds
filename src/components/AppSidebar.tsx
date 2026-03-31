@@ -85,7 +85,7 @@ export function AppSidebar() {
   });
 
   groups.push({
-    label: 'Previsao de Compras',
+    label: 'Suprimentos',
     defaultOpen: true,
     items: [
       { title: 'Compras Faturadas', url: '/compras/faturadas', icon: Receipt, module: 'compras_faturadas' },
@@ -98,7 +98,7 @@ export function AppSidebar() {
   });
 
   groups.push({
-    label: 'Controle de Combustivel',
+    label: 'Gestao de Ativos',
     defaultOpen: false,
     items: [
       { title: 'Dashboard', url: '/combustivel/dashboard', icon: Fuel, module: 'combustivel_dashboard' },
