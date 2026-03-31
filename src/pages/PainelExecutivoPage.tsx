@@ -141,29 +141,37 @@ export default function PainelExecutivoPage() {
       const abastecimentosFiltered = abastecimentos.filter((item) => inRange(item.data));
 
       const totalAvista = avistaFiltered.reduce((sum, item) => sum + item.valor, 0);
-      const totalFaturadas = faturadasFiltered.reduce((sum, item) => sum + item.valor, 0);
+      const totalFaturadas = faturadasWithInstallments.reduce((sum, entry) => sum + entry.valor, 0);
 
       const semPedidoAvista = avistaFiltered.filter((item) => !item.pedido?.trim());
-      const semPedidoFaturadas = faturadasFiltered.filter((item) => !item.pedido?.trim());
+      const semPedidoFaturadas = faturadasWithInstallments.filter((entry) => !entry.item.pedido?.trim());
 
       const totalSemPedido =
         semPedidoAvista.reduce((sum, item) => sum + item.valor, 0) +
-        semPedidoFaturadas.reduce((sum, item) => sum + item.valor, 0);
+        semPedidoFaturadas.reduce((sum, entry) => sum + entry.valor, 0);
 
       const totalProgramacao = programacaoFiltered.reduce((sum, item) => sum + item.valor, 0);
       const totalCombustivel = abastecimentosFiltered.reduce((sum, item) => sum + item.valor_total, 0);
       const totalLitros = abastecimentosFiltered.reduce((sum, item) => sum + item.quantidade_litros, 0);
 
       const obrasMap = new Map<string, number>();
-      [...avistaFiltered, ...faturadasFiltered, ...programacaoFiltered].forEach((item) => {
+      [...avistaFiltered, ...programacaoFiltered].forEach((item) => {
         const obra = item.obra?.trim() || 'Sem obra';
         obrasMap.set(obra, (obrasMap.get(obra) || 0) + item.valor);
       });
+      faturadasWithInstallments.forEach((entry) => {
+        const obra = entry.item.obra?.trim() || 'Sem obra';
+        obrasMap.set(obra, (obrasMap.get(obra) || 0) + entry.valor);
+      });
 
       const fornecedoresMap = new Map<string, number>();
-      [...avistaFiltered, ...faturadasFiltered, ...programacaoFiltered].forEach((item) => {
+      [...avistaFiltered, ...programacaoFiltered].forEach((item) => {
         const fornecedor = item.fornecedor?.trim() || 'Sem fornecedor';
         fornecedoresMap.set(fornecedor, (fornecedoresMap.get(fornecedor) || 0) + item.valor);
+      });
+      faturadasWithInstallments.forEach((entry) => {
+        const fornecedor = entry.item.fornecedor?.trim() || 'Sem fornecedor';
+        fornecedoresMap.set(fornecedor, (fornecedoresMap.get(fornecedor) || 0) + entry.valor);
       });
 
       const veiculosMap = new Map<string, number>();
