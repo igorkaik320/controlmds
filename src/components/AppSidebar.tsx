@@ -85,7 +85,7 @@ export function AppSidebar() {
   });
 
   groups.push({
-    label: 'Previsao de Compras',
+    label: 'Suprimentos',
     defaultOpen: true,
     items: [
       { title: 'Compras Faturadas', url: '/compras/faturadas', icon: Receipt, module: 'compras_faturadas' },
