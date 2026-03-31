@@ -28,6 +28,7 @@ import DashboardCombustivelPage from "./pages/DashboardCombustivelPage";
 import RevisoesCombustivelPage from "./pages/RevisoesCombustivelPage";
 import EmpresasPage from "./pages/EmpresasPage";
 import PainelExecutivoPage from "./pages/PainelExecutivoPage";
+import FaturadosParcelasPage from "./pages/FaturadosParcelasPage";
 import NotFound from "./pages/NotFound";
 import type { ModuleKey } from "@/lib/modulePermissions";
 import { Lock } from "lucide-react";
@@ -175,6 +176,10 @@ const App = () => (
             <Route
               path="/compras/espelho-semanal"
               element={<ModuleRoute module="espelho_semanal"><EspelhoSemanalPage /></ModuleRoute>}
+            />
+            <Route
+              path="/compras/parcelas-faturadas"
+              element={<ModuleRoute module="parcelas_faturadas"><FaturadosParcelasPage /></ModuleRoute>}
             />
 
             <Route path="/empresas" element={<ModuleRoute module="empresas"><EmpresasPage /></ModuleRoute>} />
