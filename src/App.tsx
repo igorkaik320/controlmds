@@ -185,6 +185,10 @@ const App = () => (
               path="/suprimentos/compras/espelho-semanal"
               element={<ModuleRoute module="espelho_semanal"><EspelhoSemanalPage /></ModuleRoute>}
             />
+            <Route
+              path="/compras/parcelas-faturadas"
+              element={<ModuleRoute module="parcelas_faturadas"><FaturadosParcelasPage /></ModuleRoute>}
+            />
 
             {/* Backward-compatible redirects (old routes -> new routes) */}
             <Route path="/financeiro/faturados-parcelas" element={<Navigate to="/suprimentos/compras/parcelas-faturadas" replace />} />

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { buildInstallmentsFromItem, toIsoDateString } from '@/lib/parcelas';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -122,34 +123,55 @@ export default function PainelExecutivoPage() {
       };
 
       const avistaFiltered = comprasAvista.filter((item) => inRange(item.data));
-      const faturadasFiltered = comprasFaturadas.filter((item) => inRange(item.data));
+
+      // For faturadas, consider only installments with due dates in the selected range
+      const faturadasWithInstallments: Array<{ item: typeof comprasFaturadas[0]; valor: number }> = [];
+      comprasFaturadas.forEach((item) => {
+        const installments = buildInstallmentsFromItem(item);
+        const matchingValue = installments.reduce((sum, inst) => {
+          const isoDate = toIsoDateString(inst.due);
+          return inRange(isoDate) ? sum + inst.value : sum;
+        }, 0);
+        if (matchingValue > 0) {
+          faturadasWithInstallments.push({ item, valor: matchingValue });
+        }
+      });
+
       const programacaoFiltered = programacao.filter((item) => inRange(item.data));
       const abastecimentosFiltered = abastecimentos.filter((item) => inRange(item.data));
 
       const totalAvista = avistaFiltered.reduce((sum, item) => sum + item.valor, 0);
-      const totalFaturadas = faturadasFiltered.reduce((sum, item) => sum + item.valor, 0);
+      const totalFaturadas = faturadasWithInstallments.reduce((sum, entry) => sum + entry.valor, 0);
 
       const semPedidoAvista = avistaFiltered.filter((item) => !item.pedido?.trim());
-      const semPedidoFaturadas = faturadasFiltered.filter((item) => !item.pedido?.trim());
+      const semPedidoFaturadas = faturadasWithInstallments.filter((entry) => !entry.item.pedido?.trim());
 
       const totalSemPedido =
         semPedidoAvista.reduce((sum, item) => sum + item.valor, 0) +
-        semPedidoFaturadas.reduce((sum, item) => sum + item.valor, 0);
+        semPedidoFaturadas.reduce((sum, entry) => sum + entry.valor, 0);
 
       const totalProgramacao = programacaoFiltered.reduce((sum, item) => sum + item.valor, 0);
       const totalCombustivel = abastecimentosFiltered.reduce((sum, item) => sum + item.valor_total, 0);
       const totalLitros = abastecimentosFiltered.reduce((sum, item) => sum + item.quantidade_litros, 0);
 
       const obrasMap = new Map<string, number>();
-      [...avistaFiltered, ...faturadasFiltered, ...programacaoFiltered].forEach((item) => {
+      [...avistaFiltered, ...programacaoFiltered].forEach((item) => {
         const obra = item.obra?.trim() || 'Sem obra';
         obrasMap.set(obra, (obrasMap.get(obra) || 0) + item.valor);
       });
+      faturadasWithInstallments.forEach((entry) => {
+        const obra = entry.item.obra?.trim() || 'Sem obra';
+        obrasMap.set(obra, (obrasMap.get(obra) || 0) + entry.valor);
+      });
 
       const fornecedoresMap = new Map<string, number>();
-      [...avistaFiltered, ...faturadasFiltered, ...programacaoFiltered].forEach((item) => {
+      [...avistaFiltered, ...programacaoFiltered].forEach((item) => {
         const fornecedor = item.fornecedor?.trim() || 'Sem fornecedor';
         fornecedoresMap.set(fornecedor, (fornecedoresMap.get(fornecedor) || 0) + item.valor);
+      });
+      faturadasWithInstallments.forEach((entry) => {
+        const fornecedor = entry.item.fornecedor?.trim() || 'Sem fornecedor';
+        fornecedoresMap.set(fornecedor, (fornecedoresMap.get(fornecedor) || 0) + entry.valor);
       });
 
       const veiculosMap = new Map<string, number>();
@@ -179,13 +201,13 @@ export default function PainelExecutivoPage() {
           obra: item.obra || 'Sem obra',
           valor: item.valor,
         })),
-        ...semPedidoFaturadas.map((item) => ({
-          id: item.id,
+        ...semPedidoFaturadas.map((entry) => ({
+          id: entry.item.id,
           origem: 'Faturada' as const,
-          data: item.data,
-          fornecedor: item.fornecedor,
-          obra: item.obra || 'Sem obra',
-          valor: item.valor,
+          data: entry.item.data,
+          fornecedor: entry.item.fornecedor,
+          obra: entry.item.obra || 'Sem obra',
+          valor: entry.valor,
         })),
       ]
         .sort((a, b) => b.data.localeCompare(a.data))
