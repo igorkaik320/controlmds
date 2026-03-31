@@ -14,6 +14,7 @@ interface AuthCtx {
   session: Session | null;
   profile: Profile | null;
   userRole: AppRole;
+  isPending: boolean;
   loading: boolean;
   signUp: (email: string, password: string, displayName: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
@@ -28,6 +29,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [userRole, setUserRole] = useState<AppRole>("operador");
+  const [isPending, setIsPending] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -81,8 +83,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const nextUserId = nextUser?.id ?? null;
 
         if (!nextUser) {
-          setProfile(null);
+        setProfile(null);
           setUserRole("operador");
+          setIsPending(false);
           setLoading(false);
           return null;
         }
@@ -116,11 +119,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
 
     if (data && data.length > 0) {
+      setIsPending(false);
       const roles = data.map((r) => r.role as AppRole);
       if (roles.includes("admin")) setUserRole("admin");
       else if (roles.includes("conferente")) setUserRole("conferente");
       else setUserRole("operador");
     } else {
+      setIsPending(true);
       setUserRole("operador");
     }
   }
@@ -149,7 +154,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, userRole, loading, signUp, signIn, signOut, hasRole }}>
+    <AuthContext.Provider value={{ user, session, profile, userRole, isPending, loading, signUp, signIn, signOut, hasRole }}>
       {children}
     </AuthContext.Provider>
   );
