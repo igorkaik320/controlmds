@@ -123,7 +123,20 @@ export default function PainelExecutivoPage() {
       };
 
       const avistaFiltered = comprasAvista.filter((item) => inRange(item.data));
-      const faturadasFiltered = comprasFaturadas.filter((item) => inRange(item.data));
+
+      // For faturadas, consider only installments with due dates in the selected range
+      const faturadasWithInstallments: Array<{ item: typeof comprasFaturadas[0]; valor: number }> = [];
+      comprasFaturadas.forEach((item) => {
+        const installments = buildInstallmentsFromItem(item);
+        const matchingValue = installments.reduce((sum, inst) => {
+          const isoDate = toIsoDateString(inst.due);
+          return inRange(isoDate) ? sum + inst.value : sum;
+        }, 0);
+        if (matchingValue > 0) {
+          faturadasWithInstallments.push({ item, valor: matchingValue });
+        }
+      });
+
       const programacaoFiltered = programacao.filter((item) => inRange(item.data));
       const abastecimentosFiltered = abastecimentos.filter((item) => inRange(item.data));
 
