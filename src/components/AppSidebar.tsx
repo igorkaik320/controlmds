@@ -1,16 +1,6 @@
+import { useState } from 'react';
 import { useAuth } from '@/lib/auth';
 import { useModulePermissions } from '@/hooks/useModulePermissions';
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  useSidebar,
-} from '@/components/ui/sidebar';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { NavLink } from '@/components/NavLink';
 import {
   Landmark,
@@ -25,7 +15,6 @@ import {
   LogOut,
   Lock,
   Building2,
-  ChevronDown,
   CalendarDays,
   BarChart3,
   UserCheck,
@@ -35,11 +24,18 @@ import {
   Factory,
   MapPinned,
   Wrench,
+  ClipboardList,
+  Cog,
+  Package,
+  ChevronLeft,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ModuleKey } from '@/lib/modulePermissions';
 import { confirmDraftDiscard } from '@/lib/draftGuard';
 import { MdsLogo } from './MdsLogo';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
+import { useLocation } from 'react-router-dom';
 
 interface MenuItem {
   title: string;
@@ -49,77 +45,92 @@ interface MenuItem {
 }
 
 interface MenuGroup {
+  key: string;
   label: string;
+  icon: any;
   items: MenuItem[];
-  defaultOpen?: boolean;
 }
 
 export function AppSidebar() {
-  const { state } = useSidebar();
-  const collapsed = state === 'collapsed';
   const { userRole, profile, signOut } = useAuth();
   const { canAccess, loading: permLoading } = useModulePermissions();
   const isAdmin = userRole === 'admin';
+  const location = useLocation();
+  const [activeGroup, setActiveGroup] = useState<string | null>(null);
 
   const groups: MenuGroup[] = [];
 
   if (isAdmin) {
     groups.push({
-      label: 'Administracao',
-      defaultOpen: true,
+      key: 'admin',
+      label: 'Administração',
+      icon: Cog,
       items: [
         { title: 'Painel Executivo', url: '/painel-executivo', icon: LayoutDashboard },
-        { title: 'Usuarios', url: '/usuarios', icon: Users },
+        { title: 'Usuários', url: '/usuarios', icon: Users },
         { title: 'Auditoria', url: '/auditoria', icon: History },
-        { title: 'Config. Relatorio', url: '/config-relatorio', icon: Settings },
+        { title: 'Config. Relatório', url: '/config-relatorio', icon: Settings },
       ],
     });
   }
 
   groups.push({
+    key: 'financeiro',
     label: 'Financeiro',
-    defaultOpen: true,
+    icon: Landmark,
     items: [
       { title: 'Controle de Caixa', url: '/controle-caixa', icon: Landmark, module: 'controle_caixa' },
     ],
   });
 
   groups.push({
+    key: 'suprimentos',
     label: 'Suprimentos',
-    defaultOpen: true,
+    icon: Package,
     items: [
       { title: 'Compras Faturadas', url: '/compras/faturadas', icon: Receipt, module: 'compras_faturadas' },
-      { title: 'Compras a Vista', url: '/compras/avista', icon: ShoppingCart, module: 'compras_avista' },
+      { title: 'Compras à Vista', url: '/compras/avista', icon: ShoppingCart, module: 'compras_avista' },
       { title: 'Espelho Geral', url: '/compras/espelho', icon: Eye, module: 'espelho_geral' },
-      { title: 'Programacao Semanal', url: '/compras/programacao-semanal', icon: CalendarDays, module: 'programacao_semanal' },
+      { title: 'Programação Semanal', url: '/compras/programacao-semanal', icon: CalendarDays, module: 'programacao_semanal' },
       { title: 'Espelho Semanal', url: '/compras/espelho-semanal', icon: BarChart3, module: 'espelho_semanal' },
       { title: 'Parcelas Faturadas', url: '/compras/parcelas-faturadas', icon: CalendarDays, module: 'parcelas_faturadas' },
     ],
   });
 
   groups.push({
-    label: 'Gestao de Ativos',
-    defaultOpen: false,
+    key: 'ativos',
+    label: 'Gestão de Ativos',
+    icon: Fuel,
     items: [
       { title: 'Dashboard', url: '/combustivel/dashboard', icon: Fuel, module: 'combustivel_dashboard' },
       { title: 'Abastecimentos', url: '/combustivel/abastecimentos', icon: Droplets, module: 'abastecimentos' },
-      { title: 'Revisoes', url: '/combustivel/revisoes', icon: Wrench, module: 'revisoes_combustivel' },
+      { title: 'Revisões', url: '/combustivel/revisoes', icon: Wrench, module: 'revisoes_combustivel' },
     ],
   });
 
   groups.push({
+    key: 'cadastros',
     label: 'Cadastros',
-    defaultOpen: false,
+    icon: ClipboardList,
     items: [
       { title: 'Empresas', url: '/empresas', icon: Factory, module: 'empresas' },
       { title: 'Fornecedores', url: '/fornecedores', icon: Truck, module: 'fornecedores' },
       { title: 'Obras', url: '/obras', icon: Building2, module: 'obras' },
-      { title: 'Responsaveis', url: '/responsaveis', icon: UserCheck, module: 'responsaveis' },
-      { title: 'Veiculos/Maquinas', url: '/veiculos', icon: Car, module: 'veiculos_maquinas' },
-      { title: 'Postos de Combustivel', url: '/postos-combustivel', icon: MapPinned, module: 'postos_combustivel' },
-      { title: 'Tipos de Combustivel', url: '/tipos-combustivel', icon: Droplets, module: 'tipos_combustivel' },
+      { title: 'Responsáveis', url: '/responsaveis', icon: UserCheck, module: 'responsaveis' },
+      { title: 'Veículos/Máquinas', url: '/veiculos', icon: Car, module: 'veiculos_maquinas' },
+      { title: 'Postos de Combustível', url: '/postos-combustivel', icon: MapPinned, module: 'postos_combustivel' },
+      { title: 'Tipos de Combustível', url: '/tipos-combustivel', icon: Droplets, module: 'tipos_combustivel' },
     ],
   });
+
+  // Detect which group is active based on current route
+  const currentGroupKey = groups.find((g) =>
+    g.items.some((item) => location.pathname.startsWith(item.url))
+  )?.key;
+
+  function handleGroupClick(key: string) {
+    setActiveGroup((prev) => (prev === key ? null : key));
+  }
 
   function renderMenuItem(item: MenuItem) {
     const hasAccess = !item.module || canAccess(item.module);
@@ -127,34 +138,32 @@ export function AppSidebar() {
 
     if (locked) {
       return (
-        <SidebarMenuItem key={item.url}>
-          <SidebarMenuButton className="cursor-not-allowed rounded-xl px-3 py-2 text-white/35 opacity-45">
-            <item.icon className="h-4 w-4" />
-            {!collapsed && (
-              <>
-                <span>{item.title}</span>
-                <Lock className="ml-auto h-3.5 w-3.5" />
-              </>
-            )}
-            {collapsed && <Lock className="h-3.5 w-3.5" />}
-          </SidebarMenuButton>
-        </SidebarMenuItem>
+        <li key={item.url}>
+          <div className="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2.5 text-white/30">
+            <item.icon className="h-4 w-4 shrink-0" />
+            <span className="text-sm">{item.title}</span>
+            <Lock className="ml-auto h-3.5 w-3.5" />
+          </div>
+        </li>
       );
     }
 
+    const isActive = location.pathname === item.url || location.pathname.startsWith(item.url + '/');
+
     return (
-      <SidebarMenuItem key={item.url}>
-        <SidebarMenuButton asChild>
-          <NavLink
-            to={item.url}
-            className="rounded-xl px-3 py-2 text-[14px] text-white/78 transition-all duration-200 hover:bg-white/8 hover:text-white"
-            activeClassName="bg-blue-500 text-white font-semibold shadow-[0_6px_18px_rgba(59,130,246,0.35)]"
-          >
-            <item.icon className="h-4 w-4" />
-            {!collapsed && <span>{item.title}</span>}
-          </NavLink>
-        </SidebarMenuButton>
-      </SidebarMenuItem>
+      <li key={item.url}>
+        <NavLink
+          to={item.url}
+          className={cn(
+            'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-white/75 transition-all duration-150 hover:bg-white/10 hover:text-white',
+            isActive && 'bg-blue-500/90 text-white font-semibold shadow-[0_4px_14px_rgba(59,130,246,0.35)]'
+          )}
+          activeClassName=""
+        >
+          <item.icon className="h-4 w-4 shrink-0" />
+          <span>{item.title}</span>
+        </NavLink>
+      </li>
     );
   }
 
@@ -163,69 +172,107 @@ export function AppSidebar() {
     await signOut();
   }
 
+  const openGroup = groups.find((g) => g.key === activeGroup);
+
   return (
-    <Sidebar collapsible="icon" className="border-r border-slate-700/40 bg-[#233247]">
-      <SidebarContent className="bg-[#233247]">
-        {!collapsed && (
-          <div className="border-b border-white/10 bg-[#0f1a2d] px-4 pt-6 pb-4">
-            <div className="mb-3">
-              <MdsLogo
-                lettersClassName="text-3xl font-black uppercase tracking-[0.05em] text-white"
-                textClassName="text-sm font-semibold uppercase tracking-[0.35em] text-blue-200 -mt-1 translate-y-2"
-              />
-            </div>
-            <div className="space-y-2">
-              <p className="text-sm text-white/75">{profile?.display_name}</p>
-              <span className="inline-flex rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium text-white/90">
-                {userRole === 'admin'
-                  ? 'Administracao'
-                  : userRole === 'conferente'
-                  ? 'Conferente'
-                  : 'Operador'}
-              </span>
-            </div>
+    <TooltipProvider delayDuration={100}>
+      <div className="flex h-screen shrink-0">
+        {/* Icon strip */}
+        <div className="flex w-[60px] flex-col items-center border-r border-white/10 bg-[#0f1a2d] py-4">
+          {/* Logo */}
+          <div className="mb-6 flex h-10 w-10 items-center justify-center">
+            <span className="text-lg font-black text-white tracking-wider">M</span>
           </div>
-        )}
 
-        <SidebarGroup className="px-3 py-3">
-          {groups.map((group) => (
-            <div key={group.label} className="mb-3">
-              {collapsed ? (
-                <SidebarGroupContent>
-                  <SidebarMenu className="space-y-1">
-                    {group.items.map(renderMenuItem)}
-                  </SidebarMenu>
-                </SidebarGroupContent>
-              ) : (
-                <Collapsible defaultOpen={group.defaultOpen}>
-                  <CollapsibleTrigger className="flex w-full items-center justify-between px-2 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/55 transition-colors hover:text-white/85">
-                    <span>{group.label}</span>
-                    <ChevronDown className="h-3.5 w-3.5" />
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <SidebarGroupContent>
-                      <SidebarMenu className="space-y-1">
-                        {group.items.map(renderMenuItem)}
-                      </SidebarMenu>
-                    </SidebarGroupContent>
-                  </CollapsibleContent>
-                </Collapsible>
-              )}
-            </div>
-          ))}
-        </SidebarGroup>
+          {/* Group icons */}
+          <nav className="flex flex-1 flex-col items-center gap-1">
+            {groups.map((group) => {
+              const isGroupActive = currentGroupKey === group.key;
+              const isOpen = activeGroup === group.key;
 
-        <div className="mt-auto border-t border-white/10 p-3">
-          <Button
-            variant="ghost"
-            className="w-full justify-start rounded-xl text-white/72 hover:bg-white/8 hover:text-white"
-            onClick={handleSignOut}
-          >
-            <LogOut className="mr-2 h-4 w-4" />
-            {!collapsed && 'Sair'}
-          </Button>
+              return (
+                <Tooltip key={group.key}>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => handleGroupClick(group.key)}
+                      className={cn(
+                        'flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-150',
+                        isOpen
+                          ? 'bg-blue-500 text-white shadow-[0_4px_14px_rgba(59,130,246,0.4)]'
+                          : isGroupActive
+                          ? 'bg-white/15 text-white'
+                          : 'text-white/50 hover:bg-white/8 hover:text-white/80'
+                      )}
+                    >
+                      <group.icon className="h-5 w-5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" className="bg-slate-800 text-white border-slate-700">
+                    {group.label}
+                  </TooltipContent>
+                </Tooltip>
+              );
+            })}
+          </nav>
+
+          {/* Sign out */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={handleSignOut}
+                className="flex h-10 w-10 items-center justify-center rounded-xl text-white/50 transition-all hover:bg-white/8 hover:text-white/80"
+              >
+                <LogOut className="h-5 w-5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right" className="bg-slate-800 text-white border-slate-700">
+              Sair
+            </TooltipContent>
+          </Tooltip>
         </div>
-      </SidebarContent>
-    </Sidebar>
+
+        {/* Expandable subitems panel */}
+        <div
+          className={cn(
+            'flex flex-col overflow-hidden bg-[#233247] transition-all duration-250 ease-in-out',
+            openGroup ? 'w-[220px] border-r border-white/10' : 'w-0'
+          )}
+        >
+          {openGroup && (
+            <div className="flex h-full w-[220px] flex-col">
+              {/* Panel header */}
+              <div className="flex items-center justify-between border-b border-white/10 px-4 py-4">
+                <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-white/60">
+                  {openGroup.label}
+                </h2>
+                <button
+                  onClick={() => setActiveGroup(null)}
+                  className="rounded p-1 text-white/40 hover:bg-white/10 hover:text-white/70"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* User info */}
+              <div className="border-b border-white/10 px-4 py-3">
+                <p className="truncate text-sm text-white/75">{profile?.display_name}</p>
+                <span className="mt-1 inline-flex rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium text-white/80">
+                  {userRole === 'admin'
+                    ? 'Administração'
+                    : userRole === 'conferente'
+                    ? 'Conferente'
+                    : 'Operador'}
+                </span>
+              </div>
+
+              {/* Items */}
+              <ul className="flex-1 space-y-0.5 overflow-auto px-2 py-3">
+                {openGroup.items.map(renderMenuItem)}
+              </ul>
+            </div>
+          )}
+        </div>
+      </div>
+    </TooltipProvider>
   );
 }
