@@ -176,7 +176,7 @@ export function AppSidebar() {
 
   return (
     <TooltipProvider delayDuration={100}>
-      <div className="flex h-screen shrink-0">
+      <div className="sticky top-0 flex h-screen shrink-0">
         {/* Icon strip */}
         <div className="flex w-[60px] flex-col items-center border-r border-white/10 bg-[#0f1a2d] py-4">
           {/* Logo */}
