@@ -401,53 +401,53 @@ export default function PainelExecutivoPage() {
       </Card>
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <Card>
-          <CardContent className="p-4">
+        <Card className="bg-gradient-to-br from-slate-900 via-blue-900 to-cyan-700 text-white border-transparent shadow-lg">
+          <CardContent className="p-4 text-white">
             <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">Previsao de Compras</p>
-              <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+              <p className="text-xs uppercase tracking-wide text-white/70">Previsao de Compras</p>
+              <ShoppingCart className="h-4 w-4 text-white/70" />
             </div>
             <p className="mt-2 text-2xl font-bold">{formatCurrencyBR(totalCompras)}</p>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1 text-xs text-white/70">
               {formatCurrencyBR(comprasAvistaTotal)} a vista e {formatCurrencyBR(comprasFaturadasTotal)} faturadas.
             </p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-4">
+        <Card className="bg-gradient-to-br from-rose-900 via-orange-600 to-amber-500 text-white border-transparent shadow-lg">
+          <CardContent className="p-4 text-white">
             <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">Sem Pedido</p>
-              <FileWarning className="h-4 w-4 text-muted-foreground" />
+              <p className="text-xs uppercase tracking-wide text-white/80">Sem Pedido</p>
+              <FileWarning className="h-4 w-4 text-white/80" />
             </div>
             <p className="mt-2 text-2xl font-bold">{formatCurrencyBR(comprasSemPedidoTotal)}</p>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1 text-xs text-white/80">
               {comprasSemPedidoCount} lancamentos no periodo.
             </p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-4">
+        <Card className="bg-gradient-to-br from-emerald-900 via-emerald-700 to-emerald-500 text-white border-transparent shadow-lg">
+          <CardContent className="p-4 text-white">
             <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">Programacao</p>
-              <CalendarClock className="h-4 w-4 text-muted-foreground" />
+              <p className="text-xs uppercase tracking-wide text-white/70">Programacao</p>
+              <CalendarClock className="h-4 w-4 text-white/70" />
             </div>
             <p className="mt-2 text-2xl font-bold">{formatCurrencyBR(programacaoTotal)}</p>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1 text-xs text-white/70">
               {programacaoSemResponsavel} itens sem responsavel.
             </p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="p-4">
+        <Card className="bg-gradient-to-br from-cyan-900 via-sky-700 to-blue-500 text-white border-transparent shadow-lg">
+          <CardContent className="p-4 text-white">
             <div className="flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">Combustivel</p>
-              <Fuel className="h-4 w-4 text-muted-foreground" />
+              <p className="text-xs uppercase tracking-wide text-white/70">Combustivel</p>
+              <Fuel className="h-4 w-4 text-white/70" />
             </div>
             <p className="mt-2 text-2xl font-bold">{formatCurrencyBR(combustivelTotal)}</p>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1 text-xs text-white/70">
               {combustivelLitros.toFixed(1)} L em {abastecimentosCount} abastecimentos.
             </p>
           </CardContent>

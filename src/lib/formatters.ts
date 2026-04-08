@@ -104,3 +104,12 @@ export function formatDateSafe(value?: string | null): string {
 
   return parsed.toLocaleDateString('pt-BR');
 }
+
+export function parseDateOnly(value: string): Date {
+  const isoSegment = value.split('T')[0];
+  return new Date(`${isoSegment}T00:00:00`);
+}
+
+export function formatLocalDate(value: string): string {
+  return parseDateOnly(value).toLocaleDateString('pt-BR');
+}

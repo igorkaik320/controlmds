@@ -17,6 +17,9 @@ import {
   Building2,
   CalendarDays,
   BarChart3,
+  CircleDollarSign,
+  FileBarChart,
+  Flame,
   UserCheck,
   Fuel,
   Car,
@@ -24,10 +27,14 @@ import {
   Factory,
   MapPinned,
   Wrench,
-  ClipboardList,
   Cog,
   Package,
   ChevronLeft,
+  Building,
+  HardHat,
+  Warehouse,
+  Wrench as Tools,
+  Users as AdminIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ModuleKey } from '@/lib/modulePermissions';
@@ -64,7 +71,7 @@ export function AppSidebar() {
     groups.push({
       key: 'admin',
       label: 'Administração',
-      icon: Cog,
+      icon: AdminIcon,
       items: [
         { title: 'Painel Executivo', url: '/painel-executivo', icon: LayoutDashboard },
         { title: 'Usuários', url: '/usuarios', icon: Users },
@@ -77,7 +84,7 @@ export function AppSidebar() {
   groups.push({
     key: 'financeiro',
     label: 'Financeiro',
-    icon: Landmark,
+    icon: CircleDollarSign,
     items: [
       { title: 'Controle de Caixa', url: '/controle-caixa', icon: Landmark, module: 'controle_caixa' },
     ],
@@ -93,33 +100,36 @@ export function AppSidebar() {
       { title: 'Espelho Geral', url: '/compras/espelho', icon: Eye, module: 'espelho_geral' },
       { title: 'Programação Semanal', url: '/compras/programacao-semanal', icon: CalendarDays, module: 'programacao_semanal' },
       { title: 'Espelho Semanal', url: '/compras/espelho-semanal', icon: BarChart3, module: 'espelho_semanal' },
-      { title: 'Parcelas Faturadas', url: '/compras/parcelas-faturadas', icon: CalendarDays, module: 'parcelas_faturadas' },
+      { title: 'Parcelas Faturadas', url: '/compras/parcelas-faturadas', icon: FileBarChart, module: 'parcelas_faturadas' },
     ],
   });
 
   groups.push({
     key: 'ativos',
     label: 'Gestão de Ativos',
-    icon: Fuel,
+    icon: Truck,
     items: [
       { title: 'Dashboard', url: '/combustivel/dashboard', icon: Fuel, module: 'combustivel_dashboard' },
       { title: 'Abastecimentos', url: '/combustivel/abastecimentos', icon: Droplets, module: 'abastecimentos' },
       { title: 'Revisões', url: '/combustivel/revisoes', icon: Wrench, module: 'revisoes_combustivel' },
+      { title: 'Manutenção', url: '/manutencao/equipamentos', icon: Tools, module: 'manutencao_equipamentos' },
     ],
   });
 
   groups.push({
     key: 'cadastros',
     label: 'Cadastros',
-    icon: ClipboardList,
+    icon: Cog,
     items: [
       { title: 'Empresas', url: '/empresas', icon: Factory, module: 'empresas' },
       { title: 'Fornecedores', url: '/fornecedores', icon: Truck, module: 'fornecedores' },
       { title: 'Obras', url: '/obras', icon: Building2, module: 'obras' },
       { title: 'Responsáveis', url: '/responsaveis', icon: UserCheck, module: 'responsaveis' },
       { title: 'Veículos/Máquinas', url: '/veiculos', icon: Car, module: 'veiculos_maquinas' },
+      { title: 'Equipamentos', url: '/equipamentos', icon: HardHat, module: 'equipamentos' },
+      { title: 'Setores', url: '/setores', icon: Building, module: 'setores' },
       { title: 'Postos de Combustível', url: '/postos-combustivel', icon: MapPinned, module: 'postos_combustivel' },
-      { title: 'Tipos de Combustível', url: '/tipos-combustivel', icon: Droplets, module: 'tipos_combustivel' },
+      { title: 'Tipos de Combustível', url: '/tipos-combustivel', icon: Flame, module: 'tipos_combustivel' },
     ],
   });
 
