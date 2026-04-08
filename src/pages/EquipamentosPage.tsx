@@ -8,19 +8,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, Pencil, Trash2, Wrench } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useModulePermissions } from '@/hooks/useModulePermissions';
-import { Equipamento, fetchEquipamentos, saveEquipamento, updateEquipamento, deleteEquipamento, fetchSetores } from '@/lib/equipamentosService';
+import {
+  fetchEquipamentos,
+  saveEquipamento,
+  updateEquipamento,
+  deleteEquipamento,
+  fetchSetores,
+  type Equipamento,
+} from '@/lib/equipamentosService';
 import { toast } from 'sonner';
-
-interface Equipamento {
-  id: string;
-  nome: string;
-  marca?: string;
-  modelo?: string;
-  setor_id?: string;
-  setor_nome?: string;
-  created_at: string;
-  updated_at: string;
-}
 
 const emptyForm = {
   nome: '',
@@ -100,6 +96,7 @@ export default function EquipamentosPage() {
         marca: form.marca.trim() || null,
         modelo: form.modelo.trim() || null,
         setor_id: form.setor_id || null,
+        created_by: user.id,
       };
 
       console.log('Payload:', payload);
