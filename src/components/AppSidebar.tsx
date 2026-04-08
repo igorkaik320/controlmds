@@ -30,16 +30,11 @@ import {
   Cog,
   Package,
   ChevronLeft,
-  Building,
-  HardHat,
   Warehouse,
-  Wrench as Tools,
   Users as AdminIcon,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { ModuleKey } from '@/lib/modulePermissions';
 import { confirmDraftDiscard } from '@/lib/draftGuard';
-import { MdsLogo } from './MdsLogo';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useLocation } from 'react-router-dom';
@@ -112,7 +107,9 @@ export function AppSidebar() {
       { title: 'Dashboard', url: '/combustivel/dashboard', icon: Fuel, module: 'combustivel_dashboard' },
       { title: 'Abastecimentos', url: '/combustivel/abastecimentos', icon: Droplets, module: 'abastecimentos' },
       { title: 'Revisões', url: '/combustivel/revisoes', icon: Wrench, module: 'revisoes_combustivel' },
-      { title: 'Manutenção', url: '/manutencao/equipamentos', icon: Tools, module: 'manutencao_equipamentos' },
+      { title: 'Veículos/Máquinas', url: '/veiculos', icon: Car, module: 'veiculos_maquinas' },
+      { title: 'Postos de Combustível', url: '/postos-combustivel', icon: MapPinned, module: 'postos_combustivel' },
+      { title: 'Tipos de Combustível', url: '/tipos-combustivel', icon: Flame, module: 'tipos_combustivel' },
     ],
   });
 
@@ -125,11 +122,6 @@ export function AppSidebar() {
       { title: 'Fornecedores', url: '/fornecedores', icon: Truck, module: 'fornecedores' },
       { title: 'Obras', url: '/obras', icon: Building2, module: 'obras' },
       { title: 'Responsáveis', url: '/responsaveis', icon: UserCheck, module: 'responsaveis' },
-      { title: 'Veículos/Máquinas', url: '/veiculos', icon: Car, module: 'veiculos_maquinas' },
-      { title: 'Equipamentos', url: '/equipamentos', icon: HardHat, module: 'equipamentos' },
-      { title: 'Setores', url: '/setores', icon: Building, module: 'setores' },
-      { title: 'Postos de Combustível', url: '/postos-combustivel', icon: MapPinned, module: 'postos_combustivel' },
-      { title: 'Tipos de Combustível', url: '/tipos-combustivel', icon: Flame, module: 'tipos_combustivel' },
     ],
   });
 

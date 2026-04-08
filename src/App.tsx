@@ -30,9 +30,6 @@ import RevisoesCombustivelPage from "./pages/RevisoesCombustivelPage";
 import EmpresasPage from "./pages/EmpresasPage";
 import PainelExecutivoPage from "./pages/PainelExecutivoPage";
 import FaturadosParcelasPage from "./pages/FaturadosParcelasPage";
-import EquipamentosPage from "./pages/EquipamentosPageAutoSetup";
-import SetoresPage from "./pages/SetoresPageWorking";
-import ManutencaoPage from "./pages/ManutencaoPageFinal";
 import NotFound from "./pages/NotFound";
 import type { ModuleKey } from "@/lib/modulePermissions";
 import { Lock } from "lucide-react";
@@ -211,22 +208,6 @@ const App = () => (
                 <Route path="/responsaveis" element={<ModuleRoute module="responsaveis"><ResponsaveisPage /></ModuleRoute>} />
                 <Route path="/veiculos" element={<ModuleRoute module="veiculos_maquinas"><VeiculosMaquinasPage /></ModuleRoute>} />
                 <Route
-                  path="/equipamentos"
-                  element={
-                    <ModuleRoute module="equipamentos">
-                      <EquipamentosPage />
-                    </ModuleRoute>
-                  }
-                />
-                <Route
-                  path="/setores"
-                  element={
-                    <ModuleRoute module="setores">
-                      <SetoresPage />
-                    </ModuleRoute>
-                  }
-                />
-                <Route
                   path="/postos-combustivel"
                   element={<ModuleRoute module="postos_combustivel"><PostosCombustivelPage /></ModuleRoute>}
                 />
@@ -246,11 +227,6 @@ const App = () => (
                 <Route
                   path="/combustivel/dashboard"
                   element={<ModuleRoute module="combustivel_dashboard"><DashboardCombustivelPage /></ModuleRoute>}
-                />
-
-                <Route
-                  path="/manutencao/equipamentos"
-                  element={<ModuleRoute module="manutencao_equipamentos"><ManutencaoPage /></ModuleRoute>}
                 />
 
                 <Route path="/painel-executivo" element={<AdminRoute><PainelExecutivoPage /></AdminRoute>} />
