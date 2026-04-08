@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { buildInstallmentsFromItem, toIsoDateString } from '@/lib/parcelas';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -83,6 +85,8 @@ export default function PainelExecutivoPage() {
 
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [shareLink, setShareLink] = useState('');
+  const [shareExpires, setShareExpires] = useState('');
 
   const [comprasAvistaTotal, setComprasAvistaTotal] = useState(0);
   const [comprasFaturadasTotal, setComprasFaturadasTotal] = useState(0);
@@ -104,6 +108,36 @@ export default function PainelExecutivoPage() {
   const [semPedidoItems, setSemPedidoItems] = useState<CompraSemPedido[]>([]);
 
   const consultFlashPendingRef = useRef(false);
+  const shortcutTargets = [
+    { label: 'Dashboard de Abastecimento', to: '/combustivel/dashboard' },
+    { label: 'Abastecimentos', to: '/combustivel/abastecimentos' },
+    { label: 'Compras à Vista', to: '/compras/avista' },
+    { label: 'Programação Semanal', to: '/compras/programacao-semanal' },
+  ];
+
+  const buildShareParams = () => {
+    const params = new URLSearchParams();
+    if (dateFrom) params.set('from', dateFrom);
+    if (dateTo) params.set('to', dateTo);
+    if (shareExpires) params.set('expires', shareExpires);
+    params.set('share', 'dash');
+    return params.toString();
+  };
+
+  const handleGenerateLink = async () => {
+    if (typeof window === 'undefined') return;
+    try {
+      const params = buildShareParams();
+      const baseUrl = `${window.location.origin}/painel-executivo`;
+      const url = params ? `${baseUrl}?${params}` : baseUrl;
+      await navigator.clipboard.writeText(url);
+      setShareLink(url);
+      toast.success(shareExpires ? `Link criado (expira em ${shareExpires})` : 'Link criado e copiado');
+    } catch (error: any) {
+      console.error(error);
+      toast.error('Não foi possível gerar o link. Copie manualmente.');
+    }
+  };
 
   const load = useCallback(async () => {
     try {
@@ -374,6 +408,47 @@ export default function PainelExecutivoPage() {
         >
           Atualizar agora
         </Button>
+      </div>
+
+      <div className="flex flex-col gap-3 rounded-lg border border-dashed border-muted p-4">
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="flex-1 min-w-[200px] space-y-1">
+            <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+              Link compartilhável
+            </Label>
+            <div className="flex gap-2">
+              <Input value={shareLink} readOnly placeholder="Clique em gerar link" className="flex-1" />
+              <Button size="sm" onClick={handleGenerateLink}>
+                Gerar link
+              </Button>
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs uppercase tracking-wide text-muted-foreground">
+              Vencimento (opcional)
+            </Label>
+            <Input
+              type="date"
+              value={shareExpires}
+              onChange={(event) => setShareExpires(event.target.value)}
+              className="max-w-[180px]"
+            />
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {shortcutTargets.map((shortcut) => (
+            <Button
+              key={shortcut.to}
+              variant="ghost"
+              size="sm"
+              className="gap-1"
+              onClick={() => navigate(shortcut.to)}
+            >
+              <ArrowRight className="h-4 w-4" />
+              {shortcut.label}
+            </Button>
+          ))}
+        </div>
       </div>
 
       <Card>

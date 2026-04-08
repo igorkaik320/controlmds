@@ -2,11 +2,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Pencil, Trash2, Wrench, Calendar, DollarSign, Bell, AlertTriangle } from 'lucide-react';
+import FornecedorSelect from '@/components/compras/FornecedorSelect';
 import { useAuth } from '@/lib/auth';
 import { useModulePermissions } from '@/hooks/useModulePermissions';
 import { 
@@ -191,6 +192,10 @@ export default function ManutencaoPage() {
     return <div className="flex min-h-screen items-center justify-center"><p>Carregando...</p></div>;
   }
 
+  const selectedEquipment = equipamentos.find((equip) => equip.id === form.equipamento_id);
+  const setorSelectValue = form.setor_id || 'none';
+  const isSectorLocked = Boolean(selectedEquipment?.setor_id);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
@@ -300,16 +305,27 @@ export default function ManutencaoPage() {
       </div>
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="w-[min(95vw,1000px)] max-w-[1000px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingId ? 'Editar' : 'Nova'} Manutenção</DialogTitle>
+            <DialogDescription>Preencha os dados da manutenção e mantenha o setor vinculado ao equipamento.</DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4">
             <div className="grid grid-cols-3 gap-4">
               <div>
                 <Label>Equipamento *</Label>
-                <Select value={form.equipamento_id} onValueChange={(value) => setForm((p) => ({ ...p, equipamento_id: value }))}>
+                <Select
+                  value={form.equipamento_id}
+                  onValueChange={(value) => {
+                    const selected = equipamentos.find((equip) => equip.id === value);
+                    setForm((p) => ({
+                      ...p,
+                      equipamento_id: value,
+                      setor_id: selected?.setor_id || '',
+                    }));
+                  }}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o equipamento" />
                   </SelectTrigger>
@@ -325,11 +341,16 @@ export default function ManutencaoPage() {
 
               <div>
                 <Label>Setor *</Label>
-                <Select value={form.setor_id} onValueChange={(value) => setForm((p) => ({ ...p, setor_id: value }))}>
+                <Select
+                  value={setorSelectValue}
+                  disabled={isSectorLocked}
+                  onValueChange={(value) => setForm((p) => ({ ...p, setor_id: value === 'none' ? '' : value }))}
+                >
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecione o setor" />
+                    <SelectValue placeholder={isSectorLocked ? 'Setor vinculado ao equipamento' : 'Selecione o setor'} />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="none">Nenhum</SelectItem>
                     {setores.map((setor) => (
                       <SelectItem key={setor.id} value={setor.id}>
                         {setor.nome}
@@ -339,21 +360,15 @@ export default function ManutencaoPage() {
                 </Select>
               </div>
 
-              <div>
-                <Label>Fornecedor</Label>
-                <Select value={form.fornecedor_id} onValueChange={(value) => setForm((p) => ({ ...p, fornecedor_id: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o fornecedor" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">Nenhum</SelectItem>
-                    {fornecedores.map((fornecedor) => (
-                      <SelectItem key={fornecedor.id} value={fornecedor.id}>
-                        {fornecedor.nome_fornecedor}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="col-span-3">
+                <FornecedorSelect
+                  value={form.fornecedor_id}
+                  onChange={(value) => setForm((p) => ({ ...p, fornecedor_id: value }))}
+                  fornecedores={fornecedores}
+                  valueMode="id"
+                  placeholder="Selecione ou digite..."
+                  label="Fornecedor"
+                />
               </div>
             </div>
 

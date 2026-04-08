@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Pencil, Trash2, Wrench } from 'lucide-react';
@@ -136,6 +136,8 @@ export default function EquipamentosPage() {
     return <div className="flex min-h-screen items-center justify-center"><p>Carregando...</p></div>;
   }
 
+  const sectorSelectValue = form.setor_id || 'none';
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
@@ -207,6 +209,7 @@ export default function EquipamentosPage() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>{editingId ? 'Editar' : 'Novo'} Equipamento</DialogTitle>
+            <DialogDescription>Informe os dados básicos e relacione o setor quando disponível.</DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4">
@@ -221,12 +224,12 @@ export default function EquipamentosPage() {
 
             <div>
               <Label>Setor</Label>
-              <Select value={form.setor_id} onValueChange={(value) => setForm((p) => ({ ...p, setor_id: value }))}>
+              <Select value={sectorSelectValue} onValueChange={(value) => setForm((p) => ({ ...p, setor_id: value === 'none' ? '' : value }))}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o setor" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Nenhum</SelectItem>
+                  <SelectItem value="none">Nenhum</SelectItem>
                   {setores.map((setor) => (
                     <SelectItem key={setor.id} value={setor.id}>
                       {setor.nome}

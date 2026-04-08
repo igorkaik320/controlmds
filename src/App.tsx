@@ -22,11 +22,14 @@ import FornecedoresPage from "./pages/FornecedoresPage";
 import ObrasPage from "./pages/ObrasPage";
 import ResponsaveisPage from "./pages/ResponsaveisPage";
 import VeiculosMaquinasPage from "./pages/VeiculosMaquinasPage";
+import EquipamentosPage from "./pages/EquipamentosPage";
+import SetoresPage from "./pages/SetoresPage";
 import PostosCombustivelPage from "./pages/PostosCombustivelPage";
 import TiposCombustivelPage from "./pages/TiposCombustivelPage";
 import AbastecimentosPage from "./pages/AbastecimentosPage";
 import DashboardCombustivelPage from "./pages/DashboardCombustivelPage";
 import RevisoesCombustivelPage from "./pages/RevisoesCombustivelPage";
+import ManutencaoPage from "./pages/ManutencaoPage";
 import EmpresasPage from "./pages/EmpresasPage";
 import PainelExecutivoPage from "./pages/PainelExecutivoPage";
 import FaturadosParcelasPage from "./pages/FaturadosParcelasPage";
@@ -94,7 +97,10 @@ function HomeRoute() {
     { module: "combustivel_dashboard", path: "/combustivel/dashboard" },
     { module: "abastecimentos", path: "/combustivel/abastecimentos" },
     { module: "revisoes_combustivel", path: "/combustivel/revisoes" },
+    { module: "manutencao_equipamentos", path: "/manutencao/equipamentos" },
     { module: "empresas", path: "/empresas" },
+    { module: "equipamentos", path: "/equipamentos" },
+    { module: "setores", path: "/setores" },
     { module: "fornecedores", path: "/fornecedores" },
     { module: "obras", path: "/obras" },
     { module: "responsaveis", path: "/responsaveis" },
@@ -206,6 +212,8 @@ const App = () => (
                 <Route path="/fornecedores" element={<ModuleRoute module="fornecedores"><FornecedoresPage /></ModuleRoute>} />
                 <Route path="/obras" element={<ModuleRoute module="obras"><ObrasPage /></ModuleRoute>} />
                 <Route path="/responsaveis" element={<ModuleRoute module="responsaveis"><ResponsaveisPage /></ModuleRoute>} />
+                <Route path="/equipamentos" element={<ModuleRoute module="equipamentos"><EquipamentosPage /></ModuleRoute>} />
+                <Route path="/setores" element={<ModuleRoute module="setores"><SetoresPage /></ModuleRoute>} />
                 <Route path="/veiculos" element={<ModuleRoute module="veiculos_maquinas"><VeiculosMaquinasPage /></ModuleRoute>} />
                 <Route
                   path="/postos-combustivel"
@@ -227,6 +235,10 @@ const App = () => (
                 <Route
                   path="/combustivel/dashboard"
                   element={<ModuleRoute module="combustivel_dashboard"><DashboardCombustivelPage /></ModuleRoute>}
+                />
+                <Route
+                  path="/manutencao/equipamentos"
+                  element={<ModuleRoute module="manutencao_equipamentos"><ManutencaoPage /></ModuleRoute>}
                 />
 
                 <Route path="/painel-executivo" element={<AdminRoute><PainelExecutivoPage /></AdminRoute>} />
