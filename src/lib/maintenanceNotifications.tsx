@@ -98,12 +98,12 @@ export function MaintenanceNotificationProvider({ children }: { children: React.
     }
 
     try {
-      const { data, error } = await supabase.from<ManutencaoRecord>("manutencoes").select("*").order("created_at", { ascending: false });
+      const { data, error } = await supabase.from("manutencoes").select("*").order("created_at", { ascending: false });
       if (error) {
         throw error;
       }
 
-      const upcoming = buildUpcomingNotifications(data ?? []);
+      const upcoming = buildUpcomingNotifications((data as ManutencaoRecord[] | null) ?? []);
       setNotifications(upcoming);
     } catch (error) {
       if (error instanceof Error) {
