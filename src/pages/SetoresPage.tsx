@@ -9,11 +9,16 @@ import { useAuth } from '@/lib/auth';
 import { useModulePermissions } from '@/hooks/useModulePermissions';
 import { Setor, fetchSetores, saveSetor, updateSetor, deleteSetor } from '@/lib/equipamentosService';
 import { toast } from 'sonner';
+import AuditInfo from '@/components/AuditInfo';
+import { useProfileMap } from '@/hooks/useProfileMap';
+
 
 interface Setor {
   id: string;
   nome: string;
+  created_by: string;
   created_at: string;
+  updated_by?: string | null;
   updated_at: string;
 }
 
@@ -30,6 +35,8 @@ export default function SetoresPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [form, setForm] = useState(emptyForm);
+
+  const profileMap = useProfileMap();
 
   const load = useCallback(async () => {
     try {
@@ -139,13 +146,14 @@ export default function SetoresPage() {
             <TableRow>
               <TableHead>Nome do Setor</TableHead>
               <TableHead>Cadastro</TableHead>
+              <TableHead>Auditoria</TableHead>
               <TableHead></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={3} className="text-center text-muted-foreground">
+                <TableCell colSpan={4} className="text-center text-muted-foreground">
                   Nenhum setor encontrado
                 </TableCell>
               </TableRow>
@@ -155,6 +163,15 @@ export default function SetoresPage() {
               <TableRow key={i.id}>
                 <TableCell className="font-medium">{i.nome}</TableCell>
                 <TableCell>{new Date(i.created_at).toLocaleDateString('pt-BR')}</TableCell>
+                <TableCell>
+                  <AuditInfo
+                    createdBy={i.created_by}
+                    createdAt={i.created_at}
+                    updatedBy={i.updated_by}
+                    updatedAt={i.updated_at}
+                    profileMap={profileMap}
+                  />
+                </TableCell>
                 <TableCell>
                   <div className="flex gap-1">
                     {canEdit('setores') && (

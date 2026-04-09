@@ -17,6 +17,9 @@ import {
   type Equipamento,
 } from '@/lib/equipamentosService';
 import { toast } from 'sonner';
+import AuditInfo from '@/components/AuditInfo';
+import { useProfileMap } from '@/hooks/useProfileMap';
+
 
 const emptyForm = {
   nome: '',
@@ -35,6 +38,8 @@ export default function EquipamentosPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [form, setForm] = useState(emptyForm);
+
+  const profileMap = useProfileMap();
 
   const load = useCallback(async () => {
     try {
@@ -166,13 +171,14 @@ export default function EquipamentosPage() {
               <TableHead>Modelo</TableHead>
               <TableHead>Setor</TableHead>
               <TableHead>Cadastro</TableHead>
+              <TableHead>Auditoria</TableHead>
               <TableHead></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground">
+                <TableCell colSpan={7} className="text-center text-muted-foreground">
                   Nenhum equipamento encontrado
                 </TableCell>
               </TableRow>
@@ -185,6 +191,15 @@ export default function EquipamentosPage() {
                 <TableCell>{i.modelo || '-'}</TableCell>
                 <TableCell>{i.setor_nome || '-'}</TableCell>
                 <TableCell>{new Date(i.created_at).toLocaleDateString('pt-BR')}</TableCell>
+                <TableCell>
+                  <AuditInfo
+                    createdBy={i.created_by}
+                    createdAt={i.created_at}
+                    updatedBy={i.updated_by}
+                    updatedAt={i.updated_at}
+                    profileMap={profileMap}
+                  />
+                </TableCell>
                 <TableCell>
                   <div className="flex gap-1">
                     {canEdit('equipamentos') && (

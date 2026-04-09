@@ -15,6 +15,9 @@ import {
   deleteResponsavel,
 } from '@/lib/comprasService';
 import { toast } from 'sonner';
+import AuditInfo from '@/components/AuditInfo';
+import { useProfileMap } from '@/hooks/useProfileMap';
+
 
 export default function ResponsaveisPage() {
   const { user } = useAuth();
@@ -25,6 +28,8 @@ export default function ResponsaveisPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [nome, setNome] = useState('');
+
+  const profileMap = useProfileMap();
 
   const load = useCallback(async () => {
     try {
@@ -117,6 +122,7 @@ export default function ResponsaveisPage() {
             <TableRow>
               <TableHead>Nome</TableHead>
               <TableHead>Cadastro</TableHead>
+              <TableHead>Auditoria</TableHead>
               <TableHead>Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -124,7 +130,7 @@ export default function ResponsaveisPage() {
           <TableBody>
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={3} className="text-center text-muted-foreground">
+                <TableCell colSpan={4} className="text-center text-muted-foreground">
                   Nenhum responsável
                 </TableCell>
               </TableRow>
@@ -134,6 +140,15 @@ export default function ResponsaveisPage() {
               <TableRow key={i.id}>
                 <TableCell>{i.nome}</TableCell>
                 <TableCell>{new Date(i.created_at).toLocaleDateString('pt-BR')}</TableCell>
+                <TableCell>
+                  <AuditInfo
+                    createdBy={i.created_by}
+                    createdAt={i.created_at}
+                    updatedBy={i.updated_by}
+                    updatedAt={i.updated_at}
+                    profileMap={profileMap}
+                  />
+                </TableCell>
                 <TableCell>
                   <div className="flex gap-1">
                     {canEdit('responsaveis') && (

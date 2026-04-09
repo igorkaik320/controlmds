@@ -10,6 +10,9 @@ import { Fornecedor, fetchFornecedores, saveFornecedor, updateFornecedor, delete
 import { formatCPFCNPJ, formatCelular } from '@/lib/formatters';
 import { useModulePermissions } from '@/hooks/useModulePermissions';
 import { toast } from 'sonner';
+import AuditInfo from '@/components/AuditInfo';
+import { useProfileMap } from '@/hooks/useProfileMap';
+
 
 export default function FornecedoresPage() {
   const { user, userRole } = useAuth();
@@ -20,6 +23,8 @@ export default function FornecedoresPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [form, setForm] = useState({ nome_fornecedor: '', razao_social: '', banco: '', agencia: '', conta: '', cnpj_cpf: '', celular: '' });
+
+  const profileMap = useProfileMap();
 
   const load = useCallback(async () => {
     try { setItems(await fetchFornecedores()); } catch (e: any) { toast.error(e.message); }
@@ -113,12 +118,13 @@ export default function FornecedoresPage() {
               <TableHead>Banco</TableHead>
               <TableHead>Agência</TableHead>
               <TableHead>Conta</TableHead>
+              <TableHead>Auditoria</TableHead>
               <TableHead></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtered.length === 0 && (
-              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Nenhum fornecedor</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground">Nenhum fornecedor</TableCell></TableRow>
             )}
             {filtered.map(i => (
               <TableRow key={i.id}>
@@ -128,6 +134,13 @@ export default function FornecedoresPage() {
                 <TableCell>{i.banco}</TableCell>
                 <TableCell>{i.agencia}</TableCell>
                 <TableCell>{i.conta}</TableCell>
+                <TableCell>
+                  <AuditInfo
+                    createdBy={i.created_by}
+                    createdAt={i.created_at}
+                    profileMap={profileMap}
+                  />
+                </TableCell>
                 <TableCell>
                   <div className="flex gap-1">
                     {canEdit('fornecedores') && (

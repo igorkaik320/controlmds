@@ -37,7 +37,6 @@ import NotFound from "./pages/NotFound";
 import type { ModuleKey } from "@/lib/modulePermissions";
 import { Lock } from "lucide-react";
 import { MaintenanceNotificationProvider } from "@/lib/maintenanceNotifications";
-import { ThemeProvider } from "next-themes";
 
 const queryClient = new QueryClient();
 
@@ -169,7 +168,6 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
 }
 
 const App = () => (
-  <ThemeProvider attribute="class" defaultTheme="system">
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <DraftGuards />
@@ -253,7 +251,6 @@ const App = () => (
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
-  </ThemeProvider>
 );
 
 export default App;

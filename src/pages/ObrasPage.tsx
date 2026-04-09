@@ -12,6 +12,9 @@ import { Obra, fetchObras, saveObra, updateObra, deleteObra } from '@/lib/obrasS
 import { fetchEmpresas, Empresa } from '@/lib/empresasService';
 import EmpresaSelect from '@/components/compras/EmpresaSelect';
 import { toast } from 'sonner';
+import AuditInfo from '@/components/AuditInfo';
+import { useProfileMap } from '@/hooks/useProfileMap';
+
 import { formatDateSafe } from '@/lib/formatters';
 
 export default function ObrasPage() {
@@ -25,6 +28,8 @@ export default function ObrasPage() {
   const [search, setSearch] = useState('');
   const [filterEmpresa, setFilterEmpresa] = useState('');
   const [form, setForm] = useState({ nome: '', descricao: '', empresa_id: '' });
+
+  const profileMap = useProfileMap();
 
   const load = useCallback(async () => {
     try {
@@ -127,12 +132,13 @@ export default function ObrasPage() {
               <TableHead>Empresa</TableHead>
               <TableHead>Descrição</TableHead>
               <TableHead>Cadastro</TableHead>
+              <TableHead>Auditoria</TableHead>
               <TableHead></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtered.length === 0 && (
-              <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Nenhuma obra</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Nenhuma obra</TableCell></TableRow>
             )}
             {filtered.map(i => (
               <TableRow key={i.id}>
@@ -140,6 +146,13 @@ export default function ObrasPage() {
                 <TableCell>{i.empresa_id ? empresaMap.get(i.empresa_id) || '-' : '-'}</TableCell>
                 <TableCell>{i.descricao}</TableCell>
                 <TableCell>{formatDateSafe(i.created_at)}</TableCell>
+                <TableCell>
+                  <AuditInfo
+                    createdBy={i.created_by}
+                    createdAt={i.created_at}
+                    profileMap={profileMap}
+                  />
+                </TableCell>
                 <TableCell>
                   <div className="flex gap-1">
                     {canEdit('obras') && (

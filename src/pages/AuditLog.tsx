@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { fetchAuditLog, fetchProfiles, deleteAuditEntry, AuditEntry } from '@/lib/cashRegister';
+import { parseDateTimeSafe } from '@/lib/formatters';
 import { useModulePermissions } from '@/hooks/useModulePermissions';
 import { toast } from 'sonner';
 
@@ -22,6 +23,13 @@ function actionLabel(action: string) {
     default:
       return <Badge variant="outline">{action}</Badge>;
   }
+}
+
+function renderAuditDate(value?: string | null) {
+  if (!value) return '—';
+  const parsed = parseDateTimeSafe(value);
+  if (!parsed) return '—';
+  return parsed.toLocaleString('pt-BR');
 }
 
 export default function AuditLogPage() {
@@ -175,7 +183,7 @@ export default function AuditLogPage() {
                   {entries.map((e) => (
                     <TableRow key={e.id} className="group">
                       <TableCell className="text-sm font-mono">
-                        {new Date(e.created_at).toLocaleString('pt-BR')}
+                        {renderAuditDate(e.created_at)}
                       </TableCell>
                       <TableCell>{actionLabel(e.action)}</TableCell>
                       <TableCell className="text-sm capitalize">{e.entity_type}</TableCell>

@@ -1,6 +1,5 @@
 import { AppSidebar } from '@/components/AppSidebar';
 import { NotificationMenu } from '@/components/notifications/NotificationMenu';
-import { ThemeToggle } from '@/components/ThemeToggle';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -12,7 +11,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             MDS GESTÃO
           </div>
           <div className="flex items-center gap-2">
-            <ThemeToggle />
             <NotificationMenu />
           </div>
         </header>

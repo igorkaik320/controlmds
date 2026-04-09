@@ -225,9 +225,12 @@ export default function ComprasFaturadasPage() {
     setParcelas(autoDrafts);
   }, [form.vencimentos, form.valor, form.data, form.condicao_pagamento, parcelasMode]);
 
+  const normalizeIsoDate = (value: string | null | undefined) => (value ? value.split('T')[0] : '');
+
   const filtered = items.filter((i) => {
-    if (draftDateFrom && i.data < draftDateFrom) return false;
-    if (draftDateTo && i.data > draftDateTo) return false;
+    const normalizedData = normalizeIsoDate(i.data);
+    if (draftDateFrom && normalizedData < draftDateFrom) return false;
+    if (draftDateTo && normalizedData > draftDateTo) return false;
     if (draftFilterForn && !i.fornecedor.toLowerCase().includes(draftFilterForn.toLowerCase())) return false;
     if (draftFilterObra && !(i.obra || '').toLowerCase().includes(draftFilterObra.toLowerCase())) return false;
 
@@ -334,7 +337,7 @@ function openNew() {
     };
 
     if (editingId) {
-      await updateCompraFaturada(editingId, payload);
+      await updateCompraFaturada(editingId, payload, user.id);
       toast.success('Registro atualizado');
     } else {
       await saveCompraFaturada({ ...payload, created_by: user.id } as any);
@@ -352,7 +355,8 @@ function openNew() {
     if (!confirm('Excluir este registro?')) return;
 
     try {
-      await deleteCompraFaturada(id);
+      if (!user) throw new Error('Usuário não encontrado');
+      await deleteCompraFaturada(id, user.id);
       load();
       toast.success('Excluído');
     } catch (e: any) {
