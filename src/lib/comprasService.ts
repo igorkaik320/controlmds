@@ -49,6 +49,8 @@ export interface Fornecedor {
   cnpj_cpf: string | null;
   created_by: string;
   created_at: string;
+  updated_by?: string | null;
+  updated_at?: string;
 }
 
 export interface ConfigRelatorio {
@@ -102,6 +104,7 @@ export interface Responsavel {
   nome: string;
   created_by: string;
   created_at: string;
+  updated_by?: string | null;
   updated_at: string;
 }
 

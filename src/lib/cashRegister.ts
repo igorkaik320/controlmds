@@ -329,6 +329,7 @@ export async function deleteVerificationFromDB(id: string, userId: string, oldVa
 export async function fetchAuditLog(filters?: {
   userId?: string;
   action?: string;
+  entityType?: string;
   dateFrom?: string;
   dateTo?: string;
 }): Promise<AuditEntry[]> {
@@ -336,6 +337,7 @@ export async function fetchAuditLog(filters?: {
 
   if (filters?.userId) q = q.eq('user_id', filters.userId);
   if (filters?.action) q = q.eq('action', filters.action);
+  if (filters?.entityType) q = q.eq('entity_type', filters.entityType);
   if (filters?.dateFrom) q = q.gte('created_at', filters.dateFrom);
   if (filters?.dateTo) q = q.lte('created_at', filters.dateTo + 'T23:59:59');
 

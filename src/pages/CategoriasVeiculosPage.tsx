@@ -15,6 +15,8 @@ import {
   deleteCategoriaVeiculo,
 } from '@/lib/combustivelService';
 import { toast } from 'sonner';
+import AuditInfo from '@/components/AuditInfo';
+import { useProfileMap } from '@/hooks/useProfileMap';
 
 const emptyForm = {
   nome: '',
@@ -37,6 +39,7 @@ export default function CategoriasVeiculosPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [form, setForm] = useState(emptyForm);
+  const profileMap = useProfileMap();
 
   const load = useCallback(async () => {
     try {
@@ -154,13 +157,14 @@ export default function CategoriasVeiculosPage() {
               <TableHead>Tipo</TableHead>
               <TableHead>Categoria Pai</TableHead>
               <TableHead>Ativo</TableHead>
+              <TableHead>Auditoria</TableHead>
               <TableHead></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground">
+                <TableCell colSpan={6} className="text-center text-muted-foreground">
                   Nenhuma categoria cadastrada
                 </TableCell>
               </TableRow>
@@ -172,6 +176,15 @@ export default function CategoriasVeiculosPage() {
                 <TableCell>{tipoLabel[i.tipo_principal]}</TableCell>
                 <TableCell>{items.find((p) => p.id === i.categoria_pai_id)?.nome || '—'}</TableCell>
                 <TableCell>{i.ativo ? 'Sim' : 'Não'}</TableCell>
+                <TableCell>
+                  <AuditInfo
+                    createdBy={i.created_by}
+                    createdAt={i.created_at}
+                    updatedBy={(i as any).updated_by}
+                    updatedAt={i.updated_at}
+                    profileMap={profileMap}
+                  />
+                </TableCell>
                 <TableCell>
                   <div className="flex gap-1">
                     <Button variant="ghost" size="icon" onClick={() => openEdit(i)}>

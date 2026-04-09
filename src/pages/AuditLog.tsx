@@ -40,6 +40,7 @@ export default function AuditLogPage() {
   const [loading, setLoading] = useState(true);
   const [filterAction, setFilterAction] = useState<string>('all');
   const [filterUser, setFilterUser] = useState<string>('all');
+  const [filterEntity, setFilterEntity] = useState<string>('all');
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
 
@@ -52,6 +53,7 @@ export default function AuditLogPage() {
       const auditData = await fetchAuditLog({
         action: filterAction !== 'all' ? filterAction : undefined,
         userId: filterUser !== 'all' ? filterUser : undefined,
+        entityType: filterEntity !== 'all' ? filterEntity : undefined,
         dateFrom: filterDateFrom || undefined,
         dateTo: filterDateTo || undefined,
       });
@@ -74,7 +76,7 @@ export default function AuditLogPage() {
 
   useEffect(() => {
     load();
-  }, [filterAction, filterUser, filterDateFrom, filterDateTo]);
+  }, [filterAction, filterUser, filterEntity, filterDateFrom, filterDateTo]);
 
   const handleDelete = async (id: string) => {
     if (!window.confirm('Excluir este registro de auditoria?')) return;
@@ -117,6 +119,33 @@ export default function AuditLogPage() {
                 <SelectItem value="criacao">Criação</SelectItem>
                 <SelectItem value="edicao">Edição</SelectItem>
                 <SelectItem value="exclusao">Exclusão</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label>Módulo</Label>
+            <Select value={filterEntity} onValueChange={setFilterEntity}>
+              <SelectTrigger className="w-48">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="transaction">Caixa</SelectItem>
+                <SelectItem value="verification">Verificação</SelectItem>
+                <SelectItem value="compra_avista">Compra à Vista</SelectItem>
+                <SelectItem value="compra_faturada">Compra Faturada</SelectItem>
+                <SelectItem value="fornecedor">Fornecedor</SelectItem>
+                <SelectItem value="obra">Obra</SelectItem>
+                <SelectItem value="empresa">Empresa</SelectItem>
+                <SelectItem value="responsavel">Responsável</SelectItem>
+                <SelectItem value="setor">Setor</SelectItem>
+                <SelectItem value="equipamento">Equipamento</SelectItem>
+                <SelectItem value="manutencao">Manutenção</SelectItem>
+                <SelectItem value="veiculo">Veículo</SelectItem>
+                <SelectItem value="abastecimento">Abastecimento</SelectItem>
+                <SelectItem value="posto_combustivel">Posto</SelectItem>
+                <SelectItem value="tipo_combustivel">Tipo Combustível</SelectItem>
               </SelectContent>
             </Select>
           </div>
