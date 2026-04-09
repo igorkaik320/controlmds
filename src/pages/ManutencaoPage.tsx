@@ -22,10 +22,7 @@ import {
 import { fetchFornecedores } from '@/lib/comprasService';
 import { toast } from 'sonner';
 
-interface Fornecedor {
-  id: string;
-  nome_fornecedor: string;
-}
+import type { Fornecedor } from '@/lib/comprasService';
 
 const emptyForm = {
   equipamento_id: '',
@@ -126,6 +123,7 @@ export default function ManutencaoPage() {
         proxima_manutencao: form.proxima_manutencao,
         avisar_dias_antes: parseInt(form.avisar_dias_antes) || 10,
         ativo: form.ativo,
+        created_by: user.id,
       };
 
       if (editingId) {

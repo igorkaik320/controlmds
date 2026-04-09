@@ -13,14 +13,6 @@ import AuditInfo from '@/components/AuditInfo';
 import { useProfileMap } from '@/hooks/useProfileMap';
 
 
-interface Setor {
-  id: string;
-  nome: string;
-  created_by: string;
-  created_at: string;
-  updated_by?: string | null;
-  updated_at: string;
-}
 
 const emptyForm = {
   nome: '',
