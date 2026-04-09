@@ -400,7 +400,7 @@ export default function PainelExecutivoPage() {
         </CardContent>
       </Card>
 
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="bg-gradient-to-br from-slate-900 via-blue-900 to-cyan-700 text-white border-transparent shadow-lg">
           <CardContent className="p-4 text-white">
             <div className="flex items-center justify-between">
@@ -532,7 +532,7 @@ export default function PainelExecutivoPage() {
         </Card>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
+      <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Composicao da Previsao</CardTitle>
@@ -625,12 +625,16 @@ export default function PainelExecutivoPage() {
           </CardHeader>
           <CardContent className="h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={topObras} layout="vertical" margin={{ left: 30 }}>
+              <BarChart data={topObras} margin={{ left: 0, right: 0, top: 10, bottom: 40 }}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" tickFormatter={(value) => `R$ ${Number(value).toLocaleString('pt-BR')}`} />
-                <YAxis type="category" dataKey="name" width={130} tick={{ fontSize: 11 }} />
+                <XAxis dataKey="name" interval={0} angle={-35} textAnchor="end" height={60} />
+                <YAxis tickFormatter={(value) => `R$ ${Number(value).toLocaleString('pt-BR')}`} />
                 <Tooltip formatter={(value: number) => formatCurrencyBR(value)} />
-                <Bar dataKey="value" fill="#0f172a" radius={[0, 5, 5, 0]} />
+                <Bar dataKey="value" fill="#0f172a">
+                  {topObras.map((_, index) => (
+                    <Cell key={index} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
