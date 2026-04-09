@@ -47,6 +47,41 @@ import { toast } from 'sonner';
 
 const COLORS = ['#0f172a', '#2563eb', '#f97316'];
 
+function wrapLabel(text: string) {
+  return text.split(' ').reduce<string[]>((lines, word) => {
+    const current = lines[lines.length - 1] || '';
+    if ((current + ' ' + word).trim().length <= 12) {
+      lines[lines.length - 1] = current ? `${current} ${word}` : word;
+    } else {
+      lines.push(word);
+    }
+    return lines;
+  }, ['']);
+}
+
+function renderXAxisTick(props: any) {
+  const { x, y, payload } = props;
+  const lines = wrapLabel(payload.value);
+  return (
+    <g transform={`translate(${x},${y + 10})`}>
+      {lines.map((line, index) => (
+        <text key={index} x={0} y={index * 12} textAnchor="middle" fill="#475467" fontSize={11}>
+          {line}
+        </text>
+      ))}
+    </g>
+  );
+}
+
+function renderYAxisTick(props: any) {
+  const { x, y, payload } = props;
+  return (
+    <text x={x - 10} y={y + 4} textAnchor="end" fill="#475467" fontSize={12}>
+      {`R$ ${Number(payload.value).toLocaleString('pt-BR')}`}
+    </text>
+  );
+}
+
 type ExecutiveAlert = {
   id: string;
   title: string;
@@ -625,12 +660,12 @@ export default function PainelExecutivoPage() {
           </CardHeader>
           <CardContent className="h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={topObras} margin={{ left: 0, right: 0, top: 10, bottom: 40 }}>
+              <BarChart data={topObras} margin={{ left: 30, right: 0, top: 10, bottom: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" interval={0} angle={-35} textAnchor="end" height={60} />
-                <YAxis tickFormatter={(value) => `R$ ${Number(value).toLocaleString('pt-BR')}`} />
+                <XAxis dataKey="name" interval={0} height={60} tick={renderXAxisTick} />
+                <YAxis tick={renderYAxisTick} />
                 <Tooltip formatter={(value: number) => formatCurrencyBR(value)} />
-                <Bar dataKey="value" fill="#0f172a">
+                <Bar dataKey="value">
                   {topObras.map((_, index) => (
                     <Cell key={index} fill={COLORS[index % COLORS.length]} />
                   ))}
