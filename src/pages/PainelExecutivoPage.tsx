@@ -439,7 +439,7 @@ export default function PainelExecutivoPage() {
         <Card className="bg-gradient-to-br from-slate-900 via-blue-900 to-cyan-700 text-white border-transparent shadow-lg">
           <CardContent className="p-4 text-white">
             <div className="flex items-center justify-between">
-              <p className="text-xs uppercase tracking-wide text-white/70">Previsao de Compras</p>
+              <p className="text-xs uppercase tracking-wide text-white/70">Compras</p>
               <ShoppingCart className="h-4 w-4 text-white/70" />
             </div>
             <p className="mt-2 text-2xl font-bold">{formatCurrencyBR(totalCompras)}</p>
@@ -570,7 +570,7 @@ export default function PainelExecutivoPage() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Composicao da Previsao</CardTitle>
+        <CardTitle className="text-base">Composição de Compras</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4 lg:grid-cols-[0.8fr_1.2fr]">
             <div className="h-52">

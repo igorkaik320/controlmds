@@ -108,6 +108,34 @@ export function AppSidebar() {
   });
 
   groups.push({
+    key: 'cadastros',
+    label: 'Cadastros',
+    icon: Cog,
+    items: [
+      { title: 'Empresas', url: '/empresas', icon: Factory, module: 'empresas' },
+      { title: 'Fornecedores', url: '/fornecedores', icon: Truck, module: 'fornecedores' },
+      { title: 'Obras', url: '/obras', icon: Building2, module: 'obras' },
+      { title: 'Responsáveis', url: '/responsaveis', icon: UserCheck, module: 'responsaveis' },
+      { title: 'Equipamentos', url: '/equipamentos', icon: Archive, module: 'equipamentos' },
+      { title: 'Setores', url: '/setores', icon: MapPin, module: 'setores' },
+      { title: 'Veículos/Máquinas', url: '/veiculos', icon: Car, module: 'veiculos_maquinas' },
+      { title: 'Postos de Combustível', url: '/postos-combustivel', icon: MapPinned, module: 'postos_combustivel' },
+      { title: 'Tipos de Combustível', url: '/tipos-combustivel', icon: Flame, module: 'tipos_combustivel' },
+    ],
+  });
+
+  groups.push({
+    key: 'seguranca',
+    label: 'Segurança',
+    icon: Lock,
+    items: [
+      { title: 'Usuários', url: '/usuarios', icon: Users },
+      { title: 'Auditoria', url: '/auditoria', icon: History },
+      { title: 'Config. Relatório', url: '/config-relatorio', icon: Settings },
+    ],
+  });
+
+  groups.push({
     key: 'ativos',
     label: 'Gestão de Ativos',
     icon: Truck,
