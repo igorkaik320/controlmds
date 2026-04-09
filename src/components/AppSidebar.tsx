@@ -69,8 +69,14 @@ export function AppSidebar() {
       key: 'admin',
       label: 'Administração',
       icon: AdminIcon,
+      items: [{ title: 'Painel Executivo', url: '/painel-executivo', icon: LayoutDashboard }],
+    });
+
+    groups.push({
+      key: 'seguranca',
+      label: 'Segurança',
+      icon: Lock,
       items: [
-        { title: 'Painel Executivo', url: '/painel-executivo', icon: LayoutDashboard },
         { title: 'Usuários', url: '/usuarios', icon: Users },
         { title: 'Auditoria', url: '/auditoria', icon: History },
         { title: 'Config. Relatório', url: '/config-relatorio', icon: Settings },
