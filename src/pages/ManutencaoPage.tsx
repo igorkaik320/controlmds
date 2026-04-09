@@ -21,6 +21,8 @@ import {
 } from '@/lib/equipamentosService';
 import { fetchFornecedores } from '@/lib/comprasService';
 import { toast } from 'sonner';
+import AuditInfo from '@/components/AuditInfo';
+import { useProfileMap } from '@/hooks/useProfileMap';
 
 import type { Fornecedor } from '@/lib/comprasService';
 
@@ -44,6 +46,7 @@ export default function ManutencaoPage() {
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
+  const profileMap = useProfileMap();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [form, setForm] = useState(emptyForm);
@@ -231,13 +234,14 @@ export default function ManutencaoPage() {
               <TableHead>Próxima Manutenção</TableHead>
               <TableHead>Aviso (dias)</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Auditoria</TableHead>
               <TableHead></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={9} className="text-center text-muted-foreground">
+                <TableCell colSpan={10} className="text-center text-muted-foreground">
                   Nenhuma manutenção encontrada
                 </TableCell>
               </TableRow>
@@ -280,6 +284,15 @@ export default function ManutencaoPage() {
                         <AlertTriangle className="h-4 w-4 text-yellow-600" />
                       )}
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    <AuditInfo
+                      createdBy={i.created_by}
+                      createdAt={i.created_at}
+                      updatedBy={i.updated_by}
+                      updatedAt={i.updated_at}
+                      profileMap={profileMap}
+                    />
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-1">

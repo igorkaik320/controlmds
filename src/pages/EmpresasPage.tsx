@@ -10,6 +10,8 @@ import { useModulePermissions } from '@/hooks/useModulePermissions';
 import { Empresa, fetchEmpresas, saveEmpresa, updateEmpresa, deleteEmpresa } from '@/lib/empresasService';
 import { formatCNPJ } from '@/lib/formatters';
 import { toast } from 'sonner';
+import AuditInfo from '@/components/AuditInfo';
+import { useProfileMap } from '@/hooks/useProfileMap';
 
 const emptyForm = {
   nome: '',
@@ -28,6 +30,7 @@ export default function EmpresasPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [form, setForm] = useState(emptyForm);
+  const profileMap = useProfileMap();
 
   const load = useCallback(async () => {
     try {
@@ -164,7 +167,7 @@ export default function EmpresasPage() {
               <TableHead>CNPJ</TableHead>
               <TableHead>Cor Relatório</TableHead>
               <TableHead>Logos</TableHead>
-              <TableHead>Cadastro</TableHead>
+              <TableHead>Auditoria</TableHead>
               <TableHead></TableHead>
             </TableRow>
           </TableHeader>
@@ -199,7 +202,15 @@ export default function EmpresasPage() {
                     )}
                   </div>
                 </TableCell>
-                <TableCell>{new Date(i.created_at).toLocaleDateString('pt-BR')}</TableCell>
+                <TableCell>
+                  <AuditInfo
+                    createdBy={i.created_by}
+                    createdAt={i.created_at}
+                    updatedBy={(i as any).updated_by}
+                    updatedAt={i.updated_at}
+                    profileMap={profileMap}
+                  />
+                </TableCell>
                 <TableCell>
                   <div className="flex gap-1">
                     {canEdit('empresas') && (

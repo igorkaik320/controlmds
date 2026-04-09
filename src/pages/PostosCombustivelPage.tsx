@@ -16,6 +16,8 @@ import {
   deletePostoCombustivel,
 } from '@/lib/combustivelService';
 import { toast } from 'sonner';
+import AuditInfo from '@/components/AuditInfo';
+import { useProfileMap } from '@/hooks/useProfileMap';
 
 const emptyForm = {
   nome: '',
@@ -30,6 +32,7 @@ export default function PostosCombustivelPage() {
   const [showDialog, setShowDialog] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const profileMap = useProfileMap();
 
   const load = useCallback(async () => {
     try {
@@ -128,13 +131,14 @@ export default function PostosCombustivelPage() {
             <TableRow>
               <TableHead>Nome</TableHead>
               <TableHead>Observacao</TableHead>
+              <TableHead>Auditoria</TableHead>
               <TableHead></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {items.length === 0 && (
               <TableRow>
-                <TableCell colSpan={3} className="text-center text-muted-foreground">
+                <TableCell colSpan={4} className="text-center text-muted-foreground">
                   Nenhum posto cadastrado
                 </TableCell>
               </TableRow>
@@ -144,6 +148,15 @@ export default function PostosCombustivelPage() {
               <TableRow key={item.id}>
                 <TableCell>{item.nome}</TableCell>
                 <TableCell>{item.observacao || '—'}</TableCell>
+                <TableCell>
+                  <AuditInfo
+                    createdBy={item.created_by}
+                    createdAt={item.created_at}
+                    updatedBy={(item as any).updated_by}
+                    updatedAt={item.updated_at}
+                    profileMap={profileMap}
+                  />
+                </TableCell>
                 <TableCell>
                   <div className="flex gap-1">
                     {canEdit('postos_combustivel') && (

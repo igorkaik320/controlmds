@@ -17,6 +17,8 @@ import {
 } from '@/lib/combustivelService';
 import { fetchResponsaveis, Responsavel } from '@/lib/comprasService';
 import { toast } from 'sonner';
+import AuditInfo from '@/components/AuditInfo';
+import { useProfileMap } from '@/hooks/useProfileMap';
 
 const emptyForm = {
   tipo: 'veiculo' as 'veiculo' | 'maquina',
@@ -34,6 +36,7 @@ export default function VeiculosMaquinasPage() {
   const [search, setSearch] = useState('');
   const [form, setForm] = useState(emptyForm);
   const [responsaveis, setResponsaveis] = useState<Responsavel[]>([]);
+  const profileMap = useProfileMap();
 
   const load = useCallback(async () => {
     try {
@@ -161,13 +164,14 @@ function openNew() {
                 <TableHead>Tipo</TableHead>
                 <TableHead>Placa</TableHead>
                 <TableHead>Responsável</TableHead>
+                <TableHead>Auditoria</TableHead>
               <TableHead></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={3} className="text-center text-muted-foreground">
+                <TableCell colSpan={5} className="text-center text-muted-foreground">
                   Nenhum registro
                 </TableCell>
               </TableRow>
@@ -178,6 +182,15 @@ function openNew() {
                 <TableCell>{item.tipo === 'veiculo' ? 'Veiculo' : 'Maquina'}</TableCell>
                 <TableCell>{item.placa}</TableCell>
                 <TableCell>{(item as any).responsavel?.nome || '—'}</TableCell>
+                <TableCell>
+                  <AuditInfo
+                    createdBy={item.created_by}
+                    createdAt={item.created_at}
+                    updatedBy={(item as any).updated_by}
+                    updatedAt={(item as any).updated_at}
+                    profileMap={profileMap}
+                  />
+                </TableCell>
                 <TableCell>
                   <div className="flex gap-1">
                     {canEdit('veiculos_maquinas') && (

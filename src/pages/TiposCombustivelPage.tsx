@@ -9,6 +9,8 @@ import { useAuth } from '@/lib/auth';
 import { useModulePermissions } from '@/hooks/useModulePermissions';
 import { TipoCombustivel, fetchTiposCombustivel, saveTipoCombustivel, updateTipoCombustivel, deleteTipoCombustivel } from '@/lib/combustivelService';
 import { toast } from 'sonner';
+import AuditInfo from '@/components/AuditInfo';
+import { useProfileMap } from '@/hooks/useProfileMap';
 
 export default function TiposCombustivelPage() {
   const { user, userRole } = useAuth();
@@ -18,6 +20,7 @@ export default function TiposCombustivelPage() {
   const [showDialog, setShowDialog] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [nome, setNome] = useState('');
+  const profileMap = useProfileMap();
 
   const load = useCallback(async () => {
     try { setItems(await fetchTiposCombustivel()); } catch (e: any) { toast.error(e.message); }
@@ -59,6 +62,7 @@ export default function TiposCombustivelPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Nome</TableHead>
+              <TableHead>Auditoria</TableHead>
               <TableHead></TableHead>
             </TableRow>
           </TableHeader>
@@ -69,6 +73,15 @@ export default function TiposCombustivelPage() {
             {items.map(i => (
               <TableRow key={i.id}>
                 <TableCell>{i.nome}</TableCell>
+                <TableCell>
+                  <AuditInfo
+                    createdBy={i.created_by}
+                    createdAt={i.created_at}
+                    updatedBy={(i as any).updated_by}
+                    updatedAt={(i as any).updated_at}
+                    profileMap={profileMap}
+                  />
+                </TableCell>
                 <TableCell>
                   <div className="flex gap-1">
                     {canEdit('tipos_combustivel') && (
