@@ -184,10 +184,18 @@ export default function PainelExecutivoPage() {
         const installments = buildInstallmentsFromItem(item);
         const matchingValue = installments.reduce((sum, inst) => {
           const isoDate = toIsoDateString(inst.due);
+          // If date conversion failed, skip this installment but don't hide the whole record
+          if (!isoDate) return sum;
           return inRange(isoDate) ? sum + inst.value : sum;
         }, 0);
-        if (matchingValue > 0 && matchesEmpresaFilter(item.obra)) {
+if (matchingValue > 0 && matchesEmpresaFilter(item.obra)) {
           faturadasWithInstallments.push({ item, valor: matchingValue });
+        } else if (!dateFrom && !dateTo) {
+          // When no date filter is applied, always include all faturadas
+          const totalValue = installments.reduce((sum, inst) => sum + inst.value, 0);
+          if (totalValue > 0) {
+            faturadasWithInstallments.push({ item, valor: totalValue });
+          }
         }
       });
 

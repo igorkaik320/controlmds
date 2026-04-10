@@ -107,10 +107,23 @@ export function buildInstallmentsFromItem(item: {
   const parsed = parseParcelasJson(item.parcelas);
   if (parsed.length > 0) return parsed;
 
-  const fallbackDate = item.data_liquidacao ? formatDateSafe(item.data_liquidacao) : formatDateSafe(item.data);
+  // Build a reliable fallback date from data_liquidacao or data.
+  // formatDateSafe may return "—" for null/invalid; guard against that.
+  let fallbackDate = item.data_liquidacao ? formatDateSafe(item.data_liquidacao) : '';
+  if (!fallbackDate || fallbackDate === '—') {
+    fallbackDate = formatDateSafe(item.data);
+  }
+  // Last resort: convert item.data (ISO) directly to BR
+  if (!fallbackDate || fallbackDate === '—') {
+    fallbackDate = toBrDateString(item.data) || '';
+  }
+
   const dueDates = normalizeVencimentos(item.vencimentos, fallbackDate);
   if (dueDates.length === 0) {
-    return [{ due: fallbackDate, value: item.valor }];
+    // Even if no due dates could be parsed, always return the record date
+    // so the item is never silently excluded from dashboard calculations.
+    const lastResort = fallbackDate && fallbackDate !== '—' ? fallbackDate : toBrDateString(item.data);
+    return [{ due: lastResort || item.data, value: item.valor }];
   }
 
   const installments = distributeInstallmentValues(item.valor, dueDates.length);
