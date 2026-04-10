@@ -94,6 +94,40 @@ export function recalculateAll(transactions: Transaction[]): Transaction[] {
   });
 }
 
+export function getInitialBalanceForPeriod(transactions: Transaction[], dateFrom?: string): number {
+  if (!dateFrom || transactions.length === 0) return 0;
+  
+  // Filtrar transações anteriores ao período
+  const previousTransactions = transactions.filter(t => t.date < dateFrom);
+  
+  if (previousTransactions.length === 0) return 0;
+  
+  // Retornar o saldo final da última transação anterior ao período
+  return previousTransactions[previousTransactions.length - 1].balance_after;
+}
+
+export function getSummaryWithInitialBalance(transactions: Transaction[], verifications: Verification[] = [], dateFrom?: string): PeriodSummary {
+  let totalEntradas = 0;
+  let totalSaidas = 0;
+  const initialBalance = getInitialBalanceForPeriod(transactions, dateFrom);
+
+  for (const t of transactions) {
+    if (t.type === 'entrada') totalEntradas += t.value;
+    if (t.type === 'saida') totalSaidas += t.value;
+  }
+
+  const latestDifference = verifications.length > 0 ? verifications[verifications.length - 1].difference : 0;
+  const currentBalance = transactions.length > 0 ? transactions[transactions.length - 1].balance_after : initialBalance;
+
+  return {
+    totalEntradas,
+    totalSaidas,
+    totalDifferences: latestDifference,
+    hasDivergence: Math.abs(latestDifference) > 0.01,
+    currentBalance,
+  };
+}
+
 export function getSummary(transactions: Transaction[], verifications: Verification[] = []): PeriodSummary {
   let totalEntradas = 0;
   let totalSaidas = 0;

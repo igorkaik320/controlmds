@@ -26,6 +26,7 @@ import {
   fetchVerifications,
   fetchProfiles,
   getSummary,
+  getSummaryWithInitialBalance,
   getCurrentBalance,
   saveVerification,
   deleteVerificationFromDB,
@@ -89,7 +90,7 @@ export default function Index() {
       return sortOrder === "asc" ? -diff : diff;
     });
   const verifications = filterByDateRange(allVerifications, dateFrom, dateTo);
-  const summary = getSummary(transactions, verifications);
+  const summary = getSummaryWithInitialBalance(transactions, verifications, dateFrom);
   const currentBalance = getCurrentBalance(allTransactions);
 
   const handleInit = useCallback(

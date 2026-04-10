@@ -28,7 +28,15 @@ export default function DashboardCards({ summary }: Props) {
       <Card>
         <CardContent className="p-4">
           <div className="flex items-center gap-2 text-muted-foreground text-sm"><AlertTriangle className="h-4 w-4" /> Última Diferença</div>
-          <p className="text-2xl font-bold mt-1">{formatCurrency(summary.totalDifferences)}</p>
+          <p className={`text-2xl font-bold mt-1 ${
+            summary.totalDifferences < 0 
+              ? 'text-red-600' 
+              : summary.totalDifferences === 0 
+                ? 'text-black' 
+                : 'text-green-600'
+          }`}>
+            {formatCurrency(summary.totalDifferences)}
+          </p>
         </CardContent>
       </Card>
       {summary.hasDivergence && (

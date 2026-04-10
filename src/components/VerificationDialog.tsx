@@ -66,9 +66,21 @@ export default function VerificationDialog({ open, onClose, onSubmit, currentBal
           </div>
 
           {diff != null && (
-            <div className={`p-3 rounded-lg ${Math.abs(diff) > 0.01 ? 'bg-warning/10' : 'bg-success/10'}`}>
+            <div className={`p-3 rounded-lg ${
+              diff < 0 
+                ? 'bg-red-50' 
+                : diff === 0 
+                  ? 'bg-gray-50' 
+                  : 'bg-green-50'
+            }`}>
               <p className="text-sm text-muted-foreground">Diferença</p>
-              <p className={`text-lg font-bold font-mono ${Math.abs(diff) > 0.01 ? 'text-warning' : 'text-success'}`}>
+              <p className={`text-lg font-bold font-mono ${
+                diff < 0 
+                  ? 'text-red-600' 
+                  : diff === 0 
+                    ? 'text-black' 
+                    : 'text-green-600'
+              }`}>
                 {formatCurrency(diff)}
               </p>
             </div>

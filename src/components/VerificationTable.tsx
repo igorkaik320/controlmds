@@ -60,7 +60,13 @@ export default function VerificationTable({ verifications, profileMap, onDelete,
                 <TableCell className="font-mono text-sm">{formatDate(v.date)}</TableCell>
                 <TableCell className="text-right font-mono text-sm">{formatCurrency(v.system_balance)}</TableCell>
                 <TableCell className="text-right font-mono font-medium">{formatCurrency(v.gaveta_value)}</TableCell>
-                <TableCell className={`text-right font-mono font-medium ${Math.abs(v.difference) > 0.01 ? 'text-warning' : 'text-success'}`}>
+                <TableCell className={`text-right font-mono font-medium ${
+                  v.difference < 0 
+                    ? 'text-red-600' 
+                    : v.difference === 0 
+                      ? 'text-black' 
+                      : 'text-green-600'
+                }`}>
                   {formatCurrency(v.difference)}
                 </TableCell>
                 <TableCell className="text-sm">{profileMap[v.created_by] || '—'}</TableCell>
