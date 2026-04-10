@@ -71,17 +71,6 @@ export function AppSidebar() {
       icon: AdminIcon,
       items: [{ title: 'Painel Executivo', url: '/painel-executivo', icon: LayoutDashboard }],
     });
-
-    groups.push({
-      key: 'seguranca',
-      label: 'Segurança',
-      icon: Lock,
-      items: [
-        { title: 'Usuários', url: '/usuarios', icon: Users },
-        { title: 'Auditoria', url: '/auditoria', icon: History },
-        { title: 'Config. Relatório', url: '/config-relatorio', icon: Settings },
-      ],
-    });
   }
 
   groups.push({
@@ -94,8 +83,8 @@ export function AppSidebar() {
   });
 
   groups.push({
-    key: 'suprimentos',
-    label: 'Suprimentos',
+    key: 'compras',
+    label: 'Compras',
     icon: Package,
     items: [
       { title: 'Compras Faturadas', url: '/compras/faturadas', icon: Receipt, module: 'compras_faturadas' },
@@ -104,34 +93,6 @@ export function AppSidebar() {
       { title: 'Programação Semanal', url: '/compras/programacao-semanal', icon: CalendarDays, module: 'programacao_semanal' },
       { title: 'Espelho Semanal', url: '/compras/espelho-semanal', icon: BarChart3, module: 'espelho_semanal' },
       { title: 'Parcelas Faturadas', url: '/compras/parcelas-faturadas', icon: FileBarChart, module: 'parcelas_faturadas' },
-    ],
-  });
-
-  groups.push({
-    key: 'cadastros',
-    label: 'Cadastros',
-    icon: Cog,
-    items: [
-      { title: 'Empresas', url: '/empresas', icon: Factory, module: 'empresas' },
-      { title: 'Fornecedores', url: '/fornecedores', icon: Truck, module: 'fornecedores' },
-      { title: 'Obras', url: '/obras', icon: Building2, module: 'obras' },
-      { title: 'Responsáveis', url: '/responsaveis', icon: UserCheck, module: 'responsaveis' },
-      { title: 'Equipamentos', url: '/equipamentos', icon: Archive, module: 'equipamentos' },
-      { title: 'Setores', url: '/setores', icon: MapPin, module: 'setores' },
-      { title: 'Veículos/Máquinas', url: '/veiculos', icon: Car, module: 'veiculos_maquinas' },
-      { title: 'Postos de Combustível', url: '/postos-combustivel', icon: MapPinned, module: 'postos_combustivel' },
-      { title: 'Tipos de Combustível', url: '/tipos-combustivel', icon: Flame, module: 'tipos_combustivel' },
-    ],
-  });
-
-  groups.push({
-    key: 'seguranca',
-    label: 'Segurança',
-    icon: Lock,
-    items: [
-      { title: 'Usuários', url: '/usuarios', icon: Users },
-      { title: 'Auditoria', url: '/auditoria', icon: History },
-      { title: 'Config. Relatório', url: '/config-relatorio', icon: Settings },
     ],
   });
 
@@ -146,6 +107,19 @@ export function AppSidebar() {
       { title: 'Manutenção', url: '/manutencao/equipamentos', icon: AlertTriangle, module: 'manutencao_equipamentos' },
     ],
   });
+
+  if (isAdmin) {
+    groups.push({
+      key: 'seguranca',
+      label: 'Segurança',
+      icon: Lock,
+      items: [
+        { title: 'Usuários', url: '/usuarios', icon: Users },
+        { title: 'Auditoria', url: '/auditoria', icon: History },
+        { title: 'Config. Relatório', url: '/config-relatorio', icon: Settings },
+      ],
+    });
+  }
 
   groups.push({
     key: 'cadastros',

@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { recordAuditEntry } from '@/lib/audit';
 
 export interface Equipamento {
   id: string;
@@ -70,12 +71,15 @@ export async function saveEquipamento(e: Omit<Equipamento, 'id' | 'created_at' |
     setorNome = setorData?.nome || null;
   }
   
+  const timestamp = new Date().toISOString();
   const { data, error } = await supabase
     .from('equipamentos')
     .insert({ 
       ...e, 
       setor_nome: setorNome,
-      created_by: userId 
+      created_by: userId,
+      created_at: timestamp,
+      updated_at: timestamp,
     } as any)
     .select()
     .single();
@@ -84,20 +88,63 @@ export async function saveEquipamento(e: Omit<Equipamento, 'id' | 'created_at' |
     throw error;
   }
   console.log('Equipamento salvo:', data);
+
+  await recordAuditEntry({
+    entity_type: 'equipamentos',
+    entity_id: data.id,
+    action: 'criacao',
+    new_values: data,
+    user_id: userId,
+  });
+
   return data;
 }
 
-export async function updateEquipamento(id: string, e: Partial<Equipamento>) {
-  const { error } = await supabase
+export async function updateEquipamento(id: string, e: Partial<Equipamento>, userId: string) {
+  const { data: previous } = await supabase
     .from('equipamentos')
-    .update({ ...e, updated_at: new Date().toISOString() } as any)
-    .eq('id', id);
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+
+  const timestamp = new Date().toISOString();
+  const { data, error } = await supabase
+    .from('equipamentos')
+    .update({ ...e, updated_at: timestamp, updated_by: userId } as any)
+    .eq('id', id)
+    .select()
+    .single();
   if (error) throw error;
+
+  await recordAuditEntry({
+    entity_type: 'equipamentos',
+    entity_id: id,
+    action: 'edicao',
+    old_values: previous,
+    new_values: data,
+    user_id: userId,
+  });
+
+  return data;
 }
 
-export async function deleteEquipamento(id: string) {
+export async function deleteEquipamento(id: string, userId: string) {
+  const { data: previous } = await supabase
+    .from('equipamentos')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+
   const { error } = await supabase.from('equipamentos').delete().eq('id', id);
   if (error) throw error;
+
+  await recordAuditEntry({
+    entity_type: 'equipamentos',
+    entity_id: id,
+    action: 'exclusao',
+    old_values: previous,
+    user_id: userId,
+  });
 }
 
 // ---- Setores ----
@@ -111,26 +158,70 @@ export async function fetchSetores(): Promise<Setor[]> {
 }
 
 export async function saveSetor(nome: string, userId: string) {
+  const timestamp = new Date().toISOString();
   const { data, error } = await supabase
     .from('setores')
-    .insert({ nome, created_by: userId } as any)
+    .insert({ nome, created_by: userId, created_at: timestamp } as any)
     .select()
     .single();
   if (error) throw error;
+
+  await recordAuditEntry({
+    entity_type: 'setores',
+    entity_id: data.id,
+    action: 'criacao',
+    new_values: data,
+    user_id: userId,
+  });
+
   return data;
 }
 
-export async function updateSetor(id: string, nome: string) {
-  const { error } = await supabase
+export async function updateSetor(id: string, nome: string, userId: string) {
+  const { data: previous } = await supabase
     .from('setores')
-    .update({ nome, updated_at: new Date().toISOString() } as any)
-    .eq('id', id);
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+
+  const timestamp = new Date().toISOString();
+  const { data, error } = await supabase
+    .from('setores')
+    .update({ nome, updated_at: timestamp, updated_by: userId } as any)
+    .eq('id', id)
+    .select()
+    .single();
   if (error) throw error;
+
+  await recordAuditEntry({
+    entity_type: 'setores',
+    entity_id: id,
+    action: 'edicao',
+    old_values: previous,
+    new_values: data,
+    user_id: userId,
+  });
+
+  return data;
 }
 
-export async function deleteSetor(id: string) {
+export async function deleteSetor(id: string, userId: string) {
+  const { data: previous } = await supabase
+    .from('setores')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+
   const { error } = await supabase.from('setores').delete().eq('id', id);
   if (error) throw error;
+
+  await recordAuditEntry({
+    entity_type: 'setores',
+    entity_id: id,
+    action: 'exclusao',
+    old_values: previous,
+    user_id: userId,
+  });
 }
 
 // ---- Manutenções ----
@@ -144,24 +235,73 @@ export async function fetchManutencoes(): Promise<Manutencao[]> {
 }
 
 export async function saveManutencao(m: Omit<Manutencao, 'id' | 'created_at' | 'updated_at'>, userId: string) {
+  const timestamp = new Date().toISOString();
   const { data, error } = await supabase
     .from('manutencoes')
-    .insert({ ...m, created_by: userId } as any)
+    .insert({
+      ...m,
+      created_by: userId,
+      created_at: timestamp,
+      updated_at: timestamp,
+    } as any)
     .select()
     .single();
   if (error) throw error;
+
+  await recordAuditEntry({
+    entity_type: 'manutencoes',
+    entity_id: data.id,
+    action: 'criacao',
+    new_values: data,
+    user_id: userId,
+  });
+
   return data;
 }
 
-export async function updateManutencao(id: string, m: Partial<Manutencao>) {
-  const { error } = await supabase
+export async function updateManutencao(id: string, m: Partial<Manutencao>, userId: string) {
+  const { data: previous } = await supabase
     .from('manutencoes')
-    .update({ ...m, updated_at: new Date().toISOString() } as any)
-    .eq('id', id);
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+
+  const timestamp = new Date().toISOString();
+  const { data, error } = await supabase
+    .from('manutencoes')
+    .update({ ...m, updated_at: timestamp, updated_by: userId } as any)
+    .eq('id', id)
+    .select()
+    .single();
   if (error) throw error;
+
+  await recordAuditEntry({
+    entity_type: 'manutencoes',
+    entity_id: id,
+    action: 'edicao',
+    old_values: previous,
+    new_values: data,
+    user_id: userId,
+  });
+
+  return data;
 }
 
-export async function deleteManutencao(id: string) {
+export async function deleteManutencao(id: string, userId: string) {
+  const { data: previous } = await supabase
+    .from('manutencoes')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+
   const { error } = await supabase.from('manutencoes').delete().eq('id', id);
   if (error) throw error;
+
+  await recordAuditEntry({
+    entity_type: 'manutencoes',
+    entity_id: id,
+    action: 'exclusao',
+    old_values: previous,
+    user_id: userId,
+  });
 }

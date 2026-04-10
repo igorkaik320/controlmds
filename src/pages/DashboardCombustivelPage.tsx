@@ -32,6 +32,8 @@ import {
 } from 'recharts';
 import { toast } from 'sonner';
 import { Fuel, TrendingUp, Droplets, DollarSign, RotateCcw, Search } from 'lucide-react';
+import EmpresaSelect from '@/components/compras/EmpresaSelect';
+import { useSearchParams } from 'react-router-dom';
 import { useDataRefreshFlash } from '@/hooks/useDataRefreshFlash';
 
 const COLORS = [
@@ -53,6 +55,7 @@ type AppliedFilters = {
   posto: string;
   combustivel: string;
   responsavel: string;
+  empresa: string;
 };
 
 export default function DashboardCombustivelPage() {
@@ -70,6 +73,7 @@ export default function DashboardCombustivelPage() {
   const [draftObra, setDraftObra] = useState('all');
   const [draftPosto, setDraftPosto] = useState('all');
   const [draftResponsavel, setDraftResponsavel] = useState('all');
+  const [draftEmpresa, setDraftEmpresa] = useState('');
 
   const [filters, setFilters] = useState<AppliedFilters>({
     dateFrom: '',
@@ -79,6 +83,7 @@ export default function DashboardCombustivelPage() {
     posto: 'all',
     combustivel: 'all',
     responsavel: 'all',
+    empresa: '',
   });
 
   const load = useCallback(async () => {
@@ -106,6 +111,25 @@ export default function DashboardCombustivelPage() {
     load();
   }, [load]);
 
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    const dateFromParam = searchParams.get('dateFrom') ?? '';
+    const dateToParam = searchParams.get('dateTo') ?? '';
+    const empresaParam = searchParams.get('empresa') ?? '';
+    if (dateFromParam || dateToParam || empresaParam) {
+      setDraftDateFrom(dateFromParam);
+      setDraftDateTo(dateToParam);
+      setDraftEmpresa(empresaParam);
+      setFilters((prev) => ({
+        ...prev,
+        dateFrom: dateFromParam,
+        dateTo: dateToParam,
+        empresa: empresaParam,
+      }));
+    }
+  }, [searchParams]);
+
   const obrasComAbastecimento = items
     .filter((item) => item.obra_id && item.obra?.nome)
     .reduce((acc, item) => {
@@ -123,6 +147,7 @@ export default function DashboardCombustivelPage() {
     if (filters.obra !== 'all' && (item.obra_id || '') !== filters.obra) return false;
     if (filters.posto !== 'all' && (item.posto_id || '') !== filters.posto) return false;
     if (filters.combustivel !== 'all' && item.combustivel_id !== filters.combustivel) return false;
+    if (filters.empresa && (item.obra?.empresa_id || '') !== filters.empresa) return false;
     const itemResponsavelId = item.responsavel_id || item.veiculo?.responsavel_id || '';
     if (filters.responsavel !== 'all' && itemResponsavelId !== filters.responsavel) return false;
     return true;
@@ -205,6 +230,7 @@ export default function DashboardCombustivelPage() {
       posto: draftPosto,
       combustivel: 'all',
       responsavel: draftResponsavel,
+      empresa: draftEmpresa,
     });
     flashAfterUpdate();
   }
@@ -216,6 +242,7 @@ export default function DashboardCombustivelPage() {
     setDraftObra('all');
     setDraftPosto('all');
     setDraftResponsavel('all');
+    setDraftEmpresa('');
 
     setFilters({
       dateFrom: '',
@@ -225,6 +252,7 @@ export default function DashboardCombustivelPage() {
       posto: 'all',
       combustivel: 'all',
       responsavel: 'all',
+      empresa: '',
     });
     flashAfterUpdate();
   }
@@ -248,6 +276,9 @@ export default function DashboardCombustivelPage() {
               onDateFromChange={setDraftDateFrom}
               onDateToChange={setDraftDateTo}
             />
+            <div className="w-48">
+              <EmpresaSelect value={draftEmpresa} onChange={setDraftEmpresa} label="Empresa" allowAll />
+            </div>
             <div>
               <Label className="text-xs">Veiculo</Label>
               <Select value={draftVeiculo} onValueChange={setDraftVeiculo}>

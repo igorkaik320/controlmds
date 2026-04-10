@@ -77,17 +77,23 @@ export default function PostosCombustivelPage() {
 
     try {
       if (editingId) {
-        await updatePostoCombustivel(editingId, {
-          nome: form.nome.trim(),
-          observacao: form.observacao || null,
-        });
+        await updatePostoCombustivel(
+          editingId,
+          {
+            nome: form.nome.trim(),
+            observacao: form.observacao || null,
+          },
+          user.id
+        );
         toast.success('Atualizado');
       } else {
-        await savePostoCombustivel({
-          nome: form.nome.trim(),
-          observacao: form.observacao || null,
-          created_by: user.id,
-        });
+        await savePostoCombustivel(
+          {
+            nome: form.nome.trim(),
+            observacao: form.observacao || null,
+          },
+          user.id
+        );
         toast.success('Cadastrado');
       }
 
@@ -102,7 +108,8 @@ export default function PostosCombustivelPage() {
     if (!confirm('Excluir este posto?')) return;
 
     try {
-      await deletePostoCombustivel(id);
+      if (!user) throw new Error('Usuário não encontrado');
+      await deletePostoCombustivel(id, user.id);
       load();
       toast.success('Excluido');
     } catch (e: any) {

@@ -67,7 +67,13 @@ export default function ObrasPage() {
     try {
       const now = new Date().toISOString();
       if (editingId) {
-        await updateObra(editingId, form.nome, form.descricao || null, form.empresa_id || null);
+        await updateObra(
+          editingId,
+          form.nome,
+          form.descricao || null,
+          user.id,
+          form.empresa_id || null
+        );
         setItems((prev) =>
           prev
             .map((item) =>
@@ -100,7 +106,8 @@ export default function ObrasPage() {
   async function handleDelete(id: string) {
     if (!confirm('Excluir esta obra?')) return;
     try {
-      await deleteObra(id);
+      if (!user) throw new Error('Usuário não encontrado');
+      await deleteObra(id, user.id);
       setItems((prev) => prev.filter((item) => item.id !== id));
       toast.success('Excluída');
     } catch (e: any) { toast.error(e.message); }

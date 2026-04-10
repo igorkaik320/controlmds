@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { recordAuditEntry } from '@/lib/audit';
 
 export type TransactionType = 'entrada' | 'saida' | 'inicializacao';
 
@@ -126,22 +127,6 @@ export function filterByDateRange<T extends { date: string }>(items: T[], dateFr
   return filtered;
 }
 
-async function insertAuditLog(entry: {
-  entity_type: string;
-  entity_id: string;
-  action: string;
-  old_values?: any;
-  new_values?: any;
-  user_id: string;
-}) {
-  const { error } = await supabase.from('audit_log').insert(entry as any);
-
-  if (error) {
-    console.error('Erro ao gravar auditoria:', error);
-    throw new Error(`Falha ao gravar auditoria: ${error.message}`);
-  }
-}
-
 export async function fetchTransactions(): Promise<Transaction[]> {
   const { data, error } = await supabase
     .from('transactions')
@@ -195,7 +180,7 @@ export async function saveTransactionToDB(
 
   if (error) throw error;
 
-  await insertAuditLog({
+  await recordAuditEntry({
     entity_type: 'transaction',
     entity_id: data.id,
     action: 'criacao',
@@ -225,7 +210,7 @@ export async function updateTransactionInDB(
 
   if (error) throw error;
 
-  await insertAuditLog({
+  await recordAuditEntry({
     entity_type: 'transaction',
     entity_id: id,
     action: 'edicao',
@@ -241,7 +226,7 @@ export async function deleteTransactionFromDB(id: string, userId: string, oldVal
   const { error } = await supabase.from('transactions').delete().eq('id', id);
   if (error) throw error;
 
-  await insertAuditLog({
+  await recordAuditEntry({
     entity_type: 'transaction',
     entity_id: id,
     action: 'exclusao',
@@ -302,7 +287,7 @@ export async function saveVerification(
 
   if (error) throw error;
 
-  await insertAuditLog({
+  await recordAuditEntry({
     entity_type: 'verification',
     entity_id: data.id,
     action: 'criacao',
@@ -317,7 +302,7 @@ export async function deleteVerificationFromDB(id: string, userId: string, oldVa
   const { error } = await supabase.from('verifications').delete().eq('id', id);
   if (error) throw error;
 
-  await insertAuditLog({
+  await recordAuditEntry({
     entity_type: 'verification',
     entity_id: id,
     action: 'exclusao',

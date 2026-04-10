@@ -44,6 +44,8 @@ import {
 } from '@/lib/comprasService';
 import { fetchAbastecimentos } from '@/lib/combustivelService';
 import { toast } from 'sonner';
+import EmpresaSelect from '@/components/compras/EmpresaSelect';
+import { fetchObras } from '@/lib/obrasService';
 
 const COLORS = ['#0f172a', '#2563eb', '#f97316'];
 
@@ -117,9 +119,11 @@ export default function PainelExecutivoPage() {
 
   const [draftDateFrom, setDraftDateFrom] = useState('');
   const [draftDateTo, setDraftDateTo] = useState('');
+  const [draftEmpresa, setDraftEmpresa] = useState('');
 
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [empresa, setEmpresa] = useState('');
   const [comprasAvistaTotal, setComprasAvistaTotal] = useState(0);
   const [comprasFaturadasTotal, setComprasFaturadasTotal] = useState(0);
   const [comprasSemPedidoTotal, setComprasSemPedidoTotal] = useState(0);
@@ -144,12 +148,27 @@ export default function PainelExecutivoPage() {
     try {
       setLoading(true);
 
-      const [comprasAvista, comprasFaturadas, programacao, abastecimentos] = await Promise.all([
+      const [comprasAvista, comprasFaturadas, programacao, abastecimentos, obrasData] = await Promise.all([
         fetchComprasAvista(),
         fetchComprasFaturadas(),
         fetchProgramacaoSemanal(),
         fetchAbastecimentos(),
+        fetchObras(),
       ]);
+
+      const obraCompanyMap = new Map<string, string | null>();
+      obrasData.forEach((obra) => {
+        const key = (obra.nome || '').trim();
+        obraCompanyMap.set(key, obra.empresa_id || null);
+      });
+
+      const matchesEmpresaFilter = (obraName?: string, obraEmpresaId?: string | null) => {
+        if (!empresa) return true;
+        if (obraEmpresaId) return obraEmpresaId === empresa;
+        const normalized = obraName?.trim();
+        if (!normalized) return false;
+        return obraCompanyMap.get(normalized) === empresa;
+      };
 
       const inRange = (itemDate: string) => {
         if (dateFrom && itemDate < dateFrom) return false;
@@ -157,7 +176,7 @@ export default function PainelExecutivoPage() {
         return true;
       };
 
-      const avistaFiltered = comprasAvista.filter((item) => inRange(item.data));
+      const avistaFiltered = comprasAvista.filter((item) => inRange(item.data) && matchesEmpresaFilter(item.obra));
 
       // For faturadas, consider only installments with due dates in the selected range
       const faturadasWithInstallments: Array<{ item: typeof comprasFaturadas[0]; valor: number }> = [];
@@ -167,13 +186,15 @@ export default function PainelExecutivoPage() {
           const isoDate = toIsoDateString(inst.due);
           return inRange(isoDate) ? sum + inst.value : sum;
         }, 0);
-        if (matchingValue > 0) {
+        if (matchingValue > 0 && matchesEmpresaFilter(item.obra)) {
           faturadasWithInstallments.push({ item, valor: matchingValue });
         }
       });
 
-      const programacaoFiltered = programacao.filter((item) => inRange(item.data));
-      const abastecimentosFiltered = abastecimentos.filter((item) => inRange(item.data));
+      const programacaoFiltered = programacao.filter((item) => inRange(item.data) && matchesEmpresaFilter(item.obra));
+      const abastecimentosFiltered = abastecimentos.filter(
+        (item) => inRange(item.data) && matchesEmpresaFilter(item.obra?.nome, item.obra?.empresa_id)
+      );
 
       const totalAvista = avistaFiltered.reduce((sum, item) => sum + item.valor, 0);
       const totalFaturadas = faturadasWithInstallments.reduce((sum, entry) => sum + entry.valor, 0);
@@ -307,7 +328,7 @@ export default function PainelExecutivoPage() {
         toast.success('Dados atualizados', { duration: 2200 });
       }
     }
-  }, [dateFrom, dateTo]);
+  }, [dateFrom, dateTo, empresa]);
 
   const handleVerEspelho = useCallback(() => {
     const params = new URLSearchParams();
@@ -321,6 +342,18 @@ export default function PainelExecutivoPage() {
       search: search ? `?${search}` : '',
     });
   }, [dateFrom, dateTo, navigate]);
+
+  const handleVerDashboard = useCallback(() => {
+    const params = new URLSearchParams();
+    if (dateFrom) params.set('dateFrom', dateFrom);
+    if (dateTo) params.set('dateTo', dateTo);
+    if (empresa) params.set('empresa', empresa);
+    const search = params.toString();
+    navigate({
+      pathname: '/combustivel/dashboard',
+      search: search ? `?${search}` : '',
+    });
+  }, [dateFrom, dateTo, empresa, navigate]);
 
   useEffect(() => {
     load();
@@ -372,13 +405,16 @@ export default function PainelExecutivoPage() {
   function handleConsultar() {
     setDateFrom(draftDateFrom);
     setDateTo(draftDateTo);
+    setEmpresa(draftEmpresa);
   }
 
   function handleLimpar() {
     setDraftDateFrom('');
     setDraftDateTo('');
+    setDraftEmpresa('');
     setDateFrom('');
     setDateTo('');
+    setEmpresa('');
   }
 
   if (loading) {
@@ -420,6 +456,10 @@ export default function PainelExecutivoPage() {
               onDateFromChange={setDraftDateFrom}
               onDateToChange={setDraftDateTo}
             />
+
+            <div className="w-48">
+              <EmpresaSelect value={draftEmpresa} onChange={setDraftEmpresa} label="Empresa" allowAll />
+            </div>
 
             <div className="flex gap-2">
               <Button size="sm" onClick={handleConsultar}>
@@ -718,7 +758,7 @@ export default function PainelExecutivoPage() {
             ))}
 
             <div className="pt-1">
-              <Button variant="ghost" size="sm" onClick={() => navigate('/combustivel/dashboard')}>
+              <Button variant="ghost" size="sm" onClick={handleVerDashboard}>
                 Ver dashboard de combustivel
                 <ArrowRight className="ml-1 h-4 w-4" />
               </Button>

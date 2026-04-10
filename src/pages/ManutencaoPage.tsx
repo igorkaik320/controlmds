@@ -130,7 +130,7 @@ export default function ManutencaoPage() {
       };
 
       if (editingId) {
-        await updateManutencao(editingId, payload);
+        await updateManutencao(editingId, payload, user.id);
         toast.success('Manutenção atualizada');
       } else {
         await saveManutencao(payload, user.id);
@@ -148,7 +148,8 @@ export default function ManutencaoPage() {
     if (!confirm('Excluir esta manutenção?')) return;
 
     try {
-      await deleteManutencao(id);
+      if (!user) throw new Error('Usuário não encontrado');
+      await deleteManutencao(id, user.id);
       load();
       toast.success('Manutenção excluída');
     } catch (e: any) {

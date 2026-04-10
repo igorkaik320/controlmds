@@ -35,7 +35,7 @@ export default function TiposCombustivelPage() {
   async function handleSubmit() {
     if (!user || !nome.trim()) { toast.error('Nome é obrigatório'); return; }
     try {
-      if (editingId) { await updateTipoCombustivel(editingId, nome); toast.success('Atualizado'); }
+      if (editingId) { await updateTipoCombustivel(editingId, nome, user.id); toast.success('Atualizado'); }
       else { await saveTipoCombustivel(nome, user.id); toast.success('Cadastrado'); }
       setShowDialog(false); load();
     } catch (e: any) { toast.error(e.message); }
@@ -43,7 +43,14 @@ export default function TiposCombustivelPage() {
 
   async function handleDelete(id: string) {
     if (!confirm('Excluir?')) return;
-    try { await deleteTipoCombustivel(id); load(); toast.success('Excluído'); } catch (e: any) { toast.error(e.message); }
+    try {
+      if (!user) throw new Error('Usuário não encontrado');
+      await deleteTipoCombustivel(id, user.id);
+      load();
+      toast.success('Excluído');
+    } catch (e: any) {
+      toast.error(e.message);
+    }
   }
 
   if (loading) return <div className="flex min-h-screen items-center justify-center"><p>Carregando...</p></div>;
@@ -68,7 +75,7 @@ export default function TiposCombustivelPage() {
           </TableHeader>
           <TableBody>
             {items.length === 0 && (
-              <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground">Nenhum tipo cadastrado</TableCell></TableRow>
+              <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground">Nenhum tipo cadastrado</TableCell></TableRow>
             )}
             {items.map(i => (
               <TableRow key={i.id}>

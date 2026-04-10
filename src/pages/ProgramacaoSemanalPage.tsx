@@ -213,7 +213,7 @@ export default function ProgramacaoSemanalPage() {
       };
 
       if (editingId) {
-        await updateProgramacaoSemanal(editingId, { ...payload, updated_by: user.id });
+        await updateProgramacaoSemanal(editingId, { ...payload, updated_by: user.id }, user.id);
         toast.success('Registro atualizado');
       } else {
         await saveProgramacaoSemanal({ ...payload, created_by: user.id } as any);
@@ -231,7 +231,8 @@ export default function ProgramacaoSemanalPage() {
     if (!confirm('Excluir este registro?')) return;
 
     try {
-      await deleteProgramacaoSemanal(id);
+      if (!user) throw new Error('Usuário não encontrado');
+      await deleteProgramacaoSemanal(id, user.id);
       load();
       toast.success('Excluído');
     } catch (e: any) {

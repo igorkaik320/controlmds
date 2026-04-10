@@ -30,13 +30,13 @@ export default function VeiculosMaquinasPage() {
   const { user } = useAuth();
   const { canCreate, canEdit, canDelete } = useModulePermissions();
   const [items, setItems] = useState<VeiculoMaquina[]>([]);
+  const profileMap = useProfileMap();
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [form, setForm] = useState(emptyForm);
   const [responsaveis, setResponsaveis] = useState<Responsavel[]>([]);
-  const profileMap = useProfileMap();
 
   const load = useCallback(async () => {
     try {
@@ -105,14 +105,13 @@ function openNew() {
         categoria_id: null,
         categoria: '',
         responsavel_id: form.responsavel_id === '_none' ? null : form.responsavel_id,
-        created_by: user.id,
       };
 
       if (editingId) {
-        await updateVeiculo(editingId, payload);
+        await updateVeiculo(editingId, payload, user.id);
         toast.success('Atualizado');
       } else {
-        await saveVeiculo(payload as any);
+        await saveVeiculo(payload as any, user.id);
         toast.success('Cadastrado');
       }
 
@@ -127,7 +126,8 @@ function openNew() {
     if (!confirm('Excluir?')) return;
 
     try {
-      await deleteVeiculo(id);
+      if (!user) throw new Error('Usuário não encontrado');
+      await deleteVeiculo(id, user.id);
       load();
       toast.success('Excluido');
     } catch (e: any) {
@@ -160,13 +160,13 @@ function openNew() {
       <div className="rounded-md border overflow-auto">
         <Table>
           <TableHeader>
-            <TableRow>
+              <TableRow>
                 <TableHead>Tipo</TableHead>
                 <TableHead>Placa</TableHead>
                 <TableHead>Responsável</TableHead>
                 <TableHead>Auditoria</TableHead>
-              <TableHead></TableHead>
-            </TableRow>
+                <TableHead></TableHead>
+              </TableRow>
           </TableHeader>
           <TableBody>
             {filtered.length === 0 && (
@@ -185,9 +185,9 @@ function openNew() {
                 <TableCell>
                   <AuditInfo
                     createdBy={item.created_by}
-                    createdAt={item.created_at}
-                    updatedBy={(item as any).updated_by}
-                    updatedAt={(item as any).updated_at}
+                  createdAt={item.created_at}
+                    updatedBy={item.updated_by}
+                    updatedAt={item.updated_at}
                     profileMap={profileMap}
                   />
                 </TableCell>

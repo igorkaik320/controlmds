@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { recordAuditEntry } from '@/lib/audit';
 
 // Types
 export interface CompraFaturada {
@@ -116,26 +117,59 @@ export async function fetchFornecedores(): Promise<Fornecedor[]> {
 }
 
 export async function saveFornecedor(f: Omit<Fornecedor, 'id' | 'created_at'>, userId: string) {
+  const timestamp = new Date().toISOString();
   const { data, error } = await supabase
     .from('fornecedores')
-    .insert({ ...f, created_by: userId } as any)
+    .insert({ ...f, created_by: userId, created_at: timestamp } as any)
     .select()
     .single();
   if (error) throw error;
+
+  await recordAuditEntry({
+    entity_type: 'fornecedores',
+    entity_id: data.id,
+    action: 'criacao',
+    new_values: data,
+    user_id: userId,
+  });
+
   return data;
 }
 
-export async function updateFornecedor(id: string, f: Partial<Fornecedor>) {
-  const { error } = await supabase
+export async function updateFornecedor(id: string, f: Partial<Fornecedor>, userId: string) {
+  const { data: previous } = await supabase.from('fornecedores').select('*').eq('id', id).maybeSingle();
+
+  const { data, error } = await supabase
     .from('fornecedores')
-    .update({ ...f, updated_at: new Date().toISOString() } as any)
-    .eq('id', id);
+    .update({ ...f, updated_at: new Date().toISOString(), updated_by: userId } as any)
+    .eq('id', id)
+    .select()
+    .single();
   if (error) throw error;
+
+  await recordAuditEntry({
+    entity_type: 'fornecedores',
+    entity_id: id,
+    action: 'edicao',
+    old_values: previous,
+    new_values: data,
+    user_id: userId,
+  });
 }
 
-export async function deleteFornecedor(id: string) {
+export async function deleteFornecedor(id: string, userId: string) {
+  const { data: previous } = await supabase.from('fornecedores').select('*').eq('id', id).maybeSingle();
+
   const { error } = await supabase.from('fornecedores').delete().eq('id', id);
   if (error) throw error;
+
+  await recordAuditEntry({
+    entity_type: 'fornecedores',
+    entity_id: id,
+    action: 'exclusao',
+    old_values: previous,
+    user_id: userId,
+  });
 }
 
 // ---- Compras Faturadas ----
@@ -148,27 +182,71 @@ export async function fetchComprasFaturadas(): Promise<CompraFaturada[]> {
   return data || [];
 }
 
-export async function saveCompraFaturada(c: Omit<CompraFaturada, 'id' | 'created_at' | 'updated_at'>) {
+export async function saveCompraFaturada(
+  c: Omit<CompraFaturada, 'id' | 'created_at' | 'updated_at'>,
+  userId: string
+) {
+  const timestamp = new Date().toISOString();
   const { data, error } = await supabase
     .from('previsao_compras_faturadas')
-    .insert(c as any)
+    .insert({ ...c, created_by: userId, created_at: timestamp, updated_at: timestamp } as any)
     .select()
     .single();
   if (error) throw error;
+
+  await recordAuditEntry({
+    entity_type: 'previsao_compras_faturadas',
+    entity_id: data.id,
+    action: 'criacao',
+    new_values: data,
+    user_id: userId,
+  });
+
   return data;
 }
 
-export async function updateCompraFaturada(id: string, c: Partial<CompraFaturada>) {
-  const { error } = await supabase
+export async function updateCompraFaturada(id: string, c: Partial<CompraFaturada>, userId: string) {
+  const { data: previous } = await supabase
     .from('previsao_compras_faturadas')
-    .update({ ...c, updated_at: new Date().toISOString() } as any)
-    .eq('id', id);
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+
+  const { data, error } = await supabase
+    .from('previsao_compras_faturadas')
+    .update({ ...c, updated_at: new Date().toISOString(), updated_by: userId } as any)
+    .eq('id', id)
+    .select()
+    .single();
   if (error) throw error;
+
+  await recordAuditEntry({
+    entity_type: 'previsao_compras_faturadas',
+    entity_id: id,
+    action: 'edicao',
+    old_values: previous,
+    new_values: data,
+    user_id: userId,
+  });
 }
 
-export async function deleteCompraFaturada(id: string) {
+export async function deleteCompraFaturada(id: string, userId: string) {
+  const { data: previous } = await supabase
+    .from('previsao_compras_faturadas')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+
   const { error } = await supabase.from('previsao_compras_faturadas').delete().eq('id', id);
   if (error) throw error;
+
+  await recordAuditEntry({
+    entity_type: 'previsao_compras_faturadas',
+    entity_id: id,
+    action: 'exclusao',
+    old_values: previous,
+    user_id: userId,
+  });
 }
 
 // ---- Compras à Vista ----
@@ -182,26 +260,72 @@ export async function fetchComprasAvista(): Promise<CompraAvista[]> {
 }
 
 export async function saveCompraAvista(c: Omit<CompraAvista, 'id' | 'created_at' | 'updated_at'>) {
+  const timestamp = new Date().toISOString();
   const { data, error } = await supabase
     .from('previsao_compras_avista')
-    .insert(c as any)
+    .insert({
+      ...c,
+      created_at: timestamp,
+      updated_at: timestamp,
+    } as any)
     .select()
     .single();
   if (error) throw error;
+
+  await recordAuditEntry({
+    entity_type: 'previsao_compras_avista',
+    entity_id: data.id,
+    action: 'criacao',
+    new_values: data,
+    user_id: c.created_by,
+  });
+
   return data;
 }
 
 export async function updateCompraAvista(id: string, c: Partial<CompraAvista>) {
-  const { error } = await supabase
+  const { data: previous } = await supabase
     .from('previsao_compras_avista')
-    .update({ ...c, updated_at: new Date().toISOString() } as any)
-    .eq('id', id);
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+
+  const timestamp = new Date().toISOString();
+  const { data, error } = await supabase
+    .from('previsao_compras_avista')
+    .update({ ...c, updated_at: timestamp } as any)
+    .eq('id', id)
+    .select()
+    .single();
   if (error) throw error;
+  await recordAuditEntry({
+    entity_type: 'previsao_compras_avista',
+    entity_id: id,
+    action: 'edicao',
+    old_values: previous,
+    new_values: data,
+    user_id: (c.updated_by as string) || '',
+  });
+  return data;
 }
 
-export async function deleteCompraAvista(id: string) {
+export async function deleteCompraAvista(id: string, userId: string) {
+  const { data: previous } = await supabase
+    .from('previsao_compras_avista')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+
   const { error } = await supabase.from('previsao_compras_avista').delete().eq('id', id);
   if (error) throw error;
+
+  await recordAuditEntry({
+    entity_type: 'previsao_compras_avista',
+    entity_id: id,
+    action: 'exclusao',
+    old_values: previous,
+    user_id: userId,
+  });
 }
 
 // ---- Programação Semanal ----
@@ -215,26 +339,73 @@ export async function fetchProgramacaoSemanal(): Promise<ProgramacaoSemanal[]> {
 }
 
 export async function saveProgramacaoSemanal(c: Omit<ProgramacaoSemanal, 'id' | 'created_at' | 'updated_at'>) {
+  const timestamp = new Date().toISOString();
   const { data, error } = await supabase
     .from('programacao_semanal')
-    .insert(c as any)
+    .insert({
+      ...c,
+      created_at: timestamp,
+      updated_at: timestamp,
+    } as any)
     .select()
     .single();
   if (error) throw error;
+
+  await recordAuditEntry({
+    entity_type: 'programacao_semanal',
+    entity_id: data.id,
+    action: 'criacao',
+    new_values: data,
+    user_id: c.created_by,
+  });
+
   return data;
 }
 
 export async function updateProgramacaoSemanal(id: string, c: Partial<ProgramacaoSemanal>) {
-  const { error } = await supabase
+  const { data: previous } = await supabase
     .from('programacao_semanal')
-    .update({ ...c, updated_at: new Date().toISOString() } as any)
-    .eq('id', id);
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+
+  const timestamp = new Date().toISOString();
+  const { data, error } = await supabase
+    .from('programacao_semanal')
+    .update({ ...c, updated_at: timestamp } as any)
+    .eq('id', id)
+    .select()
+    .single();
   if (error) throw error;
+
+  await recordAuditEntry({
+    entity_type: 'programacao_semanal',
+    entity_id: id,
+    action: 'edicao',
+    old_values: previous,
+    new_values: data,
+    user_id: (c.updated_by as string) || '',
+  });
+  return data;
 }
 
-export async function deleteProgramacaoSemanal(id: string) {
+export async function deleteProgramacaoSemanal(id: string, userId: string) {
+  const { data: previous } = await supabase
+    .from('programacao_semanal')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+
   const { error } = await supabase.from('programacao_semanal').delete().eq('id', id);
   if (error) throw error;
+
+  await recordAuditEntry({
+    entity_type: 'programacao_semanal',
+    entity_id: id,
+    action: 'exclusao',
+    old_values: previous,
+    user_id: userId,
+  });
 }
 
 // ---- Responsáveis ----

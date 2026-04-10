@@ -83,7 +83,7 @@ export default function SetoresPage() {
       const payload = form.nome.trim();
 
       if (editingId) {
-        await updateSetor(editingId, payload);
+        await updateSetor(editingId, payload, user.id);
         toast.success('Setor atualizado');
       } else {
         await saveSetor(payload, user.id);
@@ -101,7 +101,7 @@ export default function SetoresPage() {
     if (!confirm('Excluir este setor?')) return;
 
     try {
-      await deleteSetor(id);
+      await deleteSetor(id, user.id);
       load();
       toast.success('Setor excluído');
     } catch (e: any) {

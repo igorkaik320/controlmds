@@ -101,7 +101,6 @@ export default function EquipamentosPage() {
         marca: form.marca.trim() || null,
         modelo: form.modelo.trim() || null,
         setor_id: form.setor_id || null,
-        created_by: user.id,
       };
 
       console.log('Payload:', payload);
@@ -109,11 +108,11 @@ export default function EquipamentosPage() {
 
       if (editingId) {
         console.log('Atualizando equipamento...');
-        await updateEquipamento(editingId, payload);
+        await updateEquipamento(editingId, payload, user.id);
         toast.success('Equipamento atualizado');
       } else {
         console.log('Salvando novo equipamento...');
-        await saveEquipamento(payload, user.id);
+        await saveEquipamento(payload as any, user.id);
         toast.success('Equipamento cadastrado');
       }
 
@@ -129,7 +128,8 @@ export default function EquipamentosPage() {
     if (!confirm('Excluir este equipamento?')) return;
 
     try {
-      await deleteEquipamento(id);
+      if (!user) throw new Error('Usuário não encontrado');
+      await deleteEquipamento(id, user.id);
       load();
       toast.success('Equipamento excluído');
     } catch (e: any) {

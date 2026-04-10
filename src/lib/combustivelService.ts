@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { recordAuditEntry } from '@/lib/audit';
 import { Responsavel } from '@/lib/comprasService';
 import type { Obra } from './obrasService';
 
@@ -114,16 +115,30 @@ export async function savePostoCombustivel(
   posto: {
     nome: string;
     observacao?: string | null;
-    created_by: string;
-  }
+  },
+  userId: string
 ) {
+  const timestamp = new Date().toISOString();
   const { data, error } = await supabase
     .from('postos_combustivel')
-    .insert(posto as any)
+    .insert({
+      ...posto,
+      created_by: userId,
+      created_at: timestamp,
+    } as any)
     .select()
     .single();
 
   if (error) throw error;
+
+  await recordAuditEntry({
+    entity_type: 'postos_combustivel',
+    entity_id: data.id,
+    action: 'criacao',
+    new_values: data,
+    user_id: userId,
+  });
+
   return data;
 }
 
@@ -132,52 +147,135 @@ export async function updatePostoCombustivel(
   posto: {
     nome: string;
     observacao?: string | null;
-  }
+  },
+  userId: string
 ) {
-  const { error } = await supabase
+  const { data: previous } = await supabase
     .from('postos_combustivel')
-    .update({ ...posto, updated_at: new Date().toISOString() } as any)
-    .eq('id', id);
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
 
-  if (error) throw error;
-}
-
-export async function deletePostoCombustivel(id: string) {
-  const { error } = await supabase
-    .from('postos_combustivel')
-    .delete()
-    .eq('id', id);
-
-  if (error) throw error;
-}
-
-export async function saveVeiculo(v: Omit<VeiculoMaquina, 'id' | 'created_at'>) {
+  const timestamp = new Date().toISOString();
   const { data, error } = await supabase
-    .from('veiculos_maquinas')
-    .insert(v as any)
+    .from('postos_combustivel')
+    .update({ ...posto, updated_at: timestamp, updated_by: userId } as any)
+    .eq('id', id)
     .select()
     .single();
 
   if (error) throw error;
+
+  await recordAuditEntry({
+    entity_type: 'postos_combustivel',
+    entity_id: id,
+    action: 'edicao',
+    old_values: previous,
+    new_values: data,
+    user_id: userId,
+  });
+
   return data;
 }
 
-export async function updateVeiculo(id: string, v: Partial<VeiculoMaquina>) {
+export async function deletePostoCombustivel(id: string, userId: string) {
+  const { data: previous } = await supabase
+    .from('postos_combustivel')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+
   const { error } = await supabase
-    .from('veiculos_maquinas')
-    .update(v as any)
+    .from('postos_combustivel')
+    .delete()
     .eq('id', id);
 
   if (error) throw error;
+
+  await recordAuditEntry({
+    entity_type: 'postos_combustivel',
+    entity_id: id,
+    action: 'exclusao',
+    old_values: previous,
+    user_id: userId,
+  });
 }
 
-export async function deleteVeiculo(id: string) {
+export async function saveVeiculo(v: Omit<VeiculoMaquina, 'id' | 'created_at'>, userId: string) {
+  const timestamp = new Date().toISOString();
+  const { data, error } = await supabase
+    .from('veiculos_maquinas')
+    .insert({
+      ...v,
+      created_by: userId,
+      created_at: timestamp,
+    } as any)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  await recordAuditEntry({
+    entity_type: 'veiculos_maquinas',
+    entity_id: data.id,
+    action: 'criacao',
+    new_values: data,
+    user_id: userId,
+  });
+
+  return data;
+}
+
+export async function updateVeiculo(id: string, v: Partial<VeiculoMaquina>, userId: string) {
+  const { data: previous } = await supabase
+    .from('veiculos_maquinas')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+
+  const timestamp = new Date().toISOString();
+  const { data, error } = await supabase
+    .from('veiculos_maquinas')
+    .update({ ...v, updated_by: userId, updated_at: timestamp } as any)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  await recordAuditEntry({
+    entity_type: 'veiculos_maquinas',
+    entity_id: id,
+    action: 'edicao',
+    old_values: previous,
+    new_values: data,
+    user_id: userId,
+  });
+
+  return data;
+}
+
+export async function deleteVeiculo(id: string, userId: string) {
+  const { data: previous } = await supabase
+    .from('veiculos_maquinas')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+
   const { error } = await supabase
     .from('veiculos_maquinas')
     .delete()
     .eq('id', id);
 
   if (error) throw error;
+
+  await recordAuditEntry({
+    entity_type: 'veiculos_maquinas',
+    entity_id: id,
+    action: 'exclusao',
+    old_values: previous,
+    user_id: userId,
+  });
 }
 
 // ---- Tipos de Combustível ----
@@ -192,32 +290,76 @@ export async function fetchTiposCombustivel(): Promise<TipoCombustivel[]> {
 }
 
 export async function saveTipoCombustivel(nome: string, userId: string) {
+  const timestamp = new Date().toISOString();
   const { data, error } = await supabase
     .from('tipos_combustivel')
-    .insert({ nome, created_by: userId } as any)
+    .insert({ nome, created_by: userId, created_at: timestamp } as any)
     .select()
     .single();
 
   if (error) throw error;
+
+  await recordAuditEntry({
+    entity_type: 'tipos_combustivel',
+    entity_id: data.id,
+    action: 'criacao',
+    new_values: data,
+    user_id: userId,
+  });
+
   return data;
 }
 
-export async function updateTipoCombustivel(id: string, nome: string) {
-  const { error } = await supabase
+export async function updateTipoCombustivel(id: string, nome: string, userId: string) {
+  const { data: previous } = await supabase
     .from('tipos_combustivel')
-    .update({ nome } as any)
-    .eq('id', id);
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+
+  const timestamp = new Date().toISOString();
+  const { data, error } = await supabase
+    .from('tipos_combustivel')
+    .update({ nome, updated_by: userId, updated_at: timestamp } as any)
+    .eq('id', id)
+    .select()
+    .single();
 
   if (error) throw error;
+
+  await recordAuditEntry({
+    entity_type: 'tipos_combustivel',
+    entity_id: id,
+    action: 'edicao',
+    old_values: previous,
+    new_values: data,
+    user_id: userId,
+  });
+
+  return data;
 }
 
-export async function deleteTipoCombustivel(id: string) {
+export async function deleteTipoCombustivel(id: string, userId: string) {
+  const { data: previous } = await supabase
+    .from('tipos_combustivel')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+
   const { error } = await supabase
     .from('tipos_combustivel')
     .delete()
     .eq('id', id);
 
   if (error) throw error;
+
+  await recordAuditEntry({
+    entity_type: 'tipos_combustivel',
+    entity_id: id,
+    action: 'exclusao',
+    old_values: previous,
+    user_id: userId,
+  });
 }
 
 // ---- Categorias de Veículos ----

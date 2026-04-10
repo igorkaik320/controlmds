@@ -221,7 +221,8 @@ export default function ComprasAvistaPage() {
     if (!confirm('Excluir este registro?')) return;
 
     try {
-      await deleteCompraAvista(id);
+      if (!user) throw new Error('Usuário não encontrado');
+      await deleteCompraAvista(id, user.id);
       load();
       toast.success('Excluído');
     } catch (e: any) {
