@@ -302,23 +302,15 @@ export default function ContasPagarPage() {
         </div>
 
         <div>
-          <Label className="text-xs">Fornecedor</Label>
-          <Select value={filterFornecedor || "_all"} onValueChange={(v) => setFilterFornecedor(v === "_all" ? "" : v)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Todos os fornecedores" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="_all">Todos os fornecedores</SelectItem>
-              {fornecedores.map((fornecedor) => (
-                <SelectItem key={fornecedor.id} value={fornecedor.id}>
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4" />
-                    {fornecedor.nome_fornecedor}
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <FornecedorSelect
+            value={filterFornecedor}
+            onChange={(v) => setFilterFornecedor(v)}
+            onFornecedorSelect={(f) => setFilterFornecedor(f.id)}
+            fornecedores={fornecedores}
+            valueMode="id"
+            label="Fornecedor"
+            placeholder="Todos os fornecedores"
+          />
         </div>
 
         <div>
