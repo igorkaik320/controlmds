@@ -74,8 +74,12 @@ export async function fetchContasPagar(): Promise<ContaPagarComParcelas[]> {
   }));
 }
 
-export async function saveContaPagar(conta: Omit<ContaPagar, 'id' | 'created_at' | 'updated_at'>, userId: string): Promise<ContaPagar> {
+export async function saveContaPagar(
+  conta: Omit<ContaPagar, 'id' | 'created_at' | 'updated_at'>,
+  userId: string
+): Promise<ContaPagar> {
   const timestamp = new Date().toISOString();
+
   const { data, error } = await supabase
     .from('contas_pagar')
     .insert({ ...conta, created_at: timestamp, updated_at: timestamp } as any)
@@ -95,7 +99,11 @@ export async function saveContaPagar(conta: Omit<ContaPagar, 'id' | 'created_at'
   return data;
 }
 
-export async function updateContaPagar(id: string, conta: Partial<ContaPagar>, userId: string): Promise<ContaPagar> {
+export async function updateContaPagar(
+  id: string,
+  conta: Partial<ContaPagar>,
+  userId: string
+): Promise<ContaPagar> {
   const { data: previous } = await supabase
     .from('contas_pagar')
     .select('*')
@@ -104,7 +112,11 @@ export async function updateContaPagar(id: string, conta: Partial<ContaPagar>, u
 
   const { data, error } = await supabase
     .from('contas_pagar')
-    .update({ ...conta, updated_at: new Date().toISOString(), updated_by: userId } as any)
+    .update({
+      ...conta,
+      updated_at: new Date().toISOString(),
+      updated_by: userId,
+    } as any)
     .eq('id', id)
     .select()
     .single();
@@ -130,7 +142,10 @@ export async function deleteContaPagar(id: string, userId: string): Promise<void
     .eq('id', id)
     .maybeSingle();
 
-  const { error } = await supabase.from('contas_pagar').delete().eq('id', id);
+  const { error } = await supabase
+    .from('contas_pagar')
+    .delete()
+    .eq('id', id);
 
   if (error) throw error;
 
@@ -144,6 +159,40 @@ export async function deleteContaPagar(id: string, userId: string): Promise<void
 }
 
 // ---- Parcelas ----
+
+// 🔥 FUNÇÃO CRÍTICA (CORRIGIDA)
+export async function updateParcela(
+  id: string,
+  parcela: Partial<ContaPagarParcela>,
+  userId: string
+): Promise<ContaPagarParcela> {
+
+  const parcelaLimpa = {
+    ...parcela,
+    data_vencimento: parcela.data_vencimento || null,
+    data_pagamento: parcela.data_pagamento || null,
+    valor_pago: parcela.valor_pago ?? null,
+    observacao: parcela.observacao || null,
+    updated_at: new Date().toISOString(),
+    updated_by: userId,
+  };
+
+  const { data, error } = await supabase
+    .from('contas_pagar_parcelas')
+    .update(parcelaLimpa as any)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('ERRO UPDATE PARCELA:', parcelaLimpa);
+    throw error;
+  }
+
+  return data;
+}
+
+// 🔥 FUNÇÃO CRÍTICA (CORRIGIDA)
 export async function saveParcelas(
   parcelas: Omit<ContaPagarParcela, 'id' | 'created_at' | 'updated_at'>[],
   userId: string
@@ -151,70 +200,28 @@ export async function saveParcelas(
 
   const timestamp = new Date().toISOString();
 
-  // 🔥 CORREÇÃO AQUI TAMBÉM (garante que nunca vai string vazia)
-  const parcelasCorrigidas = parcelas.map(p => ({
+  const parcelasLimpas = parcelas.map(p => ({
     ...p,
-    data_pagamento: p.data_pagamento ? p.data_pagamento : null,
-    data_vencimento: p.data_vencimento ? p.data_vencimento : null,
+    data_vencimento: p.data_vencimento || null,
+    data_pagamento: p.data_pagamento || null,
     valor_pago: p.valor_pago ?? null,
-    observacao: p.observacao ?? null,
+    observacao: p.observacao || null,
     created_by: userId,
     created_at: timestamp,
-    updated_at: timestamp
+    updated_at: timestamp,
   }));
 
   const { data, error } = await supabase
     .from('contas_pagar_parcelas')
-    .insert(parcelasCorrigidas as any)
+    .insert(parcelasLimpas as any)
     .select();
 
-  if (error) throw error;
+  if (error) {
+    console.error('ERRO INSERT PARCELAS:', parcelasLimpas);
+    throw error;
+  }
 
   return data || [];
-}
-
-export async function updateParcela(
-  id: string,
-  parcela: Partial<ContaPagarParcela>,
-  userId: string
-): Promise<ContaPagarParcela> {
-
-  const { data: previous } = await supabase
-    .from('contas_pagar_parcelas')
-    .select('*')
-    .eq('id', id)
-    .maybeSingle();
-
-  // 🔥🔥🔥 CORREÇÃO DEFINITIVA AQUI
-  const payload = {
-    ...parcela,
-    data_pagamento: parcela.data_pagamento ? parcela.data_pagamento : null,
-    data_vencimento: parcela.data_vencimento ? parcela.data_vencimento : null,
-    valor_pago: parcela.valor_pago ?? null,
-    observacao: parcela.observacao ?? null,
-    updated_at: new Date().toISOString(),
-    updated_by: userId,
-  };
-
-  const { data, error } = await supabase
-    .from('contas_pagar_parcelas')
-    .update(payload as any)
-    .eq('id', id)
-    .select()
-    .single();
-
-  if (error) throw error;
-
-  await recordAuditEntry({
-    entity_type: 'contas_pagar_parcelas',
-    entity_id: id,
-    action: 'edicao',
-    old_values: previous,
-    new_values: data,
-    user_id: userId,
-  });
-
-  return data;
 }
 
 export async function deleteParcela(id: string, userId: string): Promise<void> {
@@ -224,7 +231,10 @@ export async function deleteParcela(id: string, userId: string): Promise<void> {
     .eq('id', id)
     .maybeSingle();
 
-  const { error } = await supabase.from('contas_pagar_parcelas').delete().eq('id', id);
+  const { error } = await supabase
+    .from('contas_pagar_parcelas')
+    .delete()
+    .eq('id', id);
 
   if (error) throw error;
 
@@ -237,7 +247,7 @@ export async function deleteParcela(id: string, userId: string): Promise<void> {
   });
 }
 
-// ---- Funções auxiliares ----
+// ---- Gerar Parcelas ----
 export function gerarParcelas(
   contaPagarId: string,
   valorTotal: number,
@@ -246,20 +256,19 @@ export function gerarParcelas(
   userId: string
 ): Omit<ContaPagarParcela, 'id' | 'created_at' | 'updated_at'>[] {
 
-  const parcelas: Omit<ContaPagarParcela, 'id' | 'created_at' | 'updated_at'>[] = [];
-
+  const parcelas = [];
   const valorParcela = Math.round((valorTotal / quantidadeParcelas) * 100) / 100;
-  const valorUltimaParcela = valorTotal - (valorParcela * (quantidadeParcelas - 1));
+  const valorUltima = valorTotal - (valorParcela * (quantidadeParcelas - 1));
 
   for (let i = 1; i <= quantidadeParcelas; i++) {
-    const dataVencimento = new Date(dataPrimeiroVencimento);
-    dataVencimento.setMonth(dataVencimento.getMonth() + (i - 1));
+    const data = new Date(dataPrimeiroVencimento);
+    data.setMonth(data.getMonth() + (i - 1));
 
     parcelas.push({
       conta_pagar_id: contaPagarId,
       numero_parcela: i,
-      valor_parcela: i === quantidadeParcelas ? valorUltimaParcela : valorParcela,
-      data_vencimento: dataVencimento.toISOString().split('T')[0],
+      valor_parcela: i === quantidadeParcelas ? valorUltima : valorParcela,
+      data_vencimento: data.toISOString().split('T')[0],
       data_pagamento: null,
       valor_pago: null,
       status: 'aberta',
