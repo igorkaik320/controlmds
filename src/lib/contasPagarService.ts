@@ -1,6 +1,17 @@
 import { supabase } from '@/integrations/supabase/client';
 import { recordAuditEntry } from '@/lib/audit';
 
+// 🔒 Função para evitar erro de timestamp
+function sanitizeDate(value: any) {
+  if (!value) return null;
+  if (typeof value !== 'string') return null;
+
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  return trimmed;
+}
+
 // Types
 export interface ContaPagar {
   id: string;
@@ -146,8 +157,13 @@ export async function deleteContaPagar(id: string, userId: string): Promise<void
 // ---- Parcelas ----
 export async function saveParcelas(parcelas: Omit<ContaPagarParcela, 'id' | 'created_at' | 'updated_at'>[], userId: string): Promise<ContaPagarParcela[]> {
   const timestamp = new Date().toISOString();
+
   const parcelasWithTimestamp = parcelas.map(p => ({
     ...p,
+    data_vencimento: sanitizeDate(p.data_vencimento),
+    data_pagamento: sanitizeDate(p.data_pagamento),
+    valor_pago: p.valor_pago ?? null,
+    observacao: p.observacao ?? null,
     created_by: userId,
     created_at: timestamp,
     updated_at: timestamp
@@ -172,7 +188,15 @@ export async function updateParcela(id: string, parcela: Partial<ContaPagarParce
 
   const { data, error } = await supabase
     .from('contas_pagar_parcelas')
-    .update({ ...parcela, updated_at: new Date().toISOString(), updated_by: userId } as any)
+    .update({
+      ...parcela,
+      data_vencimento: sanitizeDate(parcela.data_vencimento),
+      data_pagamento: sanitizeDate(parcela.data_pagamento),
+      valor_pago: parcela.valor_pago ?? null,
+      observacao: parcela.observacao ?? null,
+      updated_at: new Date().toISOString(),
+      updated_by: userId
+    } as any)
     .eq('id', id)
     .select()
     .single();
@@ -220,9 +244,7 @@ export function gerarParcelas(
   userId: string
 ): Omit<ContaPagarParcela, 'id' | 'created_at' | 'updated_at'>[] {
   const parcelas: Omit<ContaPagarParcela, 'id' | 'created_at' | 'updated_at'>[] = [];
-  const valorParcela = Math.round((valorTotal / quantidadeParcelas) * 100) / 100; // Arredonda para 2 casas decimais
-  
-  // Ajuste para garantir que a soma das parcelas seja igual ao valor total
+  const valorParcela = Math.round((valorTotal / quantidadeParcelas) * 100) / 100;
   const valorUltimaParcela = valorTotal - (valorParcela * (quantidadeParcelas - 1));
 
   for (let i = 1; i <= quantidadeParcelas; i++) {
@@ -243,4 +265,4 @@ export function gerarParcelas(
   }
 
   return parcelas;
-} 
+}
