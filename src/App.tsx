@@ -33,6 +33,7 @@ import ManutencaoPage from "./pages/ManutencaoPage";
 import EmpresasPage from "./pages/EmpresasPage";
 import PainelExecutivoPage from "./pages/PainelExecutivoPage";
 import FaturadosParcelasPage from "./pages/FaturadosParcelasPage";
+import ContasPagarPage from '@/pages/ContasPagarPage';
 import NotFound from "./pages/NotFound";
 import type { ModuleKey } from "@/lib/modulePermissions";
 import { Lock } from "lucide-react";
@@ -179,6 +180,7 @@ const App = () => (
               <Routes>
                 <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
                 <Route path="/" element={<HomeRoute />} />
+                <Route path="/contas-pagar" element={<ModuleRoute module="contas_pagar"><ContasPagarPage /></ModuleRoute>} />
                 <Route path="/controle-caixa" element={<ProtectedRoute><Index /></ProtectedRoute>} />
 
                 <Route

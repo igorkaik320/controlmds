@@ -8,6 +8,7 @@ import { fetchComprasFaturadas, formatCurrencyBR } from "@/lib/comprasService";
 import { fetchEmpresas, Empresa } from "@/lib/empresasService";
 import { fetchObras, Obra } from "@/lib/obrasService";
 import { buildInstallmentsFromItem, toIsoDateString } from "@/lib/parcelas";
+import { fetchContasPagar, ContaPagarComParcelas } from "@/lib/contasPagarService";
 import { verificarLimiteGlobal, AlertaSimples } from "@/lib/limitesSimples";
 import EmpresaSelect from "@/components/compras/EmpresaSelect";
 import { AlertaSimplesCard } from "@/components/limites/AlertaSimplesCard";
@@ -19,6 +20,7 @@ const dayFormatter = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "
 
 type InstallmentView = {
   id: string;
+  tipo: 'compra_faturada' | 'conta_pagar';
   supplier: string;
   cnpj?: string | null;
   obra?: string | null;
@@ -34,6 +36,9 @@ type InstallmentView = {
   obraId?: string;
   companyId?: string;
   companyName?: string;
+  empresaNome?: string;
+  fornecedorNome?: string;
+  status?: string;
 };
 
 type MonthSummary = {
@@ -64,40 +69,40 @@ export default function FaturadosParcelasPage() {
   const tableRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    (async function load() {
-      setLoading(true);
+    setLoading(true);
+    (async () => {
       try {
-        const [purchases, empresasData, obrasData] = await Promise.all([
+        const [comprasFaturadas, empresasData, obrasData, contasPagar] = await Promise.all([
           fetchComprasFaturadas(),
           fetchEmpresas(),
           fetchObras(),
+          fetchContasPagar(),
         ]);
+
         setCompanies(empresasData);
         setObras(obrasData);
 
+        // Criar mapa de empresa para obra
         const obraToEmpresa = new Map<string, string>();
         obrasData.forEach((obra) => {
-          if (obra.id && obra.empresa_id) {
-            obraToEmpresa.set(obra.id, obra.empresa_id);
-          }
+          obraToEmpresa.set(obra.nome, obra.empresa_id);
         });
 
+        // Mapear empresas para fácil acesso
         const empresaMap = new Map<string, Empresa>();
         empresasData.forEach((empresa) => {
-          if (empresa.id) {
-            empresaMap.set(empresa.id, empresa);
-          }
+          empresaMap.set(empresa.id, empresa);
         });
 
-        const installments = purchases.flatMap((item) => {
-          return buildInstallmentsFromItem(item).map((installment, index) => {
+        // Processar compras faturadas (lógica existente)
+        const installments = comprasFaturadas.flatMap((item) => {
+          const installments = buildInstallmentsFromItem(item);
+          return installments.map((installment, index) => {
             const iso = toIsoDateString(installment.due);
-            const monthKey = iso ? iso.slice(0, 7) : installment.due;
-            const dayKey = iso ? iso.slice(0, 10) : installment.due;
-            const monthLabel =
-              iso && !Number.isNaN(new Date(`${iso}T00:00:00`).getTime())
-                ? monthFormatter.format(new Date(`${iso}T00:00:00`))
-                : installment.due;
+            const date = iso ? new Date(`${iso}T00:00:00`) : null;
+            const monthKey = date ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}` : 'sem-mes';
+            const monthLabel = date ? monthFormatter.format(date) : 'Sem mês';
+            const dayKey = iso || installment.due;
             const dayLabel =
               iso && !Number.isNaN(new Date(`${iso}T00:00:00`).getTime())
                 ? dayFormatter.format(new Date(`${iso}T00:00:00`))
@@ -115,7 +120,8 @@ export default function FaturadosParcelasPage() {
               "";
 
             return {
-              id: `${item.id}-${index}-${installment.due}`,
+              id: `compra-${item.id}-${index}-${installment.due}`,
+              tipo: 'compra_faturada' as const,
               supplier: item.fornecedor,
               cnpj: item.cnpj_cpf,
               obra: item.obra,
@@ -134,6 +140,51 @@ export default function FaturadosParcelasPage() {
             };
           });
         });
+
+        // Processar contas a pagar
+        contasPagar.forEach((conta) => {
+          conta.parcelas.forEach((parcela) => {
+            const date = new Date(`${parcela.data_vencimento}T00:00:00`);
+            const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            const monthLabel = monthFormatter.format(date);
+            const dayKey = parcela.data_vencimento;
+            const dayLabel = dayFormatter.format(date);
+
+            // Só incluir parcelas que não estão pagas ou canceladas
+            if (parcela.status !== 'paga' && parcela.status !== 'cancelada') {
+              installments.push({
+                id: `conta-${conta.id}-${parcela.id}`,
+                tipo: 'conta_pagar' as const,
+                supplier: conta.fornecedor_nome || 'Fornecedor não informado',
+                cnpj: null,
+                obra: null,
+                pedido: null,
+                observation: conta.observacao,
+                value: parcela.valor_parcela,
+                due: parcela.data_vencimento,
+                dueIso: parcela.data_vencimento,
+                monthKey,
+                monthLabel,
+                dayKey,
+                dayLabel,
+                obraId: null,
+                companyId: conta.empresa_id || null,
+                companyName: conta.empresa_nome || undefined,
+                empresaNome: conta.empresa_nome || undefined,
+                fornecedorNome: conta.fornecedor_nome || undefined,
+                status: parcela.status,
+              });
+            }
+          });
+        });
+
+        // Ordenar por data de vencimento
+        installments.sort((a, b) => {
+          const dateA = new Date(a.dueIso || a.due);
+          const dateB = new Date(b.dueIso || b.due);
+          return dateA.getTime() - dateB.getTime();
+        });
+
         setItems(installments);
       } catch (error: any) {
         toast.error(error.message);
@@ -496,17 +547,17 @@ export default function FaturadosParcelasPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Vencimento</TableHead>
+                      <TableHead>Tipo</TableHead>
                       <TableHead>Fornecedor</TableHead>
                       <TableHead>Obra / Pedido</TableHead>
                       <TableHead className="text-right">Valor</TableHead>
                       <TableHead>Observação</TableHead>
-                      <TableHead className="text-right">Total do dia</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {dailyGroups.flatMap((day) => [
-                      <TableRow key={`${day.key}-header`} className="bg-muted/30">
-                        <TableCell colSpan={5}>
+                    {dailyGroups.map((day) => [
+                      <TableRow key={day.key}>
+                        <TableCell colSpan={6}>
                           <div>
                             <p className="text-sm font-semibold">{day.label}</p>
                             <p className="text-xs text-muted-foreground">
@@ -514,13 +565,19 @@ export default function FaturadosParcelasPage() {
                             </p>
                           </div>
                         </TableCell>
-                        <TableCell className="text-right font-semibold text-blue-600">
-                          {formatCurrencyBR(day.total)}
-                        </TableCell>
                       </TableRow>,
                       ...day.items.map((installment) => (
                         <TableRow key={installment.id}>
                           <TableCell>{installment.due}</TableCell>
+                          <TableCell>
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${
+                              installment.tipo === 'conta_pagar' 
+                                ? 'bg-orange-100 text-orange-800' 
+                                : 'bg-blue-100 text-blue-800'
+                            }`}>
+                              {installment.tipo === 'conta_pagar' ? 'Conta a Pagar' : 'Compra Faturada'}
+                            </span>
+                          </TableCell>
                           <TableCell>
                             <div className="font-medium">{installment.supplier}</div>
                             {installment.cnpj && (
@@ -528,7 +585,7 @@ export default function FaturadosParcelasPage() {
                             )}
                           </TableCell>
                           <TableCell>
-                            <div className="text-sm font-medium">{installment.obra || '—'}</div>
+                            <div className="text-sm font-medium">{installment.obra || '---'}</div>
                             <div className="text-[11px] text-muted-foreground">
                               {installment.pedido || 'Sem pedido'}
                             </div>
@@ -537,9 +594,8 @@ export default function FaturadosParcelasPage() {
                             {formatCurrencyBR(installment.value)}
                           </TableCell>
                           <TableCell className="text-sm text-muted-foreground">
-                            {installment.observation || '—'}
+                            {installment.observation || '---'}
                           </TableCell>
-                          <TableCell />
                         </TableRow>
                       )),
                     ])}

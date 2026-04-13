@@ -105,6 +105,13 @@ export function formatDateSafe(value?: string | null): string {
   return parsed.toLocaleDateString('pt-BR');
 }
 
+export function formatCurrency(value: number): string {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(value);
+}
+
 export function parseDateOnly(value: string): Date {
   const isoSegment = value.split('T')[0];
   return new Date(`${isoSegment}T00:00:00`);

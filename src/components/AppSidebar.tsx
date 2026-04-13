@@ -78,6 +78,7 @@ export function AppSidebar() {
     label: 'Financeiro',
     icon: CircleDollarSign,
     items: [
+      { title: 'Contas a Pagar', url: '/contas-pagar', icon: Package, module: 'contas_pagar' },
       { title: 'Controle de Caixa', url: '/controle-caixa', icon: Landmark, module: 'controle_caixa' },
     ],
   });

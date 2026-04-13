@@ -25,6 +25,7 @@ export const MODULES = [
   { key: 'usuarios', label: 'Usuarios' },
   { key: 'auditoria', label: 'Auditoria' },
   { key: 'config_relatorio', label: 'Config. Relatorio' },
+  { key: 'contas_pagar', label: 'Contas a Pagar' },
 ] as const;
 
 export type ModuleKey = typeof MODULES[number]['key'];
