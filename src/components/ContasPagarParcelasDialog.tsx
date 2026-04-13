@@ -6,12 +6,11 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Trash2, Calendar, DollarSign } from 'lucide-react';
+import { Plus, Trash2, Calendar } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
 import { 
   ContaPagarParcela, 
   updateParcela, 
-  deleteParcela, 
   saveParcelas 
 } from '@/lib/contasPagarService';
 import { toast } from 'sonner';
@@ -23,6 +22,25 @@ interface Props {
   parcelas: ContaPagarParcela[];
   onSave: (parcelas: ContaPagarParcela[]) => void;
   userId: string;
+}
+
+/**
+ * 🔒 Função segura para datas (resolve erro de timestamp)
+ */
+function normalizeDate(date?: string | null) {
+  if (!date || typeof date !== 'string') return null;
+
+  const trimmed = date.trim();
+  if (!trimmed) return null;
+
+  const parts = trimmed.split('-');
+  if (parts.length !== 3) return null;
+
+  const [year, month, day] = parts;
+
+  if (!year || !month || !day) return null;
+
+  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
 }
 
 export default function ContasPagarParcelasDialog({ 
@@ -37,8 +55,8 @@ export default function ContasPagarParcelasDialog({
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (open && initialParcelas.length > 0) {
-      setParcelas([...initialParcelas]);
+    if (open) {
+      setParcelas(initialParcelas?.length ? [...initialParcelas] : []);
     }
   }, [open, initialParcelas]);
 
@@ -68,7 +86,6 @@ export default function ContasPagarParcelasDialog({
 
   function removeParcela(index: number) {
     const novasParcelas = parcelas.filter((_, i) => i !== index);
-    // Reenumerar as parcelas
     const renumeradas = novasParcelas.map((p, i) => ({
       ...p,
       numero_parcela: i + 1
@@ -97,19 +114,20 @@ export default function ContasPagarParcelasDialog({
           setLoading(false);
           return;
         }
-        if (!parcela.data_vencimento) {
-          toast.error('Todas as parcelas devem ter uma data de vencimento');
+
+        if (!normalizeDate(parcela.data_vencimento)) {
+          toast.error('Data de vencimento inválida');
           setLoading(false);
           return;
         }
       }
 
-      // Limpar campos vazios que causam erro de timestamp
       const parcelasLimpas = parcelas.map(p => ({
         ...p,
-        data_pagamento: p.data_pagamento || null,
-        valor_pago: p.valor_pago || null,
-        observacao: p.observacao || null,
+        data_vencimento: normalizeDate(p.data_vencimento),
+        data_pagamento: normalizeDate(p.data_pagamento),
+        valor_pago: p.valor_pago ?? null,
+        observacao: p.observacao?.trim() || null,
         updated_at: new Date().toISOString(),
       }));
 
@@ -127,6 +145,7 @@ export default function ContasPagarParcelasDialog({
       onSave(parcelas);
       onClose();
       toast.success('Parcelas atualizadas com sucesso');
+
     } catch (error: any) {
       console.error('Erro ao salvar parcelas:', error);
       toast.error('Erro ao salvar parcelas: ' + error.message);
@@ -134,7 +153,6 @@ export default function ContasPagarParcelasDialog({
       setLoading(false);
     }
   }
-
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -184,32 +202,45 @@ export default function ContasPagarParcelasDialog({
                     <TableCell className="font-medium">
                       {parcela.numero_parcela}/{parcelas.length}
                     </TableCell>
+
                     <TableCell>
                       <Input
                         type="number"
                         step="0.01"
                         value={parcela.valor_parcela}
-                        onChange={(e) => updateParcelaLocal(index, 'valor_parcela', parseFloat(e.target.value) || 0)}
+                        onChange={(e) =>
+                          updateParcelaLocal(index, 'valor_parcela', parseFloat(e.target.value) || 0)
+                        }
                         className="w-24 font-mono text-sm"
-                        placeholder="0,00"
                       />
                     </TableCell>
+
                     <TableCell>
                       <Input
                         type="date"
-                        value={parcela.data_vencimento}
-                        onChange={(e) => updateParcelaLocal(index, 'data_vencimento', e.target.value)}
+                        value={parcela.data_vencimento || ''}
+                        onChange={(e) =>
+                          updateParcelaLocal(index, 'data_vencimento', e.target.value)
+                        }
                         className="w-32 text-sm"
                       />
                     </TableCell>
+
                     <TableCell>
                       <Input
                         type="date"
                         value={parcela.data_pagamento || ''}
-                        onChange={(e) => updateParcelaLocal(index, 'data_pagamento', e.target.value || null)}
+                        onChange={(e) =>
+                          updateParcelaLocal(
+                            index,
+                            'data_pagamento',
+                            e.target.value ? e.target.value : null
+                          )
+                        }
                         className="w-32 text-sm"
                       />
                     </TableCell>
+
                     <TableCell>
                       <Select
                         value={parcela.status}
@@ -226,20 +257,24 @@ export default function ContasPagarParcelasDialog({
                         </SelectContent>
                       </Select>
                     </TableCell>
+
                     <TableCell>
                       <Input
                         value={parcela.observacao || ''}
-                        onChange={(e) => updateParcelaLocal(index, 'observacao', e.target.value || null)}
+                        onChange={(e) =>
+                          updateParcelaLocal(index, 'observacao', e.target.value || null)
+                        }
                         className="w-32 text-sm"
                         placeholder="Obs..."
                       />
                     </TableCell>
+
                     <TableCell>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => removeParcela(index)}
-                        className="text-red-600 hover:text-red-700"
+                        className="text-red-600"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -252,7 +287,10 @@ export default function ContasPagarParcelasDialog({
 
           <div className="flex justify-between items-center p-4 bg-muted rounded-lg">
             <div className="text-sm">
-              <div>Total das parcelas: <strong>{formatCurrency(parcelas.reduce((sum, p) => sum + p.valor_parcela, 0))}</strong></div>
+              Total das parcelas:{' '}
+              <strong>
+                {formatCurrency(parcelas.reduce((sum, p) => sum + p.valor_parcela, 0))}
+              </strong>
             </div>
           </div>
         </div>
