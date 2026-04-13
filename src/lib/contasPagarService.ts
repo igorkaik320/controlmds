@@ -45,10 +45,6 @@ export async function fetchContasPagar(): Promise<ContaPagarComParcelas[]> {
     .from('contas_pagar')
     .select(`
       *,
-      empresas!empresas_empresa_id_fkey (
-        id,
-        nome
-      ),
       contas_pagar_parcelas (
         id,
         numero_parcela,
@@ -69,7 +65,6 @@ export async function fetchContasPagar(): Promise<ContaPagarComParcelas[]> {
 
   return (data || []).map((item: any) => ({
     ...item,
-    empresa_nome: item.empresas?.nome || item.empresa_nome || null,
     parcelas: (item.contas_pagar_parcelas || []).map((p: any) => ({
       ...p,
       created_by: p.created_by || '',
