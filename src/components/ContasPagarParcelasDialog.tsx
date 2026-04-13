@@ -80,35 +80,52 @@ export default function ContasPagarParcelasDialog({
     setLoading(true);
 
     try {
-      const parcelasLimpas = parcelas.map((p) => ({
-        ...p,
+      const parcelasExistentes = parcelas.filter((p) => p.id);
+      const parcelasNovas = parcelas.filter((p) => !p.id);
 
-        // 🔥 CORREÇÃO DEFINITIVA
-        data_vencimento: p.data_vencimento || null,
-        data_pagamento: p.data_pagamento || null,
+      // 🔥 UPDATE (SEM created_at)
+      for (const p of parcelasExistentes) {
+        const parcelaLimpa = {
+          conta_pagar_id: p.conta_pagar_id,
+          numero_parcela: p.numero_parcela,
+          valor_parcela: p.valor_parcela,
 
-        valor_pago: p.valor_pago ?? null,
+          data_vencimento: p.data_vencimento || null,
+          data_pagamento: p.data_pagamento || null,
 
-        observacao: p.observacao?.trim() || null,
+          valor_pago: p.valor_pago ?? null,
+          status: p.status,
 
-        created_by: p.created_by || userId,
-        updated_by: userId || null,
+          observacao: p.observacao?.trim() || null,
 
-        updated_at: new Date().toISOString(),
-      }));
+          updated_at: new Date().toISOString(),
+          updated_by: userId || null,
+        };
 
-      console.log("ENVIANDO PARCELAS:", parcelasLimpas);
+        console.log("UPDATE PARCELA LIMPA:", parcelaLimpa);
 
-      const parcelasExistentes = parcelasLimpas.filter((p) => p.id);
-      const parcelasNovas = parcelasLimpas.filter((p) => !p.id);
-
-      for (const parcela of parcelasExistentes) {
-        console.log("UPDATE PARCELA:", parcela);
-        await updateParcela(parcela.id, parcela, userId);
+        await updateParcela(p.id, parcelaLimpa, userId);
       }
 
+      // 🔥 INSERT
       if (parcelasNovas.length > 0) {
-        await saveParcelas(parcelasNovas, userId);
+        const novas = parcelasNovas.map((p) => ({
+          conta_pagar_id: p.conta_pagar_id,
+          numero_parcela: p.numero_parcela,
+          valor_parcela: p.valor_parcela,
+
+          data_vencimento: p.data_vencimento || null,
+          data_pagamento: p.data_pagamento || null,
+
+          valor_pago: p.valor_pago ?? null,
+          status: p.status,
+
+          observacao: p.observacao?.trim() || null,
+
+          created_by: userId,
+        }));
+
+        await saveParcelas(novas, userId);
       }
 
       onSave(parcelas);
@@ -172,9 +189,7 @@ export default function ContasPagarParcelasDialog({
                 {parcelas.map((parcela, index) => (
                   <TableRow key={parcela.id || index}>
                     
-                    <TableCell>
-                      {parcela.numero_parcela}
-                    </TableCell>
+                    <TableCell>{parcela.numero_parcela}</TableCell>
 
                     <TableCell>
                       <Input
@@ -202,11 +217,7 @@ export default function ContasPagarParcelasDialog({
                         type="date"
                         value={parcela.data_pagamento || ''}
                         onChange={(e) =>
-                          updateParcelaLocal(
-                            index,
-                            'data_pagamento',
-                            e.target.value || null
-                          )
+                          updateParcelaLocal(index, 'data_pagamento', e.target.value || null)
                         }
                       />
                     </TableCell>
