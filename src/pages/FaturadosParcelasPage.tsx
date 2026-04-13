@@ -170,7 +170,6 @@ export default function FaturadosParcelasPage() {
                 obraId: null,
                 companyId: conta.empresa_id || null,
                 companyName: conta.empresa_nome || undefined,
-                empresaNome: conta.empresa_nome || undefined,
                 fornecedorNome: conta.fornecedor_nome || undefined,
                 status: parcela.status,
               });

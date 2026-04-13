@@ -340,7 +340,7 @@ function openNew() {
       await updateCompraFaturada(editingId, payload, user.id);
       toast.success('Registro atualizado');
     } else {
-      await saveCompraFaturada({ ...payload, created_by: user.id } as any);
+      await saveCompraFaturada({ ...payload, created_by: user.id } as any, user.id);
         toast.success('Registro cadastrado');
       }
 
