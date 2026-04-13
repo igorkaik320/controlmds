@@ -186,8 +186,8 @@ function openNew() {
                   <AuditInfo
                     createdBy={item.created_by}
                   createdAt={item.created_at}
-                    updatedBy={item.updated_by}
-                    updatedAt={item.updated_at}
+                    updatedBy={(item as any).updated_by}
+                    updatedAt={(item as any).updated_at}
                     profileMap={profileMap}
                   />
                 </TableCell>
