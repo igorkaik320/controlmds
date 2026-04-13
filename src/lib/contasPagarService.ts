@@ -167,27 +167,35 @@ export async function updateParcela(
   userId: string
 ): Promise<ContaPagarParcela> {
 
-  const parcelaLimpa = {
-    ...parcela,
+  // 🔥 REMOVE CAMPOS PROIBIDOS / QUEBRADOS
+  const payload: any = {
+    conta_pagar_id: parcela.conta_pagar_id,
+    numero_parcela: parcela.numero_parcela,
+    valor_parcela: parcela.valor_parcela,
     data_vencimento: parcela.data_vencimento || null,
     data_pagamento: parcela.data_pagamento || null,
     valor_pago: parcela.valor_pago ?? null,
+    status: parcela.status,
     observacao: parcela.observacao || null,
     updated_at: new Date().toISOString(),
     updated_by: userId,
   };
 
+  // 🔥 REMOVE UNDEFINED
+  Object.keys(payload).forEach((key) => {
+    if (payload[key] === undefined) {
+      delete payload[key];
+    }
+  });
+
   const { data, error } = await supabase
     .from('contas_pagar_parcelas')
-    .update(parcelaLimpa as any)
+    .update(payload)
     .eq('id', id)
     .select()
     .single();
 
-  if (error) {
-    console.error('ERRO UPDATE PARCELA:', parcelaLimpa);
-    throw error;
-  }
+  if (error) throw error;
 
   return data;
 }
