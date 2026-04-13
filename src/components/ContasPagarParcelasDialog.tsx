@@ -25,7 +25,7 @@ interface Props {
 }
 
 /**
- * 🔒 Função segura para datas (resolve erro de timestamp)
+ * 🔒 Função segura para datas
  */
 function normalizeDate(date?: string | null) {
   if (!date || typeof date !== 'string') return null;
@@ -51,6 +51,7 @@ export default function ContasPagarParcelasDialog({
   onSave, 
   userId 
 }: Props) {
+
   const [parcelas, setParcelas] = useState<ContaPagarParcela[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -75,6 +76,7 @@ export default function ContasPagarParcelasDialog({
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
+
     setParcelas([...parcelas, novaParcela]);
   }
 
@@ -86,10 +88,12 @@ export default function ContasPagarParcelasDialog({
 
   function removeParcela(index: number) {
     const novasParcelas = parcelas.filter((_, i) => i !== index);
+
     const renumeradas = novasParcelas.map((p, i) => ({
       ...p,
       numero_parcela: i + 1
     }));
+
     setParcelas(renumeradas);
   }
 
@@ -100,13 +104,14 @@ export default function ContasPagarParcelasDialog({
       vencida: { label: 'Vencida', variant: 'destructive' },
       cancelada: { label: 'Cancelada', variant: 'outline' },
     };
-    
+
     const config = variants[status] || { label: status, variant: 'default' };
     return <Badge variant={config.variant}>{config.label}</Badge>;
   }
 
   async function handleSave() {
     setLoading(true);
+
     try {
       for (const parcela of parcelas) {
         if (!parcela.valor_parcela || parcela.valor_parcela <= 0) {
@@ -122,14 +127,20 @@ export default function ContasPagarParcelasDialog({
         }
       }
 
-      const parcelasLimpas = parcelas.map(p => ({
-        ...p,
-        data_vencimento: normalizeDate(p.data_vencimento),
-        data_pagamento: normalizeDate(p.data_pagamento),
-        valor_pago: p.valor_pago ?? null,
-        observacao: p.observacao?.trim() || null,
-        updated_at: new Date().toISOString(),
-      }));
+      // 🔥 CORREÇÃO DEFINITIVA AQUI
+      const parcelasLimpas = parcelas.map(p => {
+        const dataVencimento = normalizeDate(p.data_vencimento);
+        const dataPagamento = normalizeDate(p.data_pagamento);
+
+        return {
+          ...p,
+          data_vencimento: dataVencimento || null,
+          data_pagamento: dataPagamento || null,
+          valor_pago: p.valor_pago ?? null,
+          observacao: p.observacao?.trim() || null,
+          updated_at: new Date().toISOString(),
+        };
+      });
 
       const parcelasExistentes = parcelasLimpas.filter(p => p.id);
       const parcelasNovas = parcelasLimpas.filter(p => !p.id);
@@ -169,6 +180,7 @@ export default function ContasPagarParcelasDialog({
             <div className="text-sm text-muted-foreground">
               Total de parcelas: {parcelas.length}
             </div>
+
             <Button size="sm" onClick={addParcela}>
               <Plus className="h-4 w-4 mr-1" />
               Adicionar Parcela
@@ -179,15 +191,16 @@ export default function ContasPagarParcelasDialog({
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-20">#</TableHead>
+                  <TableHead>#</TableHead>
                   <TableHead>Valor</TableHead>
                   <TableHead>Vencimento</TableHead>
                   <TableHead>Pagamento</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Observação</TableHead>
-                  <TableHead className="w-20"></TableHead>
+                  <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
+
               <TableBody>
                 {parcelas.length === 0 && (
                   <TableRow>
@@ -199,7 +212,7 @@ export default function ContasPagarParcelasDialog({
 
                 {parcelas.map((parcela, index) => (
                   <TableRow key={parcela.id || `nova-${index}`}>
-                    <TableCell className="font-medium">
+                    <TableCell>
                       {parcela.numero_parcela}/{parcelas.length}
                     </TableCell>
 
@@ -211,7 +224,7 @@ export default function ContasPagarParcelasDialog({
                         onChange={(e) =>
                           updateParcelaLocal(index, 'valor_parcela', parseFloat(e.target.value) || 0)
                         }
-                        className="w-24 font-mono text-sm"
+                        className="w-24"
                       />
                     </TableCell>
 
@@ -222,7 +235,6 @@ export default function ContasPagarParcelasDialog({
                         onChange={(e) =>
                           updateParcelaLocal(index, 'data_vencimento', e.target.value)
                         }
-                        className="w-32 text-sm"
                       />
                     </TableCell>
 
@@ -237,7 +249,6 @@ export default function ContasPagarParcelasDialog({
                             e.target.value ? e.target.value : null
                           )
                         }
-                        className="w-32 text-sm"
                       />
                     </TableCell>
 
@@ -246,9 +257,10 @@ export default function ContasPagarParcelasDialog({
                         value={parcela.status}
                         onValueChange={(value) => updateParcelaLocal(index, 'status', value)}
                       >
-                        <SelectTrigger className="w-28">
+                        <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
+
                         <SelectContent>
                           <SelectItem value="aberta">Aberta</SelectItem>
                           <SelectItem value="paga">Paga</SelectItem>
@@ -264,8 +276,6 @@ export default function ContasPagarParcelasDialog({
                         onChange={(e) =>
                           updateParcelaLocal(index, 'observacao', e.target.value || null)
                         }
-                        className="w-32 text-sm"
-                        placeholder="Obs..."
                       />
                     </TableCell>
 
@@ -285,13 +295,11 @@ export default function ContasPagarParcelasDialog({
             </Table>
           </div>
 
-          <div className="flex justify-between items-center p-4 bg-muted rounded-lg">
-            <div className="text-sm">
-              Total das parcelas:{' '}
-              <strong>
-                {formatCurrency(parcelas.reduce((sum, p) => sum + p.valor_parcela, 0))}
-              </strong>
-            </div>
+          <div className="p-4 bg-muted rounded-lg">
+            Total:{' '}
+            <strong>
+              {formatCurrency(parcelas.reduce((sum, p) => sum + p.valor_parcela, 0))}
+            </strong>
           </div>
         </div>
 
@@ -299,6 +307,7 @@ export default function ContasPagarParcelasDialog({
           <Button variant="outline" onClick={onClose}>
             Cancelar
           </Button>
+
           <Button onClick={handleSave} disabled={loading}>
             {loading ? 'Salvando...' : 'Salvar Parcelas'}
           </Button>
