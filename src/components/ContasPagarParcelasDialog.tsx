@@ -147,24 +147,26 @@ export default function ContasPagarParcelasDialog({
       // 🔥 ATUALIZA TOTAL DA CONTA
       const total = parcelas.reduce((sum, p) => sum + (p.valor_parcela || 0), 0);
 
-      await supabase
-        .from('contas_pagar')
-        .update({ valor_total: total })
-        .eq('id', contaPagarId);
+await supabase
+  .from('contas_pagar')
+  .update({ 
+    valor_total: total,
+    quantidade_parcelas: parcelas.length // 🔥 atualiza quantidade corretamente
+  })
+  .eq('id', contaPagarId);
 
-      onSave(parcelas);
-      onClose();
+onSave(parcelas);
+onClose();
 
-      toast.success('Parcelas salvas com sucesso');
+toast.success('Parcelas salvas com sucesso');
 
-    } catch (e: any) {
-      console.error(e);
-      toast.error('Erro ao salvar parcelas: ' + e.message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
+} catch (e: any) {
+  console.error(e);
+  toast.error('Erro ao salvar parcelas: ' + e.message);
+} finally {
+  setLoading(false);
+}
+    
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-auto">
