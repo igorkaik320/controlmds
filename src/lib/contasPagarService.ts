@@ -39,13 +39,6 @@ export interface ContaPagarComParcelas extends ContaPagar {
   parcelas: ContaPagarParcela[];
 }
 
-// 🔥 FUNÇÃO GLOBAL PRA FORMATAR DATA (CORREÇÃO PRINCIPAL)
-function formatDate(date: any) {
-  if (!date || date === '') return null;
-  if (typeof date === 'string' && date.includes('T')) return date;
-  return date + 'T00:00:00';
-}
-
 // ---- Contas a Pagar ----
 export async function fetchContasPagar(): Promise<ContaPagarComParcelas[]> {
   const { data, error } = await supabase
@@ -81,12 +74,8 @@ export async function fetchContasPagar(): Promise<ContaPagarComParcelas[]> {
   }));
 }
 
-export async function saveContaPagar(
-  conta: Omit<ContaPagar, 'id' | 'created_at' | 'updated_at'>,
-  userId: string
-): Promise<ContaPagar> {
+export async function saveContaPagar(conta: Omit<ContaPagar, 'id' | 'created_at' | 'updated_at'>, userId: string): Promise<ContaPagar> {
   const timestamp = new Date().toISOString();
-
   const { data, error } = await supabase
     .from('contas_pagar')
     .insert({ ...conta, created_at: timestamp, updated_at: timestamp } as any)
@@ -106,11 +95,7 @@ export async function saveContaPagar(
   return data;
 }
 
-export async function updateContaPagar(
-  id: string,
-  conta: Partial<ContaPagar>,
-  userId: string
-): Promise<ContaPagar> {
+export async function updateContaPagar(id: string, conta: Partial<ContaPagar>, userId: string): Promise<ContaPagar> {
   const { data: previous } = await supabase
     .from('contas_pagar')
     .select('*')
@@ -163,12 +148,16 @@ export async function saveParcelas(
   parcelas: Omit<ContaPagarParcela, 'id' | 'created_at' | 'updated_at'>[],
   userId: string
 ): Promise<ContaPagarParcela[]> {
+
   const timestamp = new Date().toISOString();
 
-  const parcelasTratadas = parcelas.map(p => ({
+  // 🔥 CORREÇÃO AQUI TAMBÉM (garante que nunca vai string vazia)
+  const parcelasCorrigidas = parcelas.map(p => ({
     ...p,
-    data_vencimento: formatDate(p.data_vencimento),
-    data_pagamento: formatDate(p.data_pagamento),
+    data_pagamento: p.data_pagamento ? p.data_pagamento : null,
+    data_vencimento: p.data_vencimento ? p.data_vencimento : null,
+    valor_pago: p.valor_pago ?? null,
+    observacao: p.observacao ?? null,
     created_by: userId,
     created_at: timestamp,
     updated_at: timestamp
@@ -176,7 +165,7 @@ export async function saveParcelas(
 
   const { data, error } = await supabase
     .from('contas_pagar_parcelas')
-    .insert(parcelasTratadas as any)
+    .insert(parcelasCorrigidas as any)
     .select();
 
   if (error) throw error;
@@ -190,23 +179,26 @@ export async function updateParcela(
   userId: string
 ): Promise<ContaPagarParcela> {
 
-  const parcelaTratada = {
-    ...parcela,
-    data_vencimento: formatDate(parcela.data_vencimento),
-    data_pagamento: formatDate(parcela.data_pagamento),
-    updated_at: new Date().toISOString(),
-    updated_by: userId
-  };
-
   const { data: previous } = await supabase
     .from('contas_pagar_parcelas')
     .select('*')
     .eq('id', id)
     .maybeSingle();
 
+  // 🔥🔥🔥 CORREÇÃO DEFINITIVA AQUI
+  const payload = {
+    ...parcela,
+    data_pagamento: parcela.data_pagamento ? parcela.data_pagamento : null,
+    data_vencimento: parcela.data_vencimento ? parcela.data_vencimento : null,
+    valor_pago: parcela.valor_pago ?? null,
+    observacao: parcela.observacao ?? null,
+    updated_at: new Date().toISOString(),
+    updated_by: userId,
+  };
+
   const { data, error } = await supabase
     .from('contas_pagar_parcelas')
-    .update(parcelaTratada as any)
+    .update(payload as any)
     .eq('id', id)
     .select()
     .single();
@@ -255,6 +247,7 @@ export function gerarParcelas(
 ): Omit<ContaPagarParcela, 'id' | 'created_at' | 'updated_at'>[] {
 
   const parcelas: Omit<ContaPagarParcela, 'id' | 'created_at' | 'updated_at'>[] = [];
+
   const valorParcela = Math.round((valorTotal / quantidadeParcelas) * 100) / 100;
   const valorUltimaParcela = valorTotal - (valorParcela * (quantidadeParcelas - 1));
 
