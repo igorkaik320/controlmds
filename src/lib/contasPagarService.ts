@@ -67,7 +67,16 @@ export async function fetchContasPagar(): Promise<ContaPagarComParcelas[]> {
     throw new Error('Não foi possível carregar as contas a pagar');
   }
 
-  return data.map(transformContaPagar);
+  return (data || []).map((item: any) => ({
+    ...item,
+    empresa_nome: item.empresas?.nome || item.empresa_nome || null,
+    parcelas: (item.contas_pagar_parcelas || []).map((p: any) => ({
+      ...p,
+      created_by: p.created_by || '',
+      created_at: p.created_at || '',
+      updated_at: p.updated_at || '',
+    })),
+  }));
 }
 
 export async function saveContaPagar(conta: Omit<ContaPagar, 'id' | 'created_at' | 'updated_at'>, userId: string): Promise<ContaPagar> {

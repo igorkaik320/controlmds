@@ -79,7 +79,7 @@ export default function FornecedoresPage() {
 
     try {
       if (editingId) {
-        await updateFornecedor(editingId, form);
+        await updateFornecedor(editingId, form, user.id);
         toast.success('Fornecedor atualizado');
       } else {
         await saveFornecedor({ ...form, created_by: user.id } as any, user.id);
@@ -92,7 +92,7 @@ export default function FornecedoresPage() {
 
   async function handleDelete(id: string) {
     if (!confirm('Excluir este fornecedor?')) return;
-    try { await deleteFornecedor(id); load(); toast.success('Excluído'); } catch (e: any) { toast.error(e.message); }
+    try { await deleteFornecedor(id, user?.id || ''); load(); toast.success('Excluído'); } catch (e: any) { toast.error(e.message); }
   }
 
   if (loading) return <div className="flex min-h-screen items-center justify-center"><p>Carregando...</p></div>;

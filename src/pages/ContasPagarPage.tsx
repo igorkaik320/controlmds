@@ -199,6 +199,7 @@ export default function ContasPagarPage() {
         quantidade_parcelas: parseInt(form.quantidade_parcelas),
         observacao: form.observacao.trim() || null,
         status: 'aberto' as const,
+        created_by: user.id,
       };
 
       let savedConta;

@@ -166,6 +166,8 @@ export default function ContasPagarPageStable() {
         valor_total: parseFloat(form.valor_total),
         quantidade_parcelas: parseInt(form.quantidade_parcelas),
         observacao: form.observacao,
+        status: 'aberto' as const,
+        created_by: user.id,
       };
 
       if (editingId) {

@@ -337,7 +337,7 @@ function openNew() {
     };
 
     if (editingId) {
-      await updateCompraFaturada(editingId, payload);
+      await updateCompraFaturada(editingId, payload, user.id);
       toast.success('Registro atualizado');
     } else {
       await saveCompraFaturada({ ...payload, created_by: user.id } as any);
@@ -355,7 +355,7 @@ function openNew() {
     if (!confirm('Excluir este registro?')) return;
 
     try {
-      await deleteCompraFaturada(id);
+      await deleteCompraFaturada(id, user?.id || '');
       load();
       toast.success('Excluído');
     } catch (e: any) {
