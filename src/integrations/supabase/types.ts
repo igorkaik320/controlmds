@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      empresas: {
+        Row: {
+          cnpj: string | null
+          cor_cabecalho: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          logo_direita: string | null
+          logo_esquerda: string | null
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          cnpj?: string | null
+          cor_cabecalho?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          logo_direita?: string | null
+          logo_esquerda?: string | null
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          cnpj?: string | null
+          cor_cabecalho?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          logo_direita?: string | null
+          logo_esquerda?: string | null
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string

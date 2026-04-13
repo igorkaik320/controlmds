@@ -415,7 +415,7 @@ export default function ContasPagarPage() {
 
             <div>
               <Label>Empresa *</Label>
-              <Select value={form.empresa_id} onValueChange={(value) => setForm((p) => ({ ...p, empresa_id: value }))}>
+              <Select value={form.empresa_id || undefined} onValueChange={(value) => setForm((p) => ({ ...p, empresa_id: value }))}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione a empresa" />
                 </SelectTrigger>
