@@ -91,31 +91,49 @@ export default function ContasPagarParcelasDialog({
   async function handleSave() {
     setLoading(true);
     try {
-      // Validar se todas as parcelas têm valor e data de vencimento
       for (const parcela of parcelas) {
         if (!parcela.valor_parcela || parcela.valor_parcela <= 0) {
           toast.error('Todas as parcelas devem ter um valor maior que zero');
+          setLoading(false);
           return;
         }
         if (!parcela.data_vencimento) {
           toast.error('Todas as parcelas devem ter uma data de vencimento');
+          setLoading(false);
           return;
         }
       }
 
-      // Separar parcelas novas das existentes
-      const parcelasExistentes = parcelas.filter(p => p.id);
-      const parcelasNovas = parcelas.filter(p => !p.id);
+      // Limpar campos vazios que causam erro de timestamp
+      const parcelasLimpas = parcelas.map(p => ({
+        ...p,
+        data_pagamento: p.data_pagamento || null,
+        valor_pago: p.valor_pago || null,
+        observacao: p.observacao || null,
+        updated_at: new Date().toISOString(),
+      }));
 
-      // Atualizar parcelas existentes
+      const parcelasExistentes = parcelasLimpas.filter(p => p.id);
+      const parcelasNovas = parcelasLimpas.filter(p => !p.id);
+
       for (const parcela of parcelasExistentes) {
         await updateParcela(parcela.id, parcela, userId);
       }
 
-      // Salvar novas parcelas
       if (parcelasNovas.length > 0) {
         await saveParcelas(parcelasNovas, userId);
       }
+
+      onSave(parcelas);
+      onClose();
+      toast.success('Parcelas atualizadas com sucesso');
+    } catch (error: any) {
+      console.error('Erro ao salvar parcelas:', error);
+      toast.error('Erro ao salvar parcelas: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  }
 
       onSave(parcelas);
       onClose();
