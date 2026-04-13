@@ -133,18 +133,8 @@ export default function ContasPagarParcelasDialog({
     } finally {
       setLoading(false);
     }
-  }
 
-      onSave(parcelas);
-      onClose();
-      toast.success('Parcelas atualizadas com sucesso');
-    } catch (error: any) {
-      console.error('Erro ao salvar parcelas:', error);
-      toast.error('Erro ao salvar parcelas: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  }
+
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
