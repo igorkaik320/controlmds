@@ -1,17 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { recordAuditEntry } from '@/lib/audit';
 
-// 🔒 Função para evitar erro de timestamp
-function sanitizeDate(value: any) {
-  if (!value) return null;
-  if (typeof value !== 'string') return null;
-
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-
-  return trimmed;
-}
-
 // Types
 export interface ContaPagar {
   id: string;
@@ -50,6 +39,13 @@ export interface ContaPagarComParcelas extends ContaPagar {
   parcelas: ContaPagarParcela[];
 }
 
+// 🔥 FUNÇÃO GLOBAL PRA FORMATAR DATA (CORREÇÃO PRINCIPAL)
+function formatDate(date: any) {
+  if (!date || date === '') return null;
+  if (typeof date === 'string' && date.includes('T')) return date;
+  return date + 'T00:00:00';
+}
+
 // ---- Contas a Pagar ----
 export async function fetchContasPagar(): Promise<ContaPagarComParcelas[]> {
   const { data, error } = await supabase
@@ -85,8 +81,12 @@ export async function fetchContasPagar(): Promise<ContaPagarComParcelas[]> {
   }));
 }
 
-export async function saveContaPagar(conta: Omit<ContaPagar, 'id' | 'created_at' | 'updated_at'>, userId: string): Promise<ContaPagar> {
+export async function saveContaPagar(
+  conta: Omit<ContaPagar, 'id' | 'created_at' | 'updated_at'>,
+  userId: string
+): Promise<ContaPagar> {
   const timestamp = new Date().toISOString();
+
   const { data, error } = await supabase
     .from('contas_pagar')
     .insert({ ...conta, created_at: timestamp, updated_at: timestamp } as any)
@@ -106,7 +106,11 @@ export async function saveContaPagar(conta: Omit<ContaPagar, 'id' | 'created_at'
   return data;
 }
 
-export async function updateContaPagar(id: string, conta: Partial<ContaPagar>, userId: string): Promise<ContaPagar> {
+export async function updateContaPagar(
+  id: string,
+  conta: Partial<ContaPagar>,
+  userId: string
+): Promise<ContaPagar> {
   const { data: previous } = await supabase
     .from('contas_pagar')
     .select('*')
@@ -155,15 +159,16 @@ export async function deleteContaPagar(id: string, userId: string): Promise<void
 }
 
 // ---- Parcelas ----
-export async function saveParcelas(parcelas: Omit<ContaPagarParcela, 'id' | 'created_at' | 'updated_at'>[], userId: string): Promise<ContaPagarParcela[]> {
+export async function saveParcelas(
+  parcelas: Omit<ContaPagarParcela, 'id' | 'created_at' | 'updated_at'>[],
+  userId: string
+): Promise<ContaPagarParcela[]> {
   const timestamp = new Date().toISOString();
 
-  const parcelasWithTimestamp = parcelas.map(p => ({
+  const parcelasTratadas = parcelas.map(p => ({
     ...p,
-    data_vencimento: sanitizeDate(p.data_vencimento),
-    data_pagamento: sanitizeDate(p.data_pagamento),
-    valor_pago: p.valor_pago ?? null,
-    observacao: p.observacao ?? null,
+    data_vencimento: formatDate(p.data_vencimento),
+    data_pagamento: formatDate(p.data_pagamento),
     created_by: userId,
     created_at: timestamp,
     updated_at: timestamp
@@ -171,7 +176,7 @@ export async function saveParcelas(parcelas: Omit<ContaPagarParcela, 'id' | 'cre
 
   const { data, error } = await supabase
     .from('contas_pagar_parcelas')
-    .insert(parcelasWithTimestamp as any)
+    .insert(parcelasTratadas as any)
     .select();
 
   if (error) throw error;
@@ -179,7 +184,20 @@ export async function saveParcelas(parcelas: Omit<ContaPagarParcela, 'id' | 'cre
   return data || [];
 }
 
-export async function updateParcela(id: string, parcela: Partial<ContaPagarParcela>, userId: string): Promise<ContaPagarParcela> {
+export async function updateParcela(
+  id: string,
+  parcela: Partial<ContaPagarParcela>,
+  userId: string
+): Promise<ContaPagarParcela> {
+
+  const parcelaTratada = {
+    ...parcela,
+    data_vencimento: formatDate(parcela.data_vencimento),
+    data_pagamento: formatDate(parcela.data_pagamento),
+    updated_at: new Date().toISOString(),
+    updated_by: userId
+  };
+
   const { data: previous } = await supabase
     .from('contas_pagar_parcelas')
     .select('*')
@@ -188,15 +206,7 @@ export async function updateParcela(id: string, parcela: Partial<ContaPagarParce
 
   const { data, error } = await supabase
     .from('contas_pagar_parcelas')
-    .update({
-      ...parcela,
-      data_vencimento: sanitizeDate(parcela.data_vencimento),
-      data_pagamento: sanitizeDate(parcela.data_pagamento),
-      valor_pago: parcela.valor_pago ?? null,
-      observacao: parcela.observacao ?? null,
-      updated_at: new Date().toISOString(),
-      updated_by: userId
-    } as any)
+    .update(parcelaTratada as any)
     .eq('id', id)
     .select()
     .single();
@@ -243,6 +253,7 @@ export function gerarParcelas(
   dataPrimeiroVencimento: string,
   userId: string
 ): Omit<ContaPagarParcela, 'id' | 'created_at' | 'updated_at'>[] {
+
   const parcelas: Omit<ContaPagarParcela, 'id' | 'created_at' | 'updated_at'>[] = [];
   const valorParcela = Math.round((valorTotal / quantidadeParcelas) * 100) / 100;
   const valorUltimaParcela = valorTotal - (valorParcela * (quantidadeParcelas - 1));
@@ -250,7 +261,7 @@ export function gerarParcelas(
   for (let i = 1; i <= quantidadeParcelas; i++) {
     const dataVencimento = new Date(dataPrimeiroVencimento);
     dataVencimento.setMonth(dataVencimento.getMonth() + (i - 1));
-    
+
     parcelas.push({
       conta_pagar_id: contaPagarId,
       numero_parcela: i,
