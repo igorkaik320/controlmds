@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -25,7 +24,7 @@ interface Props {
 }
 
 /**
- * 🔒 Função segura para datas
+ * 🔒 Normaliza data (YYYY-MM-DD) ou retorna null
  */
 function normalizeDate(date?: string | null) {
   if (!date || typeof date !== 'string') return null;
@@ -37,7 +36,6 @@ function normalizeDate(date?: string | null) {
   if (parts.length !== 3) return null;
 
   const [year, month, day] = parts;
-
   if (!year || !month || !day) return null;
 
   return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
@@ -76,7 +74,6 @@ export default function ContasPagarParcelasDialog({
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
-
     setParcelas([...parcelas, novaParcela]);
   }
 
@@ -88,12 +85,10 @@ export default function ContasPagarParcelasDialog({
 
   function removeParcela(index: number) {
     const novasParcelas = parcelas.filter((_, i) => i !== index);
-
     const renumeradas = novasParcelas.map((p, i) => ({
       ...p,
       numero_parcela: i + 1
     }));
-
     setParcelas(renumeradas);
   }
 
@@ -113,9 +108,10 @@ export default function ContasPagarParcelasDialog({
     setLoading(true);
 
     try {
+      // 🔒 validação básica
       for (const parcela of parcelas) {
         if (!parcela.valor_parcela || parcela.valor_parcela <= 0) {
-          toast.error('Todas as parcelas devem ter um valor maior que zero');
+          toast.error('Todas as parcelas devem ter valor maior que zero');
           setLoading(false);
           return;
         }
@@ -127,20 +123,22 @@ export default function ContasPagarParcelasDialog({
         }
       }
 
-      // 🔥 CORREÇÃO DEFINITIVA AQUI
+      // 🔥 LIMPEZA DEFINITIVA (ANTI-BUG)
       const parcelasLimpas = parcelas.map(p => {
         const dataVencimento = normalizeDate(p.data_vencimento);
         const dataPagamento = normalizeDate(p.data_pagamento);
 
         return {
           ...p,
-          data_vencimento: dataVencimento || null,
-          data_pagamento: dataPagamento || null,
+          data_vencimento: dataVencimento ? dataVencimento : null,
+          data_pagamento: dataPagamento ? dataPagamento : null,
           valor_pago: p.valor_pago ?? null,
           observacao: p.observacao?.trim() || null,
           updated_at: new Date().toISOString(),
         };
       });
+
+      console.log('ENVIANDO PARCELAS:', parcelasLimpas);
 
       const parcelasExistentes = parcelasLimpas.filter(p => p.id);
       const parcelasNovas = parcelasLimpas.filter(p => !p.id);
@@ -176,11 +174,11 @@ export default function ContasPagarParcelasDialog({
         </DialogHeader>
 
         <div className="space-y-4">
+
           <div className="flex justify-between items-center">
             <div className="text-sm text-muted-foreground">
               Total de parcelas: {parcelas.length}
             </div>
-
             <Button size="sm" onClick={addParcela}>
               <Plus className="h-4 w-4 mr-1" />
               Adicionar Parcela
@@ -202,19 +200,10 @@ export default function ContasPagarParcelasDialog({
               </TableHeader>
 
               <TableBody>
-                {parcelas.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                      Nenhuma parcela cadastrada
-                    </TableCell>
-                  </TableRow>
-                )}
-
                 {parcelas.map((parcela, index) => (
-                  <TableRow key={parcela.id || `nova-${index}`}>
-                    <TableCell>
-                      {parcela.numero_parcela}/{parcelas.length}
-                    </TableCell>
+                  <TableRow key={parcela.id || index}>
+
+                    <TableCell>{parcela.numero_parcela}</TableCell>
 
                     <TableCell>
                       <Input
@@ -224,7 +213,6 @@ export default function ContasPagarParcelasDialog({
                         onChange={(e) =>
                           updateParcelaLocal(index, 'valor_parcela', parseFloat(e.target.value) || 0)
                         }
-                        className="w-24"
                       />
                     </TableCell>
 
@@ -255,12 +243,13 @@ export default function ContasPagarParcelasDialog({
                     <TableCell>
                       <Select
                         value={parcela.status}
-                        onValueChange={(value) => updateParcelaLocal(index, 'status', value)}
+                        onValueChange={(value) =>
+                          updateParcelaLocal(index, 'status', value)
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
-
                         <SelectContent>
                           <SelectItem value="aberta">Aberta</SelectItem>
                           <SelectItem value="paga">Paga</SelectItem>
@@ -284,23 +273,24 @@ export default function ContasPagarParcelasDialog({
                         variant="ghost"
                         size="sm"
                         onClick={() => removeParcela(index)}
-                        className="text-red-600"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </TableCell>
+
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           </div>
 
-          <div className="p-4 bg-muted rounded-lg">
+          <div className="p-4 bg-muted rounded">
             Total:{' '}
             <strong>
               {formatCurrency(parcelas.reduce((sum, p) => sum + p.valor_parcela, 0))}
             </strong>
           </div>
+
         </div>
 
         <DialogFooter>
@@ -309,7 +299,7 @@ export default function ContasPagarParcelasDialog({
           </Button>
 
           <Button onClick={handleSave} disabled={loading}>
-            {loading ? 'Salvando...' : 'Salvar Parcelas'}
+            {loading ? 'Salvando...' : 'Salvar'}
           </Button>
         </DialogFooter>
       </DialogContent>
