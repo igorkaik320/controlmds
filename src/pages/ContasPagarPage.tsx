@@ -283,12 +283,12 @@ export default function ContasPagarPage() {
       <div className="grid gap-4 md:grid-cols-4">
         <div>
           <Label className="text-xs">Empresa</Label>
-          <Select value={filterEmpresa} onValueChange={setFilterEmpresa}>
+          <Select value={filterEmpresa || "_all"} onValueChange={(v) => setFilterEmpresa(v === "_all" ? "" : v)}>
             <SelectTrigger>
               <SelectValue placeholder="Todas as empresas" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todas as empresas</SelectItem>
+              <SelectItem value="_all">Todas as empresas</SelectItem>
               {empresas.map((empresa) => (
                 <SelectItem key={empresa.id} value={empresa.id}>
                   <div className="flex items-center gap-2">
@@ -303,12 +303,12 @@ export default function ContasPagarPage() {
 
         <div>
           <Label className="text-xs">Fornecedor</Label>
-          <Select value={filterFornecedor} onValueChange={setFilterFornecedor}>
+          <Select value={filterFornecedor || "_all"} onValueChange={(v) => setFilterFornecedor(v === "_all" ? "" : v)}>
             <SelectTrigger>
               <SelectValue placeholder="Todos os fornecedores" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos os fornecedores</SelectItem>
+              <SelectItem value="_all">Todos os fornecedores</SelectItem>
               {fornecedores.map((fornecedor) => (
                 <SelectItem key={fornecedor.id} value={fornecedor.id}>
                   <div className="flex items-center gap-2">
