@@ -154,7 +154,7 @@ export default function FaturadosParcelasPage() {
             if (parcela.status !== 'paga' && parcela.status !== 'cancelada') {
               installments.push({
                 id: `conta-${conta.id}-${parcela.id}`,
-                tipo: 'conta_pagar' as 'compra_faturada',
+                tipo: 'compra_faturada' as const,
                 supplier: conta.fornecedor_nome || 'Fornecedor não informado',
                 cnpj: null,
                 obra: null,
@@ -170,8 +170,6 @@ export default function FaturadosParcelasPage() {
                 obraId: null,
                 companyId: conta.empresa_id || null,
                 companyName: conta.empresa_nome || undefined,
-                status: parcela.status,
-                status: parcela.status,
               });
             }
           });
