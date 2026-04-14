@@ -167,9 +167,10 @@ export default function FaturadosParcelasPage() {
                 monthLabel,
                 dayKey,
                 dayLabel,
-                obraId: null,
-                companyId: conta.empresa_id || null,
+                obraId: undefined,
+                companyId: conta.empresa_id || undefined,
                 companyName: conta.empresa_nome || undefined,
+                status: parcela.status,
               });
             }
           });
