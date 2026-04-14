@@ -4,7 +4,9 @@ import { recordAuditEntry } from '@/lib/audit';
 // Types
 export interface ContaPagar {
   id: string;
+  numero: number;
   data_emissao: string;
+  data_primeiro_vencimento: string | null;
   empresa_id: string | null;
   empresa_nome: string | null;
   fornecedor_id: string | null;
@@ -53,10 +55,13 @@ export async function fetchContasPagar(): Promise<ContaPagarComParcelas[]> {
         data_pagamento,
         valor_pago,
         status,
-        observacao
+        observacao,
+        created_by,
+        created_at,
+        updated_at
       )
     `)
-    .order('data_emissao', { ascending: false });
+    .order('numero', { ascending: false });
 
   if (error) {
     console.error('Erro ao buscar contas a pagar:', error);
@@ -75,7 +80,7 @@ export async function fetchContasPagar(): Promise<ContaPagarComParcelas[]> {
 }
 
 export async function saveContaPagar(
-  conta: Omit<ContaPagar, 'id' | 'created_at' | 'updated_at'>,
+  conta: Omit<ContaPagar, 'id' | 'numero' | 'created_at' | 'updated_at'>,
   userId: string
 ): Promise<ContaPagar> {
   const timestamp = new Date().toISOString();
@@ -159,15 +164,11 @@ export async function deleteContaPagar(id: string, userId: string): Promise<void
 }
 
 // ---- Parcelas ----
-
-// 🔥 FUNÇÃO CRÍTICA (CORRIGIDA)
 export async function updateParcela(
   id: string,
   parcela: Partial<ContaPagarParcela>,
   userId: string
 ): Promise<ContaPagarParcela> {
-
-  // 🔥 REMOVE CAMPOS PROIBIDOS / QUEBRADOS
   const payload: any = {
     conta_pagar_id: parcela.conta_pagar_id,
     numero_parcela: parcela.numero_parcela,
@@ -181,11 +182,8 @@ export async function updateParcela(
     updated_by: userId,
   };
 
-  // 🔥 REMOVE UNDEFINED
   Object.keys(payload).forEach((key) => {
-    if (payload[key] === undefined) {
-      delete payload[key];
-    }
+    if (payload[key] === undefined) delete payload[key];
   });
 
   const { data, error } = await supabase
@@ -196,16 +194,13 @@ export async function updateParcela(
     .single();
 
   if (error) throw error;
-
   return data;
 }
 
-// 🔥 FUNÇÃO CRÍTICA (CORRIGIDA)
 export async function saveParcelas(
   parcelas: Omit<ContaPagarParcela, 'id' | 'created_at' | 'updated_at'>[],
   userId: string
 ): Promise<ContaPagarParcela[]> {
-
   const timestamp = new Date().toISOString();
 
   const parcelasLimpas = parcelas.map(p => ({
@@ -224,11 +219,7 @@ export async function saveParcelas(
     .insert(parcelasLimpas as any)
     .select();
 
-  if (error) {
-    console.error('ERRO INSERT PARCELAS:', parcelasLimpas);
-    throw error;
-  }
-
+  if (error) throw error;
   return data || [];
 }
 
@@ -255,6 +246,25 @@ export async function deleteParcela(id: string, userId: string): Promise<void> {
   });
 }
 
+// Atualizar status de múltiplas parcelas de uma vez
+export async function updateParcelasStatus(
+  ids: string[],
+  status: string,
+  userId: string
+): Promise<void> {
+  const { error } = await supabase
+    .from('contas_pagar_parcelas')
+    .update({ 
+      status, 
+      updated_at: new Date().toISOString(), 
+      updated_by: userId,
+      ...(status === 'paga' ? { data_pagamento: new Date().toISOString().split('T')[0] } : {}),
+    } as any)
+    .in('id', ids);
+
+  if (error) throw error;
+}
+
 // ---- Gerar Parcelas ----
 export function gerarParcelas(
   contaPagarId: string,
@@ -263,13 +273,12 @@ export function gerarParcelas(
   dataPrimeiroVencimento: string,
   userId: string
 ): Omit<ContaPagarParcela, 'id' | 'created_at' | 'updated_at'>[] {
-
   const parcelas = [];
   const valorParcela = Math.round((valorTotal / quantidadeParcelas) * 100) / 100;
-  const valorUltima = valorTotal - (valorParcela * (quantidadeParcelas - 1));
+  const valorUltima = Math.round((valorTotal - (valorParcela * (quantidadeParcelas - 1))) * 100) / 100;
 
   for (let i = 1; i <= quantidadeParcelas; i++) {
-    const data = new Date(dataPrimeiroVencimento);
+    const data = new Date(`${dataPrimeiroVencimento}T00:00:00`);
     data.setMonth(data.getMonth() + (i - 1));
 
     parcelas.push({
@@ -279,7 +288,7 @@ export function gerarParcelas(
       data_vencimento: data.toISOString().split('T')[0],
       data_pagamento: null,
       valor_pago: null,
-      status: 'aberta',
+      status: 'aberta' as const,
       observacao: null,
       created_by: userId,
     });
