@@ -23,8 +23,9 @@ import {
   ContaPagarComParcelas,
   ContaPagarParcela
 } from '@/lib/contasPagarService';
-import { fetchEmpresas } from '@/lib/empresasService';
+import { fetchEmpresas, Empresa } from '@/lib/empresasService';
 import { fetchFornecedores, Fornecedor } from '@/lib/comprasService';
+import { fetchObras, fetchObrasPorEmpresa, Obra } from '@/lib/obrasService';
 import ContasPagarParcelasDialog from '@/components/ContasPagarParcelasDialog';
 import FornecedorSelect from '@/components/compras/FornecedorSelect';
 import EmpresaSelect from '@/components/compras/EmpresaSelect';
@@ -40,6 +41,7 @@ export default function ContasPagarPage() {
   const [items, setItems] = useState<ContaPagarComParcelas[]>([]);
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
+  const [obras, setObras] = useState<Obra[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
   const [showParcelasDialog, setShowParcelasDialog] = useState(false);
@@ -47,7 +49,6 @@ export default function ContasPagarPage() {
   const [contaParcelas, setContaParcelas] = useState<ContaPagarComParcelas | null>(null);
   const [selectedParcelas, setSelectedParcelas] = useState<Set<string>>(new Set());
   const [showBulkStatus, setShowBulkStatus] = useState(false);
-  const [valorTotalInput, setValorTotalInput] = useState('');
   
   // Filtros
   const [filterEmpresa, setFilterEmpresa] = useState('');
@@ -64,6 +65,7 @@ export default function ContasPagarPage() {
     data_primeiro_vencimento: new Date().toISOString().split('T')[0],
     empresa_id: '',
     fornecedor_id: '',
+    obra_id: '',
     valor_total: '',
     quantidade_parcelas: '1',
     observacao: '',
@@ -87,6 +89,14 @@ export default function ContasPagarPage() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (form.empresa_id) {
+      fetchObrasPorEmpresa(form.empresa_id).then(setObras).catch(() => {});
+    } else {
+      fetchObras().then(setObras).catch(() => {});
+    }
+  }, [form.empresa_id]);
 
   const filtered = items.filter((i) => {
     if (!filtrosAplicados.empresa && !filtrosAplicados.fornecedor && !filtrosAplicados.dataEmissao) return true;
@@ -116,11 +126,11 @@ export default function ContasPagarPage() {
       data_primeiro_vencimento: new Date().toISOString().split('T')[0],
       empresa_id: '',
       fornecedor_id: '',
+      obra_id: '',
       valor_total: '',
       quantidade_parcelas: '1',
       observacao: '',
     });
-    setValorTotalInput('');
     setShowDialog(true);
   }
 
@@ -131,11 +141,11 @@ export default function ContasPagarPage() {
       data_primeiro_vencimento: item.data_primeiro_vencimento || item.data_emissao,
       empresa_id: item.empresa_id || '',
       fornecedor_id: item.fornecedor_id || '',
-      valor_total: formatCurrencyReal(item.valor_total),
+      obra_id: item.obra_id || '',
+      valor_total: formatCurrencyInput(formatCurrencyReal(item.valor_total)),
       quantidade_parcelas: item.quantidade_parcelas.toString(),
       observacao: item.observacao || '',
     });
-    setValorTotalInput(formatCurrencyInput(formatCurrencyReal(item.valor_total)));
     setShowDialog(true);
   }
 
@@ -162,6 +172,7 @@ export default function ContasPagarPage() {
       const empresa = empresas.find(e => e.id === form.empresa_id);
       const fornecedor = fornecedores.find(f => f.id === form.fornecedor_id);
       
+      const obra = obras.find(o => o.id === form.obra_id);
       const payload = {
         data_emissao: form.data_emissao,
         data_primeiro_vencimento: form.data_primeiro_vencimento || null,
@@ -169,6 +180,8 @@ export default function ContasPagarPage() {
         empresa_nome: empresa?.nome || '',
         fornecedor_id: form.fornecedor_id,
         fornecedor_nome: fornecedor?.nome_fornecedor || '',
+        obra_id: form.obra_id || null,
+        obra_nome: obra?.nome || null,
         valor_total: parseCurrencyInput(form.valor_total),
         quantidade_parcelas: parseInt(form.quantidade_parcelas),
         observacao: form.observacao.trim() || null,
@@ -528,21 +541,29 @@ export default function ContasPagarPage() {
               />
             </div>
 
+            <div>
+              <Label>Obra</Label>
+              <Select value={form.obra_id} onValueChange={(v) => setForm((p) => ({ ...p, obra_id: v }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione uma obra" />
+                </SelectTrigger>
+                <SelectContent>
+                  {obras.map((obra) => (
+                    <SelectItem key={obra.id} value={obra.id}>
+                      {obra.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Valor Total *</Label>
                 <Input 
                   type="text"
-                  value={valorTotalInput}
-                  onChange={(e) => {
-                    setValorTotalInput(e.target.value);
-                    setForm((p) => ({ ...p, valor_total: e.target.value }));
-                  }}
-                  onBlur={() => {
-                    const formatted = formatCurrencyInput(valorTotalInput);
-                    setValorTotalInput(formatted);
-                    setForm((p) => ({ ...p, valor_total: formatted }));
-                  }}
+                  value={form.valor_total}
+                  onChange={(e) => setForm((p) => ({ ...p, valor_total: formatCurrencyInput(e.target.value) }))}
                   placeholder="R$ 0,00"
                   disabled={editingId && items.find(item => item.id === editingId)?.parcelas.length > 0}
                   className={editingId && items.find(item => item.id === editingId)?.parcelas.length > 0 ? "bg-muted" : ""}

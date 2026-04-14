@@ -17,6 +17,16 @@ export async function fetchObras(): Promise<Obra[]> {
   return data || [];
 }
 
+export async function fetchObrasPorEmpresa(empresaId: string): Promise<Obra[]> {
+  const { data, error } = await supabase
+    .from('obras')
+    .select('*')
+    .eq('empresa_id', empresaId)
+    .order('nome');
+  if (error) throw error;
+  return data || [];
+}
+
 export async function saveObra(nome: string, descricao: string | null, userId: string, empresaId?: string | null) {
   const timestamp = new Date().toISOString();
   const { data, error } = await supabase

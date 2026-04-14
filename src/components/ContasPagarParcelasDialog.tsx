@@ -37,10 +37,19 @@ export default function ContasPagarParcelasDialog({
   const [parcelas, setParcelas] = useState<ContaPagarParcela[]>([]);
   const [loading, setLoading] = useState(false);
   const [removedParcelas, setRemovedParcelas] = useState<string[]>([]);
+  const [valorInputs, setValorInputs] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (open) {
       setParcelas(initialParcelas?.length ? [...initialParcelas] : []);
+      setValorInputs(() => {
+        const next: Record<string, string> = {};
+        (initialParcelas || []).forEach((p, i) => {
+          const key = p.id || `index-${i}`;
+          next[key] = formatCurrencyInput(formatCurrencyReal(p.valor_parcela || 0));
+        });
+        return next;
+      });
     }
   }, [open, initialParcelas]);
 
@@ -61,7 +70,15 @@ export default function ContasPagarParcelasDialog({
       updated_at: new Date().toISOString(),
     };
     
-    setParcelas([...parcelas, novaParcela]);
+    setParcelas((prev) => {
+      const next = [...prev, novaParcela];
+      const key = novaParcela.id || `index-${next.length - 1}`;
+      setValorInputs((inputs) => ({
+        ...inputs,
+        [key]: formatCurrencyInput(formatCurrencyReal(0)),
+      }));
+      return next;
+    });
   }
 
   function updateParcelaLocal(index: number, field: keyof ContaPagarParcela, value: any) {
@@ -84,6 +101,29 @@ export default function ContasPagarParcelasDialog({
       setRemovedParcelas((prev) => [...prev, parcelas[index].id]);
     }
     setParcelas(renumeradas);
+    setValorInputs(() => {
+      const next: Record<string, string> = {};
+      renumeradas.forEach((p, i) => {
+        const key = p.id || `index-${i}`;
+        next[key] = formatCurrencyInput(formatCurrencyReal(p.valor_parcela || 0));
+      });
+      return next;
+    });
+  }
+
+  function updateValorInput(index: number, value: string) {
+    const key = parcelas[index]?.id || `index-${index}`;
+    const formatted = formatCurrencyInput(value);
+    setValorInputs((prev) => ({ ...prev, [key]: formatted }));
+    updateParcelaLocal(index, 'valor_parcela', parseCurrencyInput(formatted));
+  }
+
+  function toTimestampOrNull(value?: string | null) {
+    if (!value) return null;
+    if (value.includes('T')) return value;
+    const date = new Date(`${value}T00:00:00`);
+    if (Number.isNaN(date.getTime())) return null;
+    return date.toISOString();
   }
 
   async function handleSave() {
@@ -113,7 +153,7 @@ export default function ContasPagarParcelasDialog({
           numero_parcela: p.numero_parcela,
           valor_parcela: p.valor_parcela,
           data_vencimento: p.data_vencimento || null,
-          data_pagamento: p.data_pagamento || null,
+          data_pagamento: toTimestampOrNull(p.data_pagamento),
           valor_pago: p.valor_pago ?? null,
           status: p.status,
           observacao: p.observacao || null,
@@ -125,7 +165,7 @@ export default function ContasPagarParcelasDialog({
         numero_parcela: p.numero_parcela,
         valor_parcela: p.valor_parcela,
         data_vencimento: p.data_vencimento || null,
-        data_pagamento: p.data_pagamento || null,
+        data_pagamento: toTimestampOrNull(p.data_pagamento),
         valor_pago: p.valor_pago ?? null,
         status: p.status,
         observacao: p.observacao || null,
@@ -162,7 +202,7 @@ export default function ContasPagarParcelasDialog({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-full max-h-[85vh]">
+      <DialogContent className="w-[95vw] max-w-5xl max-h-[90vh] overflow-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
@@ -201,9 +241,8 @@ export default function ContasPagarParcelasDialog({
                     <TableCell>
                       <Input
                         type="text"
-                        className="w-28"
-                        value={formatCurrencyReal(p.valor_parcela)}
-                        onChange={(e) => updateParcelaLocal(i, 'valor_parcela', parseCurrencyInput(e.target.value))}
+                        value={valorInputs[p.id || `index-${i}`] ?? ''}
+                        onChange={(e) => updateValorInput(i, e.target.value)}
                         placeholder="R$ 0,00"
                       />
                     </TableCell>

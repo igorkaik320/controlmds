@@ -157,7 +157,7 @@ export default function FaturadosParcelasPage() {
                 tipo: 'conta_pagar' as const,
                 supplier: conta.fornecedor_nome || 'Fornecedor não informado',
                 cnpj: null,
-                obra: null,
+                obra: conta.obra_nome || '---',
                 pedido: null,
                 observation: conta.observacao,
                 value: parcela.valor_parcela,
@@ -167,7 +167,7 @@ export default function FaturadosParcelasPage() {
                 monthLabel,
                 dayKey,
                 dayLabel,
-                obraId: undefined,
+                obraId: conta.obra_id,
                 companyId: conta.empresa_id || undefined,
                 companyName: conta.empresa_nome || undefined,
                 status: parcela.status,
@@ -547,7 +547,8 @@ export default function FaturadosParcelasPage() {
                       <TableHead>Vencimento</TableHead>
                       <TableHead>Tipo</TableHead>
                       <TableHead>Fornecedor</TableHead>
-                      <TableHead>Obra / Pedido</TableHead>
+                      <TableHead>Obra</TableHead>
+                      <TableHead>Pedido</TableHead>
                       <TableHead className="text-right">Valor</TableHead>
                       <TableHead>Observação</TableHead>
                     </TableRow>
@@ -555,7 +556,7 @@ export default function FaturadosParcelasPage() {
                   <TableBody>
                     {dailyGroups.map((day) => [
                       <TableRow key={day.key}>
-                        <TableCell colSpan={6}>
+                        <TableCell colSpan={7}>
                           <div>
                             <p className="text-sm font-semibold">{day.label}</p>
                             <p className="text-xs text-muted-foreground">
@@ -566,9 +567,13 @@ export default function FaturadosParcelasPage() {
                       </TableRow>,
                       ...day.items.map((installment) => (
                         <TableRow key={installment.id}>
-                          <TableCell>{installment.due}</TableCell>
                           <TableCell>
-                            <span className={`px-2 py-1 rounded text-xs font-medium ${
+                            {installment.dueIso 
+                              ? new Date(installment.dueIso + 'T00:00:00').toLocaleDateString('pt-BR')
+                              : installment.due}
+                          </TableCell>
+                          <TableCell className="align-middle">
+                            <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
                               installment.tipo === 'conta_pagar' 
                                 ? 'bg-orange-100 text-orange-800' 
                                 : 'bg-blue-100 text-blue-800'
@@ -584,9 +589,9 @@ export default function FaturadosParcelasPage() {
                           </TableCell>
                           <TableCell>
                             <div className="text-sm font-medium">{installment.obra || '---'}</div>
-                            <div className="text-[11px] text-muted-foreground">
-                              {installment.pedido || 'Sem pedido'}
-                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm font-medium">{installment.pedido || 'Sem pedido'}</div>
                           </TableCell>
                           <TableCell className="text-right font-semibold">
                             {formatCurrencyBR(installment.value)}
