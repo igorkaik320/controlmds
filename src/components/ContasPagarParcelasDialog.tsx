@@ -165,8 +165,9 @@ toast.success('Parcelas salvas com sucesso');
   toast.error('Erro ao salvar parcelas: ' + e.message);
 } finally {
   setLoading(false);
+  }
 }
-    
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-auto">
