@@ -49,6 +49,18 @@ export function formatCurrencyInput(value: string): string {
   return `R$ ${formattedInt},${decPart}`;
 }
 
+export function formatCurrencyReal(value: number | string): string {
+  // Converte para número se for string
+  const num = typeof value === 'string' ? parseFloat(value) : value;
+  if (isNaN(num)) return 'R$ 0,00';
+  
+  // Formata como moeda BR
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(num);
+}
+
 export function parseCurrencyInput(formatted: string): number {
   if (!formatted) return 0;
   // Remove R$, pontos de milhar e converte vírgula para ponto

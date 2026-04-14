@@ -61,7 +61,7 @@ export async function fetchContasPagar(): Promise<ContaPagarComParcelas[]> {
         updated_at
       )
     `)
-    .order('numero', { ascending: false });
+    .order('created_at', { ascending: false });
 
   if (error) {
     console.error('Erro ao buscar contas a pagar:', error);

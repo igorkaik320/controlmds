@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Plus, Trash2, Calendar } from 'lucide-react';
-import { formatCurrency } from '@/lib/formatters';
+import { formatCurrency, formatCurrencyInput, formatCurrencyReal, parseCurrencyInput } from '@/lib/formatters';
 import {
   ContaPagarParcela,
   updateParcela,
@@ -45,6 +45,7 @@ export default function ContasPagarParcelasDialog({
   }, [open, initialParcelas]);
 
   function addParcela() {
+    // Adicionar nova parcela com valor 0 para que o usuário possa definir o valor
     const novaParcela: ContaPagarParcela = {
       id: '',
       conta_pagar_id: contaPagarId,
@@ -59,6 +60,7 @@ export default function ContasPagarParcelasDialog({
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
+    
     setParcelas([...parcelas, novaParcela]);
   }
 
@@ -69,12 +71,15 @@ export default function ContasPagarParcelasDialog({
   }
 
   function removeParcela(index: number) {
+    // Remover a parcela e renumerar as restantes sem redistribuir valor
     const novasParcelas = parcelas.filter((_, i) => i !== index);
-    // Reenumerar as parcelas
+    
+    // Reenumerar as parcelas restantes
     const renumeradas = novasParcelas.map((p, i) => ({
       ...p,
       numero_parcela: i + 1
     }));
+    
     if (parcelas[index]?.id) {
       setRemovedParcelas((prev) => [...prev, parcelas[index].id]);
     }
@@ -157,7 +162,7 @@ export default function ContasPagarParcelasDialog({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[85vh] overflow-auto">
+      <DialogContent className="max-w-full max-h-[85vh]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
@@ -176,16 +181,15 @@ export default function ContasPagarParcelasDialog({
             </Button>
           </div>
 
-          <div className="rounded-md border overflow-auto">
+          <div className="rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-12">#</TableHead>
-                  <TableHead className="w-28">Valor</TableHead>
-                  <TableHead className="w-36">Vencimento</TableHead>
-                  <TableHead className="w-36">Pagamento</TableHead>
+                  <TableHead className="w-32">Valor</TableHead>
+                  <TableHead className="w-32">Vencimento</TableHead>
+                  <TableHead className="w-32">Pagamento</TableHead>
                   <TableHead className="w-28">Status</TableHead>
-                  <TableHead className="min-w-[200px]">Observação</TableHead>
                   <TableHead className="w-12"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -196,10 +200,11 @@ export default function ContasPagarParcelasDialog({
                     <TableCell>{p.numero_parcela}</TableCell>
                     <TableCell>
                       <Input
-                        type="number"
-                        className="w-24"
-                        value={p.valor_parcela}
-                        onChange={(e) => updateParcelaLocal(i, 'valor_parcela', parseFloat(e.target.value) || 0)}
+                        type="text"
+                        className="w-28"
+                        value={formatCurrencyReal(p.valor_parcela)}
+                        onChange={(e) => updateParcelaLocal(i, 'valor_parcela', parseCurrencyInput(e.target.value))}
+                        placeholder="R$ 0,00"
                       />
                     </TableCell>
                     <TableCell>
@@ -218,7 +223,7 @@ export default function ContasPagarParcelasDialog({
                     </TableCell>
                     <TableCell>
                       <Select value={p.status} onValueChange={(v) => updateParcelaLocal(i, 'status', v)}>
-                        <SelectTrigger className="w-[110px]">
+                        <SelectTrigger className="w-24">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -228,14 +233,6 @@ export default function ContasPagarParcelasDialog({
                           <SelectItem value="cancelada">Cancelada</SelectItem>
                         </SelectContent>
                       </Select>
-                    </TableCell>
-                    <TableCell>
-                      <Textarea
-                        className="min-w-[180px] min-h-[36px] h-9 resize-none"
-                        value={p.observacao || ''}
-                        onChange={(e) => updateParcelaLocal(i, 'observacao', e.target.value)}
-                        placeholder="Observação..."
-                      />
                     </TableCell>
                     <TableCell>
                       <Button variant="ghost" size="icon" onClick={() => removeParcela(i)}>

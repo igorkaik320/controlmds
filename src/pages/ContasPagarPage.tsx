@@ -11,7 +11,7 @@ import { Plus, Pencil, Trash2, Eye, Calendar, Building, CheckSquare } from 'luci
 import { useAuth } from '@/lib/auth';
 import { useModulePermissions } from '@/hooks/useModulePermissions';
 import { toast } from 'sonner';
-import { formatCurrency } from '@/lib/formatters';
+import { formatCurrency, formatCurrencyInput, formatCurrencyReal, parseCurrencyInput } from '@/lib/formatters';
 import { 
   fetchContasPagar, 
   saveContaPagar, 
@@ -27,6 +27,7 @@ import { fetchEmpresas } from '@/lib/empresasService';
 import { fetchFornecedores, Fornecedor } from '@/lib/comprasService';
 import ContasPagarParcelasDialog from '@/components/ContasPagarParcelasDialog';
 import FornecedorSelect from '@/components/compras/FornecedorSelect';
+import EmpresaSelect from '@/components/compras/EmpresaSelect';
 
 interface Empresa {
   id: string;
@@ -128,7 +129,7 @@ export default function ContasPagarPage() {
       data_primeiro_vencimento: item.data_primeiro_vencimento || item.data_emissao,
       empresa_id: item.empresa_id || '',
       fornecedor_id: item.fornecedor_id || '',
-      valor_total: item.valor_total.toString(),
+      valor_total: formatCurrencyReal(item.valor_total),
       quantidade_parcelas: item.quantidade_parcelas.toString(),
       observacao: item.observacao || '',
     });
@@ -165,7 +166,7 @@ export default function ContasPagarPage() {
         empresa_nome: empresa?.nome || '',
         fornecedor_id: form.fornecedor_id,
         fornecedor_nome: fornecedor?.nome_fornecedor || '',
-        valor_total: parseFloat(form.valor_total),
+        valor_total: parseCurrencyInput(form.valor_total),
         quantidade_parcelas: parseInt(form.quantidade_parcelas),
         observacao: form.observacao.trim() || null,
         status: 'aberto' as const,
@@ -298,7 +299,7 @@ export default function ContasPagarPage() {
       </div>
 
       {/* Filtros */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-4 items-end">
         <div>
           <Label className="text-xs">Empresa</Label>
           <Select value={filterEmpresa || "_all"} onValueChange={(v) => setFilterEmpresa(v === "_all" ? "" : v)}>
@@ -333,12 +334,10 @@ export default function ContasPagarPage() {
           <Label className="text-xs">Data de Emissão</Label>
           <Input type="date" value={filterDataEmissao} onChange={(e) => setFilterDataEmissao(e.target.value)} />
         </div>
-        <div className="flex items-end">
-          <Button onClick={handleConsultar} className="w-full">
-            <Calendar className="h-4 w-4 mr-2" />
-            Consultar
-          </Button>
-        </div>
+        <Button onClick={handleConsultar} className="w-full">
+          <Calendar className="h-4 w-4 mr-2" />
+          Consultar
+        </Button>
       </div>
 
       {/* Tabela de Contas com Parcelas expandidas */}
@@ -356,7 +355,6 @@ export default function ContasPagarPage() {
               <TableHead>Valor Total</TableHead>
               <TableHead>Parcela</TableHead>
               <TableHead>Vencimento</TableHead>
-              <TableHead>Valor Parcela</TableHead>
               <TableHead>Status Parcela</TableHead>
               <TableHead>Observação</TableHead>
               <TableHead></TableHead>
@@ -365,7 +363,7 @@ export default function ContasPagarPage() {
           <TableBody>
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={12} className="text-center text-muted-foreground">
+                <TableCell colSpan={11} className="text-center text-muted-foreground">
                   Nenhuma conta encontrada
                 </TableCell>
               </TableRow>
@@ -373,87 +371,90 @@ export default function ContasPagarPage() {
 
             {filtered.map((conta) => {
               const parcelas = conta.parcelas.sort((a, b) => a.numero_parcela - b.numero_parcela);
-              const rowCount = Math.max(parcelas.length, 1);
+              const primeiraParcela = parcelas[0];
+              const temMaisParcelas = parcelas.length > 1;
 
               return parcelas.length > 0 ? (
-                parcelas.map((parcela, idx) => (
-                  <TableRow key={`${conta.id}-${parcela.id}`}>
-                    <TableCell>
-                      <Checkbox
-                        checked={selectedParcelas.has(parcela.id)}
-                        onCheckedChange={() => toggleParcela(parcela.id)}
-                      />
-                    </TableCell>
-                    {idx === 0 && (
-                      <>
-                        <TableCell rowSpan={rowCount} className="font-bold text-primary align-top">
-                          {conta.numero}
-                        </TableCell>
-                        <TableCell rowSpan={rowCount} className="align-top">
-                          {new Date(conta.data_emissao + 'T00:00:00').toLocaleDateString('pt-BR')}
-                        </TableCell>
-                        <TableCell rowSpan={rowCount} className="font-medium align-top">{conta.empresa_nome || '-'}</TableCell>
-                        <TableCell rowSpan={rowCount} className="align-top">{conta.fornecedor_nome || '-'}</TableCell>
-                        <TableCell rowSpan={rowCount} className="font-mono align-top">{formatCurrency(conta.valor_total)}</TableCell>
-                      </>
+                <TableRow key={conta.id}>
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedParcelas.has(primeiraParcela.id)}
+                      onCheckedChange={() => toggleParcela(primeiraParcela.id)}
+                    />
+                  </TableCell>
+                  <TableCell className="font-bold text-primary">
+                    #{conta.id.slice(-6).toUpperCase()}
+                  </TableCell>
+                  <TableCell>
+                    {new Date(conta.data_emissao + 'T00:00:00').toLocaleDateString('pt-BR')}
+                  </TableCell>
+                  <TableCell className="font-medium">{conta.empresa_nome || '-'}</TableCell>
+                  <TableCell>{conta.fornecedor_nome || '-'}</TableCell>
+                  <TableCell className="font-mono">{formatCurrency(conta.valor_total)}</TableCell>
+                  <TableCell className="text-center">
+                    {temMaisParcelas ? (
+                      <div className="flex items-center gap-1">
+                        <span>1/{conta.quantidade_parcelas}</span>
+                        <Badge variant="secondary" className="text-xs">
+                          +{conta.quantidade_parcelas - 1}
+                        </Badge>
+                      </div>
+                    ) : (
+                      <span>{primeiraParcela.numero_parcela}/{conta.quantidade_parcelas}</span>
                     )}
-                    <TableCell className="text-center">{parcela.numero_parcela}/{conta.quantidade_parcelas}</TableCell>
-                    <TableCell>
-                      {parcela.data_vencimento 
-                        ? new Date(parcela.data_vencimento + 'T00:00:00').toLocaleDateString('pt-BR') 
-                        : '-'}
-                    </TableCell>
-                    <TableCell className="font-mono">{formatCurrency(parcela.valor_parcela)}</TableCell>
-                    <TableCell>
-                      <Select
-                        value={parcela.status}
-                        onValueChange={(v) => handleInlineStatusChange(parcela.id, v)}
-                      >
-                        <SelectTrigger className="h-7 w-[110px]">
-                          <Badge variant={getParcelaStatusVariant(parcela.status)} className="text-xs">
-                            {parcela.status}
-                          </Badge>
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="aberta">Aberta</SelectItem>
-                          <SelectItem value="paga">Paga</SelectItem>
-                          <SelectItem value="vencida">Vencida</SelectItem>
-                          <SelectItem value="cancelada">Cancelada</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell className="max-w-[150px] truncate">{parcela.observacao || conta.observacao || '-'}</TableCell>
-                    {idx === 0 && (
-                      <TableCell rowSpan={rowCount} className="align-top">
-                        <div className="flex flex-col gap-1">
-                          <Button variant="ghost" size="sm" onClick={() => openParcelas(conta)}>
-                            <Eye className="h-4 w-4 mr-1" />
-                            Editar
-                          </Button>
-                          {canEdit('contas_pagar') && (
-                            <Button variant="ghost" size="icon" onClick={() => openEdit(conta)}>
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          )}
-                          {canDelete('contas_pagar') && (
-                            <Button variant="ghost" size="icon" onClick={() => handleDelete(conta.id)}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    )}
-                  </TableRow>
-                ))
+                  </TableCell>
+                  <TableCell>
+                    {primeiraParcela.data_vencimento 
+                      ? new Date(primeiraParcela.data_vencimento + 'T00:00:00').toLocaleDateString('pt-BR') 
+                      : '-'}
+                  </TableCell>
+                  <TableCell>
+                    <Select
+                      value={primeiraParcela.status}
+                      onValueChange={(v) => handleInlineStatusChange(primeiraParcela.id, v)}
+                    >
+                      <SelectTrigger className="h-7 w-[110px]">
+                        <Badge variant={getParcelaStatusVariant(primeiraParcela.status)} className="text-xs">
+                          {primeiraParcela.status}
+                        </Badge>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="aberta">Aberta</SelectItem>
+                        <SelectItem value="paga">Paga</SelectItem>
+                        <SelectItem value="vencida">Vencida</SelectItem>
+                        <SelectItem value="cancelada">Cancelada</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell className="max-w-[150px] truncate">{primeiraParcela.observacao || conta.observacao || '-'}</TableCell>
+                  <TableCell>
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="sm" onClick={() => openParcelas(conta)}>
+                        <Eye className="h-4 w-4 mr-1" />
+                        {temMaisParcelas ? 'Ver Todas' : 'Editar'}
+                      </Button>
+                      {canEdit('contas_pagar') && (
+                        <Button variant="ghost" size="icon" onClick={() => openEdit(conta)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {canDelete('contas_pagar') && (
+                        <Button variant="ghost" size="icon" onClick={() => handleDelete(conta.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
               ) : (
                 <TableRow key={conta.id}>
                   <TableCell />
-                  <TableCell className="font-bold text-primary">{conta.numero}</TableCell>
+                  <TableCell className="font-bold text-primary">#{conta.id.slice(-6).toUpperCase()}</TableCell>
                   <TableCell>{new Date(conta.data_emissao + 'T00:00:00').toLocaleDateString('pt-BR')}</TableCell>
                   <TableCell className="font-medium">{conta.empresa_nome || '-'}</TableCell>
                   <TableCell>{conta.fornecedor_nome || '-'}</TableCell>
                   <TableCell className="font-mono">{formatCurrency(conta.valor_total)}</TableCell>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground">Sem parcelas</TableCell>
+                  <TableCell colSpan={3} className="text-center text-muted-foreground">Sem parcelas</TableCell>
                   <TableCell>{conta.observacao || '-'}</TableCell>
                   <TableCell>
                     <div className="flex gap-1">
@@ -507,24 +508,11 @@ export default function ContasPagarPage() {
               </div>
             </div>
 
-            <div>
-              <Label>Empresa *</Label>
-              <Select value={form.empresa_id || undefined} onValueChange={(value) => setForm((p) => ({ ...p, empresa_id: value }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione a empresa" />
-                </SelectTrigger>
-                <SelectContent>
-                  {empresas.map((empresa) => (
-                    <SelectItem key={empresa.id} value={empresa.id}>
-                      <div className="flex items-center gap-2">
-                        <Building className="h-4 w-4" />
-                        {empresa.nome}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <EmpresaSelect 
+              value={form.empresa_id}
+              onChange={(value) => setForm((p) => ({ ...p, empresa_id: value }))}
+              label="Empresa *"
+            />
 
             <div>
               <Label>Fornecedor *</Label>
@@ -541,17 +529,27 @@ export default function ContasPagarPage() {
               <div>
                 <Label>Valor Total *</Label>
                 <Input 
-                  type="number"
-                  step="0.01"
+                  type="text"
                   value={form.valor_total} 
-                  onChange={(e) => setForm((p) => ({ ...p, valor_total: e.target.value }))} 
-                  placeholder="0,00"
+                  onChange={(e) => setForm((p) => ({ ...p, valor_total: formatCurrencyInput(e.target.value) }))} 
+                  placeholder="R$ 0,00"
+                  disabled={editingId && items.find(item => item.id === editingId)?.parcelas.length > 0}
+                  className={editingId && items.find(item => item.id === editingId)?.parcelas.length > 0 ? "bg-muted" : ""}
                 />
+                {editingId && items.find(item => item.id === editingId)?.parcelas.length > 0 && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Para alterar o valor, use a edição de parcelas
+                  </p>
+                )}
               </div>
               <div>
                 <Label>Quantidade de Parcelas *</Label>
-                <Select value={form.quantidade_parcelas} onValueChange={(value) => setForm((p) => ({ ...p, quantidade_parcelas: value }))}>
-                  <SelectTrigger>
+                <Select 
+                  value={form.quantidade_parcelas} 
+                  onValueChange={(value) => setForm((p) => ({ ...p, quantidade_parcelas: value }))}
+                  disabled={editingId && items.find(item => item.id === editingId)?.parcelas.length > 0}
+                >
+                  <SelectTrigger className={editingId && items.find(item => item.id === editingId)?.parcelas.length > 0 ? "bg-muted" : ""}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -562,6 +560,11 @@ export default function ContasPagarPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                {editingId && items.find(item => item.id === editingId)?.parcelas.length > 0 && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Para alterar as parcelas, use a edição de parcelas
+                  </p>
+                )}
               </div>
             </div>
 
@@ -570,7 +573,7 @@ export default function ContasPagarPage() {
               <div className="p-3 bg-muted rounded-lg text-sm space-y-1">
                 <p className="font-medium text-xs text-muted-foreground">Prévia das parcelas:</p>
                 {Array.from({ length: parseInt(form.quantidade_parcelas) }, (_, i) => {
-                  const val = parseFloat(form.valor_total) / parseInt(form.quantidade_parcelas);
+                  const val = parseCurrencyInput(form.valor_total) / parseInt(form.quantidade_parcelas);
                   const dt = new Date(`${form.data_primeiro_vencimento || form.data_emissao}T00:00:00`);
                   dt.setMonth(dt.getMonth() + i);
                   return (
