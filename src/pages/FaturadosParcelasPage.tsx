@@ -284,6 +284,8 @@ export default function FaturadosParcelasPage() {
         current.total += installment.value;
         current.parcels += 1;
         current.items.push(installment);
+        // Ordenar itens do dia em ordem crescente de valor
+        current.items.sort((a, b) => a.value - b.value);
       } else {
         map.set(key, {
           key,
@@ -557,11 +559,18 @@ export default function FaturadosParcelasPage() {
                     {dailyGroups.map((day) => [
                       <TableRow key={day.key}>
                         <TableCell colSpan={7}>
-                          <div>
-                            <p className="text-sm font-semibold">{day.label}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {day.parcels} parcela{day.parcels === 1 ? '' : 's'}
-                            </p>
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <p className="text-sm font-semibold">{day.label}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {day.parcels} parcela{day.parcels === 1 ? '' : 's'}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm font-semibold text-black">
+                                Total: {formatCurrencyBR(day.total)}
+                              </p>
+                            </div>
                           </div>
                         </TableCell>
                       </TableRow>,
@@ -573,12 +582,25 @@ export default function FaturadosParcelasPage() {
                               : installment.due}
                           </TableCell>
                           <TableCell className="align-middle">
-                            <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
-                              installment.tipo === 'conta_pagar' 
-                                ? 'bg-orange-100 text-orange-800' 
-                                : 'bg-blue-100 text-blue-800'
-                            }`}>
-                              {installment.tipo === 'conta_pagar' ? 'Conta a Pagar' : 'Compra Faturada'}
+                            <span
+                              className={`px-3 rounded text-xs font-medium ${
+                                installment.tipo === 'conta_pagar'
+                                  ? 'bg-orange-100 text-orange-800'
+                                  : 'bg-blue-100 text-blue-800'
+                              }`}
+                              style={{
+                                display: 'inline-block',
+                                height: '22px',
+                                lineHeight: '22px',
+                                textAlign: 'center',
+                                whiteSpace: 'nowrap',
+                                paddingLeft: '10px',
+                                paddingRight: '10px'
+                              }}
+                            >
+                              {installment.tipo === 'conta_pagar'
+                                ? 'Conta a Pagar'
+                                : 'Compra Faturada'}
                             </span>
                           </TableCell>
                           <TableCell>
