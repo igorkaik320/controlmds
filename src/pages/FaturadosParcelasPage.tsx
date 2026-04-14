@@ -95,7 +95,7 @@ export default function FaturadosParcelasPage() {
         });
 
         // Processar compras faturadas (lógica existente)
-        const installments = comprasFaturadas.flatMap((item) => {
+        const installments: InstallmentView[] = comprasFaturadas.flatMap((item) => {
           const installments = buildInstallmentsFromItem(item);
           return installments.map((installment, index) => {
             const iso = toIsoDateString(installment.due);
