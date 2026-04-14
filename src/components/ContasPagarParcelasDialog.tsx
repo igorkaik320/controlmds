@@ -11,7 +11,8 @@ import {
   ContaPagarParcela,
   updateParcela,
   saveParcelas,
-  deleteParcela
+  deleteParcela,
+  updateContaPagar
 } from '@/lib/contasPagarService';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -21,7 +22,7 @@ interface Props {
   onClose: () => void;
   contaPagarId: string;
   parcelas: ContaPagarParcela[];
-  onSave: (parcelas: ContaPagarParcela[]) => void;
+  onSave: (parcelas: ContaPagarParcela[], total: number) => void;
   userId: string;
 }
 
@@ -35,6 +36,7 @@ export default function ContasPagarParcelasDialog({
 }: Props) {
   const [parcelas, setParcelas] = useState<ContaPagarParcela[]>([]);
   const [loading, setLoading] = useState(false);
+  const [removedParcelas, setRemovedParcelas] = useState<string[]>([]);
 
   useEffect(() => {
     if (open) {
@@ -67,8 +69,16 @@ export default function ContasPagarParcelasDialog({
   }
 
   function removeParcela(index: number) {
-    const novas = parcelas.filter((_, i) => i !== index);
-    setParcelas(novas.map((p, i) => ({ ...p, numero_parcela: i + 1 })));
+    const novasParcelas = parcelas.filter((_, i) => i !== index);
+    // Reenumerar as parcelas
+    const renumeradas = novasParcelas.map((p, i) => ({
+      ...p,
+      numero_parcela: i + 1
+    }));
+    if (parcelas[index]?.id) {
+      setRemovedParcelas((prev) => [...prev, parcelas[index].id]);
+    }
+    setParcelas(renumeradas);
   }
 
   async function handleSave() {
@@ -123,15 +133,18 @@ export default function ContasPagarParcelasDialog({
 
       const total = parcelas.reduce((sum, p) => sum + (p.valor_parcela || 0), 0);
 
-      await supabase
-        .from('contas_pagar')
-        .update({ 
-          valor_total: total,
-          quantidade_parcelas: parcelas.length
-        })
-        .eq('id', contaPagarId);
+      await updateContaPagar(contaPagarId, {
+        valor_total: total,
+        quantidade_parcelas: parcelas.length
+      }, userId);
 
-      onSave(parcelas);
+      if (removedParcelas.length > 0) {
+        for (const id of removedParcelas) {
+          await deleteParcela(id, userId);
+        }
+      }
+
+      onSave(parcelas, total);
       onClose();
       toast.success('Parcelas salvas com sucesso');
     } catch (e: any) {
