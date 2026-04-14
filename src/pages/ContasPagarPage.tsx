@@ -47,6 +47,7 @@ export default function ContasPagarPage() {
   const [contaParcelas, setContaParcelas] = useState<ContaPagarComParcelas | null>(null);
   const [selectedParcelas, setSelectedParcelas] = useState<Set<string>>(new Set());
   const [showBulkStatus, setShowBulkStatus] = useState(false);
+  const [valorTotalInput, setValorTotalInput] = useState('');
   
   // Filtros
   const [filterEmpresa, setFilterEmpresa] = useState('');
@@ -119,6 +120,7 @@ export default function ContasPagarPage() {
       quantidade_parcelas: '1',
       observacao: '',
     });
+    setValorTotalInput('');
     setShowDialog(true);
   }
 
@@ -133,6 +135,7 @@ export default function ContasPagarPage() {
       quantidade_parcelas: item.quantidade_parcelas.toString(),
       observacao: item.observacao || '',
     });
+    setValorTotalInput(formatCurrencyInput(formatCurrencyReal(item.valor_total)));
     setShowDialog(true);
   }
 
@@ -530,8 +533,16 @@ export default function ContasPagarPage() {
                 <Label>Valor Total *</Label>
                 <Input 
                   type="text"
-                  value={form.valor_total} 
-                  onChange={(e) => setForm((p) => ({ ...p, valor_total: formatCurrencyInput(e.target.value) }))} 
+                  value={valorTotalInput}
+                  onChange={(e) => {
+                    setValorTotalInput(e.target.value);
+                    setForm((p) => ({ ...p, valor_total: e.target.value }));
+                  }}
+                  onBlur={() => {
+                    const formatted = formatCurrencyInput(valorTotalInput);
+                    setValorTotalInput(formatted);
+                    setForm((p) => ({ ...p, valor_total: formatted }));
+                  }}
                   placeholder="R$ 0,00"
                   disabled={editingId && items.find(item => item.id === editingId)?.parcelas.length > 0}
                   className={editingId && items.find(item => item.id === editingId)?.parcelas.length > 0 ? "bg-muted" : ""}

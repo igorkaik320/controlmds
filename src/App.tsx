@@ -204,7 +204,7 @@ const App = () => (
                   element={<ModuleRoute module="espelho_semanal"><EspelhoSemanalPage /></ModuleRoute>}
                 />
                 <Route
-                  path="/compras/parcelas-faturadas"
+                  path="/financeiro/parcelas-faturadas"
                   element={<ModuleRoute module="parcelas_faturadas"><FaturadosParcelasPage /></ModuleRoute>}
                 />
 

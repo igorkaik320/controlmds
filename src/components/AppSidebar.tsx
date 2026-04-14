@@ -80,6 +80,7 @@ export function AppSidebar() {
     items: [
       { title: 'Contas a Pagar', url: '/contas-pagar', icon: Package, module: 'contas_pagar' },
       { title: 'Controle de Caixa', url: '/controle-caixa', icon: Landmark, module: 'controle_caixa' },
+      { title: 'Parcelas Faturadas', url: '/financeiro/parcelas-faturadas', icon: FileBarChart, module: 'parcelas_faturadas' },
     ],
   });
 
@@ -93,7 +94,6 @@ export function AppSidebar() {
       { title: 'Espelho Geral', url: '/compras/espelho', icon: Eye, module: 'espelho_geral' },
       { title: 'Programação Semanal', url: '/compras/programacao-semanal', icon: CalendarDays, module: 'programacao_semanal' },
       { title: 'Espelho Semanal', url: '/compras/espelho-semanal', icon: BarChart3, module: 'espelho_semanal' },
-      { title: 'Parcelas Faturadas', url: '/compras/parcelas-faturadas', icon: FileBarChart, module: 'parcelas_faturadas' },
     ],
   });
 
