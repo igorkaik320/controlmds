@@ -159,6 +159,7 @@ export default function ContasPagarPageStable() {
 
       const payload = {
         data_emissao: form.data_emissao,
+        data_primeiro_vencimento: form.data_emissao,
         empresa_id: form.empresa_id,
         empresa_nome: empresa.nome,
         fornecedor_id: form.fornecedor_id,

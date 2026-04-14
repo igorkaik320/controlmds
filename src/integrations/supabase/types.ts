@@ -14,6 +14,127 @@ export type Database = {
   }
   public: {
     Tables: {
+      contas_pagar: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data_emissao: string
+          data_primeiro_vencimento: string | null
+          empresa_id: string | null
+          empresa_nome: string | null
+          fornecedor_id: string | null
+          fornecedor_nome: string | null
+          id: string
+          numero: number
+          observacao: string | null
+          quantidade_parcelas: number
+          status: string
+          updated_at: string
+          updated_by: string | null
+          valor_total: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data_emissao?: string
+          data_primeiro_vencimento?: string | null
+          empresa_id?: string | null
+          empresa_nome?: string | null
+          fornecedor_id?: string | null
+          fornecedor_nome?: string | null
+          id?: string
+          numero?: number
+          observacao?: string | null
+          quantidade_parcelas?: number
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          valor_total?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data_emissao?: string
+          data_primeiro_vencimento?: string | null
+          empresa_id?: string | null
+          empresa_nome?: string | null
+          fornecedor_id?: string | null
+          fornecedor_nome?: string | null
+          id?: string
+          numero?: number
+          observacao?: string | null
+          quantidade_parcelas?: number
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contas_pagar_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contas_pagar_parcelas: {
+        Row: {
+          conta_pagar_id: string
+          created_at: string
+          created_by: string | null
+          data_pagamento: string | null
+          data_vencimento: string | null
+          id: string
+          numero_parcela: number
+          observacao: string | null
+          status: string
+          updated_at: string
+          updated_by: string | null
+          valor_pago: number | null
+          valor_parcela: number
+        }
+        Insert: {
+          conta_pagar_id: string
+          created_at?: string
+          created_by?: string | null
+          data_pagamento?: string | null
+          data_vencimento?: string | null
+          id?: string
+          numero_parcela?: number
+          observacao?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          valor_pago?: number | null
+          valor_parcela?: number
+        }
+        Update: {
+          conta_pagar_id?: string
+          created_at?: string
+          created_by?: string | null
+          data_pagamento?: string | null
+          data_vencimento?: string | null
+          id?: string
+          numero_parcela?: number
+          observacao?: string | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          valor_pago?: number | null
+          valor_parcela?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contas_pagar_parcelas_conta_pagar_id_fkey"
+            columns: ["conta_pagar_id"]
+            isOneToOne: false
+            referencedRelation: "contas_pagar"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       empresas: {
         Row: {
           cnpj: string | null

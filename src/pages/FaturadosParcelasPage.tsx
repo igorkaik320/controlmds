@@ -95,7 +95,7 @@ export default function FaturadosParcelasPage() {
         });
 
         // Processar compras faturadas (lógica existente)
-        const installments = comprasFaturadas.flatMap((item) => {
+        const installments: InstallmentView[] = comprasFaturadas.flatMap((item) => {
           const installments = buildInstallmentsFromItem(item);
           return installments.map((installment, index) => {
             const iso = toIsoDateString(installment.due);
@@ -154,7 +154,7 @@ export default function FaturadosParcelasPage() {
             if (parcela.status !== 'paga' && parcela.status !== 'cancelada') {
               installments.push({
                 id: `conta-${conta.id}-${parcela.id}`,
-                tipo: 'compra_faturada' as const,
+                tipo: 'conta_pagar' as const,
                 supplier: conta.fornecedor_nome || 'Fornecedor não informado',
                 cnpj: null,
                 obra: null,
@@ -167,9 +167,10 @@ export default function FaturadosParcelasPage() {
                 monthLabel,
                 dayKey,
                 dayLabel,
-                obraId: null,
-                companyId: conta.empresa_id || null,
+                obraId: undefined,
+                companyId: conta.empresa_id || undefined,
                 companyName: conta.empresa_nome || undefined,
+                status: parcela.status,
               });
             }
           });

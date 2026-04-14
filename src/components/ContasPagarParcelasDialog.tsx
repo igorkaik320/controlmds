@@ -2,10 +2,9 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
 import { Plus, Trash2, Calendar } from 'lucide-react';
 import { formatCurrency } from '@/lib/formatters';
 import {
@@ -34,7 +33,6 @@ export default function ContasPagarParcelasDialog({
   onSave,
   userId
 }: Props) {
-
   const [parcelas, setParcelas] = useState<ContaPagarParcela[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -70,34 +68,17 @@ export default function ContasPagarParcelasDialog({
 
   function removeParcela(index: number) {
     const novas = parcelas.filter((_, i) => i !== index);
-    const renumeradas = novas.map((p, i) => ({
-      ...p,
-      numero_parcela: i + 1
-    }));
-    setParcelas(renumeradas);
-  }
-
-  function getStatusBadge(status: string) {
-    const map: any = {
-      aberta: { label: 'Aberta', variant: 'default' },
-      paga: { label: 'Paga', variant: 'secondary' },
-      vencida: { label: 'Vencida', variant: 'destructive' },
-      cancelada: { label: 'Cancelada', variant: 'outline' },
-    };
-    const s = map[status] || map.aberta;
-    return <Badge variant={s.variant}>{s.label}</Badge>;
+    setParcelas(novas.map((p, i) => ({ ...p, numero_parcela: i + 1 })));
   }
 
   async function handleSave() {
     setLoading(true);
-
     try {
       if (!contaPagarId) {
         toast.error('Conta inválida');
         return;
       }
 
-      // 🔥 BUSCAR PARCELAS DO BANCO
       const { data: parcelasBanco } = await supabase
         .from('contas_pagar_parcelas')
         .select('id')
@@ -105,15 +86,12 @@ export default function ContasPagarParcelasDialog({
 
       const idsBanco = (parcelasBanco || []).map(p => p.id);
       const idsTela = parcelas.filter(p => p.id).map(p => p.id);
-
-      // 🔥 DELETAR AS REMOVIDAS
       const idsParaDeletar = idsBanco.filter(id => !idsTela.includes(id));
 
       for (const id of idsParaDeletar) {
         await deleteParcela(id, userId);
       }
 
-      // 🔥 ATUALIZAR EXISTENTES
       for (const p of parcelas.filter(p => p.id)) {
         await updateParcela(p.id, {
           conta_pagar_id: contaPagarId,
@@ -127,7 +105,6 @@ export default function ContasPagarParcelasDialog({
         }, userId);
       }
 
-      // 🔥 INSERIR NOVAS
       const novas = parcelas.filter(p => !p.id).map(p => ({
         conta_pagar_id: contaPagarId,
         numero_parcela: p.numero_parcela,
@@ -144,33 +121,30 @@ export default function ContasPagarParcelasDialog({
         await saveParcelas(novas, userId);
       }
 
-      // 🔥 ATUALIZA TOTAL DA CONTA
       const total = parcelas.reduce((sum, p) => sum + (p.valor_parcela || 0), 0);
 
-await supabase
-  .from('contas_pagar')
-  .update({ 
-    valor_total: total,
-    quantidade_parcelas: parcelas.length // 🔥 atualiza quantidade corretamente
-  })
-  .eq('id', contaPagarId);
+      await supabase
+        .from('contas_pagar')
+        .update({ 
+          valor_total: total,
+          quantidade_parcelas: parcelas.length
+        })
+        .eq('id', contaPagarId);
 
-onSave(parcelas);
-onClose();
-
-toast.success('Parcelas salvas com sucesso');
-
-} catch (e: any) {
-  console.error(e);
-  toast.error('Erro ao salvar parcelas: ' + e.message);
-} finally {
-  setLoading(false);
+      onSave(parcelas);
+      onClose();
+      toast.success('Parcelas salvas com sucesso');
+    } catch (e: any) {
+      console.error(e);
+      toast.error('Erro ao salvar parcelas: ' + e.message);
+    } finally {
+      setLoading(false);
+    }
   }
-}
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-auto">
+      <DialogContent className="max-w-5xl max-h-[85vh] overflow-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
@@ -193,13 +167,13 @@ toast.success('Parcelas salvas com sucesso');
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>#</TableHead>
-                  <TableHead>Valor</TableHead>
-                  <TableHead>Vencimento</TableHead>
-                  <TableHead>Pagamento</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Obs</TableHead>
-                  <TableHead></TableHead>
+                  <TableHead className="w-12">#</TableHead>
+                  <TableHead className="w-28">Valor</TableHead>
+                  <TableHead className="w-36">Vencimento</TableHead>
+                  <TableHead className="w-36">Pagamento</TableHead>
+                  <TableHead className="w-28">Status</TableHead>
+                  <TableHead className="min-w-[200px]">Observação</TableHead>
+                  <TableHead className="w-12"></TableHead>
                 </TableRow>
               </TableHeader>
 
@@ -207,43 +181,31 @@ toast.success('Parcelas salvas com sucesso');
                 {parcelas.map((p, i) => (
                   <TableRow key={p.id || i}>
                     <TableCell>{p.numero_parcela}</TableCell>
-
                     <TableCell>
                       <Input
                         type="number"
+                        className="w-24"
                         value={p.valor_parcela}
-                        onChange={(e) =>
-                          updateParcelaLocal(i, 'valor_parcela', parseFloat(e.target.value) || 0)
-                        }
+                        onChange={(e) => updateParcelaLocal(i, 'valor_parcela', parseFloat(e.target.value) || 0)}
                       />
                     </TableCell>
-
                     <TableCell>
                       <Input
                         type="date"
                         value={p.data_vencimento || ''}
-                        onChange={(e) =>
-                          updateParcelaLocal(i, 'data_vencimento', e.target.value)
-                        }
+                        onChange={(e) => updateParcelaLocal(i, 'data_vencimento', e.target.value)}
                       />
                     </TableCell>
-
                     <TableCell>
                       <Input
                         type="date"
                         value={p.data_pagamento || ''}
-                        onChange={(e) =>
-                          updateParcelaLocal(i, 'data_pagamento', e.target.value || null)
-                        }
+                        onChange={(e) => updateParcelaLocal(i, 'data_pagamento', e.target.value || null)}
                       />
                     </TableCell>
-
                     <TableCell>
-                      <Select
-                        value={p.status}
-                        onValueChange={(v) => updateParcelaLocal(i, 'status', v)}
-                      >
-                        <SelectTrigger>
+                      <Select value={p.status} onValueChange={(v) => updateParcelaLocal(i, 'status', v)}>
+                        <SelectTrigger className="w-[110px]">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -254,19 +216,17 @@ toast.success('Parcelas salvas com sucesso');
                         </SelectContent>
                       </Select>
                     </TableCell>
-
                     <TableCell>
-                      <Input
+                      <Textarea
+                        className="min-w-[180px] min-h-[36px] h-9 resize-none"
                         value={p.observacao || ''}
-                        onChange={(e) =>
-                          updateParcelaLocal(i, 'observacao', e.target.value)
-                        }
+                        onChange={(e) => updateParcelaLocal(i, 'observacao', e.target.value)}
+                        placeholder="Observação..."
                       />
                     </TableCell>
-
                     <TableCell>
-                      <Button variant="ghost" onClick={() => removeParcela(i)}>
-                        <Trash2 className="h-4 w-4 text-red-600" />
+                      <Button variant="ghost" size="icon" onClick={() => removeParcela(i)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -281,9 +241,7 @@ toast.success('Parcelas salvas com sucesso');
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Cancelar
-          </Button>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
           <Button onClick={handleSave} disabled={loading}>
             {loading ? 'Salvando...' : 'Salvar'}
           </Button>
