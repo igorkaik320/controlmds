@@ -164,6 +164,8 @@ export default function ContasPagarPageStable() {
         empresa_nome: empresa.nome,
         fornecedor_id: form.fornecedor_id,
         fornecedor_nome: fornecedor.nome_fornecedor,
+        obra_id: null,
+        obra_nome: null,
         valor_total: parseFloat(form.valor_total),
         quantidade_parcelas: parseInt(form.quantidade_parcelas),
         observacao: form.observacao,
