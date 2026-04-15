@@ -23,7 +23,7 @@ import {
   ContaPagarComParcelas,
   ContaPagarParcela
 } from '@/lib/contasPagarService';
-import { fetchEmpresas, Empresa } from '@/lib/empresasService';
+import { fetchEmpresas } from '@/lib/empresasService';
 import { fetchFornecedores, Fornecedor } from '@/lib/comprasService';
 import { fetchObras, fetchObrasPorEmpresa, Obra } from '@/lib/obrasService';
 import ContasPagarParcelasDialog from '@/components/ContasPagarParcelasDialog';
