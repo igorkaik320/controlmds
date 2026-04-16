@@ -313,8 +313,9 @@ export default function RevisoesCombustivelPage() {
                 <TableHead className="px-4 py-2 text-[12px]">Data</TableHead>
                 <TableHead className="px-4 py-2 text-[12px]">Veiculo</TableHead>
                 <TableHead className="px-4 py-2 text-[12px]">Fornecedor</TableHead>
-                <TableHead className="px-4 py-2 text-right text-[12px]">KM Atual</TableHead>
-                <TableHead className="px-4 py-2 text-right text-[12px]">Prox. Revisao</TableHead>
+                <TableHead className="px-4 py-2 text-[12px]">Tipo</TableHead>
+                <TableHead className="px-4 py-2 text-right text-[12px]">Atual</TableHead>
+                <TableHead className="px-4 py-2 text-right text-[12px]">Próx. Revisão</TableHead>
                 <TableHead className="px-4 py-2 text-right text-[12px]">Intervalo</TableHead>
                 <TableHead className="px-4 py-2 text-right text-[12px]">Valor</TableHead>
                 <TableHead className="px-4 py-2 text-[12px]">Obs</TableHead>
@@ -325,7 +326,7 @@ export default function RevisoesCombustivelPage() {
             <TableBody>
               {filtered.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={9} className="h-14 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={10} className="h-14 text-center text-sm text-muted-foreground">
                     Nenhuma revisao registrada
                   </TableCell>
                 </TableRow>
