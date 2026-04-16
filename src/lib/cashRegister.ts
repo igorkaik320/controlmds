@@ -390,10 +390,11 @@ export interface UserWithRole {
   display_name: string;
   role: string;
   created_at: string;
+  ativo: boolean;
 }
 
 export async function fetchAllUsersWithRoles(): Promise<UserWithRole[]> {
-  const { data: profiles } = await supabase.from('profiles').select('user_id, display_name, created_at');
+  const { data: profiles } = await supabase.from('profiles').select('user_id, display_name, created_at, ativo');
   const { data: roles } = await supabase.from('user_roles').select('user_id, role');
 
   const roleMap: Record<string, string> = {};
@@ -413,6 +414,7 @@ export async function fetchAllUsersWithRoles(): Promise<UserWithRole[]> {
       display_name: p.display_name || 'Sem nome',
       role: roleMap[p.user_id] || 'operador',
       created_at: p.created_at || new Date().toISOString(),
+      ativo: (p as any).ativo ?? true,
     }));
 
     for (const r of roles || []) {
@@ -422,6 +424,7 @@ export async function fetchAllUsersWithRoles(): Promise<UserWithRole[]> {
           display_name: 'Usuário ' + r.user_id.substring(0, 8),
           role: roleMap[r.user_id] || 'operador',
           created_at: new Date().toISOString(),
+          ativo: true,
         });
       }
     }
@@ -434,6 +437,7 @@ export async function fetchAllUsersWithRoles(): Promise<UserWithRole[]> {
     display_name: 'Usuário ' + r.user_id.substring(0, 8),
     role: roleMap[r.user_id] || 'operador',
     created_at: new Date().toISOString(),
+    ativo: true,
   }));
 }
 
@@ -446,4 +450,33 @@ export async function updateUserRole(userId: string, newRole: string) {
   } as any);
 
   if (error) throw error;
+}
+
+export async function updateUserDisplayName(userId: string, displayName: string) {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ display_name: displayName } as any)
+    .eq('user_id', userId);
+  if (error) throw error;
+}
+
+export async function toggleUserActive(userId: string, ativo: boolean) {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ ativo } as any)
+    .eq('user_id', userId);
+  if (error) throw error;
+}
+
+export async function adminCreateUser(email: string, password: string, displayName: string) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Not authenticated');
+
+  const res = await supabase.functions.invoke('admin-create-user', {
+    body: { email, password, display_name: displayName },
+  });
+
+  if (res.error) throw new Error(res.error.message || 'Erro ao criar usuário');
+  if (res.data?.error) throw new Error(res.data.error);
+  return res.data;
 }
