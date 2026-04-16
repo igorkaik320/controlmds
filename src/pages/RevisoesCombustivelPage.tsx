@@ -32,6 +32,7 @@ const emptyForm = {
   fornecedor_id: '',
   data: '',
   valor: '',
+  tipo_medicao: 'km' as 'km' | 'horas',
   quilometragem_atual: '',
   quilometragem_proxima: '',
   observacao: '',
