@@ -32,6 +32,7 @@ const emptyForm = {
   fornecedor_id: '',
   data: '',
   valor: '',
+  tipo_medicao: 'km' as 'km' | 'horas',
   quilometragem_atual: '',
   quilometragem_proxima: '',
   observacao: '',
@@ -116,6 +117,7 @@ export default function RevisoesCombustivelPage() {
       fornecedor_id: item.fornecedor_id,
       data: item.data,
       valor: formatCurrencyInput(String(Math.round(item.valor * 100))),
+      tipo_medicao: item.tipo_medicao || 'km',
       quilometragem_atual: String(item.quilometragem_atual),
       quilometragem_proxima: String(item.quilometragem_proxima),
       observacao: item.observacao || '',
@@ -168,6 +170,7 @@ export default function RevisoesCombustivelPage() {
         fornecedor_id: form.fornecedor_id,
         data: form.data,
         valor: parseCurrencyInput(form.valor),
+        tipo_medicao: form.tipo_medicao,
         quilometragem_atual: quilometragemAtual,
         quilometragem_proxima: quilometragemProxima,
         observacao: form.observacao || null,
@@ -310,19 +313,20 @@ export default function RevisoesCombustivelPage() {
                 <TableHead className="px-4 py-2 text-[12px]">Data</TableHead>
                 <TableHead className="px-4 py-2 text-[12px]">Veiculo</TableHead>
                 <TableHead className="px-4 py-2 text-[12px]">Fornecedor</TableHead>
-                <TableHead className="px-4 py-2 text-right text-[12px]">KM Atual</TableHead>
-                <TableHead className="px-4 py-2 text-right text-[12px]">Prox. Revisao</TableHead>
+                <TableHead className="px-4 py-2 text-[12px]">Tipo</TableHead>
+                <TableHead className="px-4 py-2 text-right text-[12px]">Atual</TableHead>
+                <TableHead className="px-4 py-2 text-right text-[12px]">Próx. Revisão</TableHead>
                 <TableHead className="px-4 py-2 text-right text-[12px]">Intervalo</TableHead>
                 <TableHead className="px-4 py-2 text-right text-[12px]">Valor</TableHead>
                 <TableHead className="px-4 py-2 text-[12px]">Obs</TableHead>
-                <TableHead className="w-[88px] px-4 py-2 text-right text-[12px]">Acoes</TableHead>
+                <TableHead className="w-[88px] px-4 py-2 text-right text-[12px]">Ações</TableHead>
               </TableRow>
             </TableHeader>
 
             <TableBody>
               {filtered.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={9} className="h-14 text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={10} className="h-14 text-center text-sm text-muted-foreground">
                     Nenhuma revisao registrada
                   </TableCell>
                 </TableRow>
@@ -330,6 +334,7 @@ export default function RevisoesCombustivelPage() {
 
               {filtered.map((item) => {
                 const intervalo = item.quilometragem_proxima - item.quilometragem_atual;
+                const unidade = item.tipo_medicao === 'horas' ? 'h' : 'km';
 
                 return (
                   <TableRow key={item.id} className="h-12">
@@ -344,6 +349,7 @@ export default function RevisoesCombustivelPage() {
                         {item.fornecedor?.nome_fornecedor || '—'}
                       </div>
                     </TableCell>
+                    <TableCell className="px-4 py-2 text-sm uppercase">{unidade}</TableCell>
                     <TableCell className="px-4 py-2 text-right font-mono text-sm">
                       {item.quilometragem_atual.toLocaleString('pt-BR')}
                     </TableCell>
@@ -351,7 +357,7 @@ export default function RevisoesCombustivelPage() {
                       {item.quilometragem_proxima.toLocaleString('pt-BR')}
                     </TableCell>
                     <TableCell className="px-4 py-2 text-right text-sm">
-                      {intervalo.toLocaleString('pt-BR')} km
+                      {intervalo.toLocaleString('pt-BR')} {unidade}
                     </TableCell>
                     <TableCell className="px-4 py-2 text-right font-mono text-sm">
                       {formatCurrencyBR(item.valor)}
@@ -382,7 +388,7 @@ export default function RevisoesCombustivelPage() {
 
               {filtered.length > 0 && (
                 <TableRow className="bg-muted/50 font-bold">
-                  <TableCell colSpan={6} className="px-4 py-2 text-right">
+                  <TableCell colSpan={7} className="px-4 py-2 text-right">
                     TOTAL
                   </TableCell>
                   <TableCell className="px-4 py-2 text-right">{formatCurrencyBR(totalGeral)}</TableCell>
@@ -429,7 +435,7 @@ export default function RevisoesCombustivelPage() {
               />
             </div>
 
-            <div className="grid gap-3 md:grid-cols-3">
+            <div className="grid gap-3 md:grid-cols-4">
               <div>
                 <Label>Data *</Label>
                 <Input
@@ -449,7 +455,20 @@ export default function RevisoesCombustivelPage() {
               </div>
 
               <div>
-                <Label>KM Atual *</Label>
+                <Label>Tipo medição *</Label>
+                <Select value={form.tipo_medicao} onValueChange={(v: 'km' | 'horas') => setForm((prev) => ({ ...prev, tipo_medicao: v }))}>
+                  <SelectTrigger className="h-10 w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="km">Quilometragem (KM)</SelectItem>
+                    <SelectItem value="horas">Horímetro (Horas)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>{form.tipo_medicao === 'horas' ? 'Horas atuais' : 'KM Atual'} *</Label>
                 <Input
                   type="number"
                   min="0"
@@ -459,14 +478,16 @@ export default function RevisoesCombustivelPage() {
               </div>
             </div>
 
-            <div>
-              <Label>KM para proxima revisao *</Label>
-              <Input
-                type="number"
-                min="0"
-                value={form.quilometragem_proxima}
-                onChange={(e) => setForm((prev) => ({ ...prev, quilometragem_proxima: e.target.value }))}
-              />
+            <div className="grid gap-3 md:grid-cols-2">
+              <div>
+                <Label>{form.tipo_medicao === 'horas' ? 'Horas próxima revisão' : 'KM próxima revisão'} *</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={form.quilometragem_proxima}
+                  onChange={(e) => setForm((prev) => ({ ...prev, quilometragem_proxima: e.target.value }))}
+                />
+              </div>
             </div>
 
             <div>
