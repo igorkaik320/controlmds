@@ -334,6 +334,7 @@ export default function RevisoesCombustivelPage() {
 
               {filtered.map((item) => {
                 const intervalo = item.quilometragem_proxima - item.quilometragem_atual;
+                const unidade = item.tipo_medicao === 'horas' ? 'h' : 'km';
 
                 return (
                   <TableRow key={item.id} className="h-12">
@@ -348,6 +349,7 @@ export default function RevisoesCombustivelPage() {
                         {item.fornecedor?.nome_fornecedor || '—'}
                       </div>
                     </TableCell>
+                    <TableCell className="px-4 py-2 text-sm uppercase">{unidade}</TableCell>
                     <TableCell className="px-4 py-2 text-right font-mono text-sm">
                       {item.quilometragem_atual.toLocaleString('pt-BR')}
                     </TableCell>
@@ -355,7 +357,7 @@ export default function RevisoesCombustivelPage() {
                       {item.quilometragem_proxima.toLocaleString('pt-BR')}
                     </TableCell>
                     <TableCell className="px-4 py-2 text-right text-sm">
-                      {intervalo.toLocaleString('pt-BR')} km
+                      {intervalo.toLocaleString('pt-BR')} {unidade}
                     </TableCell>
                     <TableCell className="px-4 py-2 text-right font-mono text-sm">
                       {formatCurrencyBR(item.valor)}
