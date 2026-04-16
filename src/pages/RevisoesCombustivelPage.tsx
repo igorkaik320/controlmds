@@ -435,7 +435,7 @@ export default function RevisoesCombustivelPage() {
               />
             </div>
 
-            <div className="grid gap-3 md:grid-cols-3">
+            <div className="grid gap-3 md:grid-cols-4">
               <div>
                 <Label>Data *</Label>
                 <Input
@@ -455,7 +455,20 @@ export default function RevisoesCombustivelPage() {
               </div>
 
               <div>
-                <Label>KM Atual *</Label>
+                <Label>Tipo medição *</Label>
+                <Select value={form.tipo_medicao} onValueChange={(v: 'km' | 'horas') => setForm((prev) => ({ ...prev, tipo_medicao: v }))}>
+                  <SelectTrigger className="h-10 w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="km">Quilometragem (KM)</SelectItem>
+                    <SelectItem value="horas">Horímetro (Horas)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>{form.tipo_medicao === 'horas' ? 'Horas atuais' : 'KM Atual'} *</Label>
                 <Input
                   type="number"
                   min="0"
@@ -465,14 +478,16 @@ export default function RevisoesCombustivelPage() {
               </div>
             </div>
 
-            <div>
-              <Label>KM para proxima revisao *</Label>
-              <Input
-                type="number"
-                min="0"
-                value={form.quilometragem_proxima}
-                onChange={(e) => setForm((prev) => ({ ...prev, quilometragem_proxima: e.target.value }))}
-              />
+            <div className="grid gap-3 md:grid-cols-2">
+              <div>
+                <Label>{form.tipo_medicao === 'horas' ? 'Horas próxima revisão' : 'KM próxima revisão'} *</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={form.quilometragem_proxima}
+                  onChange={(e) => setForm((prev) => ({ ...prev, quilometragem_proxima: e.target.value }))}
+                />
+              </div>
             </div>
 
             <div>
