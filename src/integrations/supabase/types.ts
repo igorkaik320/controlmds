@@ -173,6 +173,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          ativo: boolean
           created_at: string
           display_name: string
           id: string
@@ -181,6 +182,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          ativo?: boolean
           created_at?: string
           display_name?: string
           id?: string
@@ -189,12 +191,58 @@ export type Database = {
           user_id: string
         }
         Update: {
+          ativo?: boolean
           created_at?: string
           display_name?: string
           id?: string
           role?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      revisoes_combustivel: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data: string
+          fornecedor_id: string
+          id: string
+          observacao: string | null
+          quilometragem_atual: number
+          quilometragem_proxima: number
+          tipo_medicao: string
+          updated_at: string
+          valor: number
+          veiculo_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data: string
+          fornecedor_id: string
+          id?: string
+          observacao?: string | null
+          quilometragem_atual?: number
+          quilometragem_proxima?: number
+          tipo_medicao?: string
+          updated_at?: string
+          valor?: number
+          veiculo_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data?: string
+          fornecedor_id?: string
+          id?: string
+          observacao?: string | null
+          quilometragem_atual?: number
+          quilometragem_proxima?: number
+          tipo_medicao?: string
+          updated_at?: string
+          valor?: number
+          veiculo_id?: string
         }
         Relationships: []
       }
