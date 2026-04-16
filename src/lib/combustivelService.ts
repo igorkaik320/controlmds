@@ -76,6 +76,7 @@ export interface RevisaoCombustivel {
   valor: number;
   quilometragem_atual: number;
   quilometragem_proxima: number;
+  tipo_medicao: 'km' | 'horas';
   observacao: string | null;
   created_by: string;
   created_at: string;
@@ -500,6 +501,7 @@ export async function saveRevisaoCombustivel(revisao: {
   valor: number;
   quilometragem_atual: number;
   quilometragem_proxima: number;
+  tipo_medicao: string;
   observacao?: string | null;
   created_by: string;
 }) {
