@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Pencil, Trash2, FileDown, FileSpreadsheet, Search, RotateCcw } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useModulePermissions } from '@/hooks/useModulePermissions';
@@ -170,6 +171,7 @@ export default function ComprasFaturadasPage() {
   });
   const [parcelas, setParcelas] = useState<ParcelaDraft[]>([]);
   const [parcelasMode, setParcelasMode] = useState<'auto' | 'manual'>('auto');
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
 
   const load = useCallback(async () => {
     try {
@@ -410,6 +412,16 @@ function openNew() {
   }
 
   async function handleExportPDF() {
+    // Verificar se há itens selecionados
+    const selectedData = selectedItems.size > 0 
+      ? filtered.filter(item => selectedItems.has(item.id))
+      : filtered;
+
+    if (selectedData.length === 0) {
+      toast.error('Nenhum lançamento selecionado para exportar.');
+      return;
+    }
+
     let config = await fetchConfigRelatorio();
 
     if (draftFilterEmpresa && config) {
@@ -431,7 +443,7 @@ function openNew() {
       };
     }
 
-    exportFaturadasPDF(filtered, config, observation);
+    exportFaturadasPDF(selectedData, config, observation);
   }
 
   function handleFornecedorSelect(f: Fornecedor) {
@@ -569,6 +581,18 @@ function openNew() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[40px]">
+                <Checkbox
+                  checked={selectedItems.size === filtered.length && filtered.length > 0}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      setSelectedItems(new Set(filtered.map(i => i.id)));
+                    } else {
+                      setSelectedItems(new Set());
+                    }
+                  }}
+                />
+              </TableHead>
               <TableHead>Data</TableHead>
               <TableHead>Fornecedor</TableHead>
               <TableHead>Pedido</TableHead>
@@ -586,7 +610,7 @@ function openNew() {
           <TableBody>
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={11} className="text-center text-muted-foreground">
+                <TableCell colSpan={12} className="text-center text-muted-foreground">
                   Nenhum registro
                 </TableCell>
               </TableRow>
@@ -594,6 +618,20 @@ function openNew() {
 
             {filtered.map((i) => (
               <TableRow key={i.id}>
+                <TableCell>
+                  <Checkbox
+                    checked={selectedItems.has(i.id)}
+                    onCheckedChange={(checked) => {
+                      const newSelected = new Set(selectedItems);
+                      if (checked) {
+                        newSelected.add(i.id);
+                      } else {
+                        newSelected.delete(i.id);
+                      }
+                      setSelectedItems(newSelected);
+                    }}
+                  />
+                </TableCell>
                 <TableCell>{formatDateBR(i.data)}</TableCell>
                 <TableCell className="max-w-[260px]">
                   <div className="truncate" title={i.fornecedor}>
@@ -682,10 +720,11 @@ function openNew() {
 
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <Label>Pedido</Label>
+                <Label>Valor Total</Label>
                 <Input
-                  value={form.pedido}
-                  onChange={(e) => setForm((p: typeof emptyForm) => ({ ...p, pedido: e.target.value }))}
+                  value={form.valor}
+                  onChange={(e) => setForm((p: typeof emptyForm) => ({ ...p, valor: formatCurrencyInput(e.target.value) }))}
+                  placeholder="R$ 0,00"
                 />
               </div>
 
@@ -770,13 +809,10 @@ function openNew() {
             </div>
 
             <div>
-              <Label>Valor *</Label>
+              <Label>Pedido</Label>
               <Input
-                value={form.valor}
-                onChange={(e) =>
-                  setForm((p: typeof emptyForm) => ({ ...p, valor: formatCurrencyInput(e.target.value) }))
-                }
-                placeholder="R$ 0,00"
+                value={form.pedido}
+                onChange={(e) => setForm((p: typeof emptyForm) => ({ ...p, pedido: e.target.value }))}
               />
             </div>
 
