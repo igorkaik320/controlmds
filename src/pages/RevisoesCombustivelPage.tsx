@@ -319,7 +319,7 @@ export default function RevisoesCombustivelPage() {
                 <TableHead className="px-4 py-2 text-right text-[12px]">Intervalo</TableHead>
                 <TableHead className="px-4 py-2 text-right text-[12px]">Valor</TableHead>
                 <TableHead className="px-4 py-2 text-[12px]">Obs</TableHead>
-                <TableHead className="w-[88px] px-4 py-2 text-right text-[12px]">Acoes</TableHead>
+                <TableHead className="w-[88px] px-4 py-2 text-right text-[12px]">Ações</TableHead>
               </TableRow>
             </TableHeader>
 
