@@ -9,16 +9,29 @@ import {
   XSquare,
   Users,
   KeyRound,
+  Plus,
+  Pencil,
+  UserX,
+  UserCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { fetchAllUsersWithRoles, updateUserRole, UserWithRole } from '@/lib/cashRegister';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  fetchAllUsersWithRoles,
+  updateUserRole,
+  updateUserDisplayName,
+  toggleUserActive,
+  adminCreateUser,
+  UserWithRole,
+} from '@/lib/cashRegister';
 import {
   MODULES,
   ACTIONS,
@@ -51,6 +64,15 @@ export default function UserManagement() {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterRole, setFilterRole] = useState('all');
+
+  // Edit name state
+  const [editingName, setEditingName] = useState(false);
+  const [editNameValue, setEditNameValue] = useState('');
+
+  // Create user dialog
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [newUserForm, setNewUserForm] = useState({ email: '', password: '', display_name: '' });
+  const [creating, setCreating] = useState(false);
 
   const load = async () => {
     try {
@@ -98,6 +120,47 @@ export default function UserManagement() {
     }
   };
 
+  const handleSaveName = async () => {
+    if (!selectedUser || !editNameValue.trim()) return;
+    try {
+      await updateUserDisplayName(selectedUser.user_id, editNameValue.trim());
+      toast.success('Nome atualizado');
+      setEditingName(false);
+      await load();
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  };
+
+  const handleToggleActive = async (userId: string, currentAtivo: boolean) => {
+    try {
+      await toggleUserActive(userId, !currentAtivo);
+      toast.success(!currentAtivo ? 'Usuário ativado' : 'Usuário desativado');
+      await load();
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  };
+
+  const handleCreateUser = async () => {
+    if (!newUserForm.email || !newUserForm.password || !newUserForm.display_name) {
+      toast.error('Preencha todos os campos');
+      return;
+    }
+    setCreating(true);
+    try {
+      await adminCreateUser(newUserForm.email, newUserForm.password, newUserForm.display_name);
+      toast.success('Usuário criado com sucesso');
+      setShowCreateDialog(false);
+      setNewUserForm({ email: '', password: '', display_name: '' });
+      await load();
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setCreating(false);
+    }
+  };
+
   function getUserPerm(userId: string, module: string): UserActionPermission | undefined {
     return permissions.find((p) => p.user_id === userId && p.module === module);
   }
@@ -110,7 +173,6 @@ export default function UserManagement() {
 
   async function toggleAction(userId: string, module: string, action: ActionKey, current: boolean) {
     if (!user) return;
-
     try {
       await setUserActionPermission(userId, module, { [action]: !current }, user.id);
       toast.success('Permissão atualizada');
@@ -122,18 +184,11 @@ export default function UserManagement() {
 
   async function setAllForModule(userId: string, module: string, value: boolean) {
     if (!user) return;
-
     try {
       await setUserActionPermission(
         userId,
         module,
-        {
-          can_view: value,
-          can_create: value,
-          can_edit: value,
-          can_delete: value,
-          can_export: value,
-        },
+        { can_view: value, can_create: value, can_edit: value, can_delete: value, can_export: value },
         user.id
       );
       toast.success(value ? 'Todas permissões habilitadas' : 'Todas permissões removidas');
@@ -176,12 +231,16 @@ export default function UserManagement() {
           <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <h1 className="text-2xl font-bold tracking-tight">Gerenciamento de Usuários</h1>
             <p className="mt-0.5 text-sm text-muted-foreground">
               Perfis, permissões e acesso por ação em cada módulo
             </p>
           </div>
+          <Button size="sm" onClick={() => setShowCreateDialog(true)}>
+            <Plus className="mr-1 h-4 w-4" />
+            Novo Usuário
+          </Button>
         </div>
       </header>
 
@@ -258,15 +317,19 @@ export default function UserManagement() {
                   {filteredUsers.map((u) => (
                     <button
                       key={u.user_id}
-                      onClick={() => setSelectedUserId(u.user_id)}
+                      onClick={() => {
+                        setSelectedUserId(u.user_id);
+                        setEditingName(false);
+                      }}
                       className={`w-full overflow-hidden rounded-xl border p-3 text-left transition-all ${
                         selectedUserId === u.user_id
                           ? 'border-primary/30 bg-primary/10 shadow-sm'
                           : 'border-transparent hover:bg-muted/50'
-                      }`}
+                      } ${!u.ativo ? 'opacity-50' : ''}`}
                     >
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex items-center gap-2">
                         <span className="block truncate text-sm font-semibold">{u.display_name}</span>
+                        {!u.ativo && <Badge variant="outline" className="text-[10px] px-1 py-0">Inativo</Badge>}
                       </div>
 
                       <div className="mt-2">
@@ -308,13 +371,50 @@ export default function UserManagement() {
                   <Card className="border-primary/10">
                     <CardContent className="p-5">
                       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                        <div className="min-w-0 space-y-1">
-                          <h3 className="truncate text-xl font-bold">{selectedUser.display_name}</h3>
+                        <div className="min-w-0 space-y-1 flex-1">
+                          {editingName ? (
+                            <div className="flex items-center gap-2">
+                              <Input
+                                value={editNameValue}
+                                onChange={(e) => setEditNameValue(e.target.value)}
+                                className="max-w-xs"
+                                autoFocus
+                                onKeyDown={(e) => { if (e.key === 'Enter') handleSaveName(); if (e.key === 'Escape') setEditingName(false); }}
+                              />
+                              <Button size="sm" onClick={handleSaveName}>Salvar</Button>
+                              <Button size="sm" variant="outline" onClick={() => setEditingName(false)}>Cancelar</Button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <h3 className="truncate text-xl font-bold">{selectedUser.display_name}</h3>
+                              {selectedUser.user_id !== user?.id && (
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditNameValue(selectedUser.display_name); setEditingName(true); }}>
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
+                            </div>
+                          )}
                           <p className="text-sm text-muted-foreground">
                             Cadastro: {new Date(selectedUser.created_at).toLocaleDateString('pt-BR')}
                           </p>
                         </div>
-                        <div className="shrink-0">{roleBadge(selectedUser.role)}</div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          {selectedUser.user_id !== user?.id && (
+                            <Button
+                              variant={selectedUser.ativo ? 'outline' : 'default'}
+                              size="sm"
+                              onClick={() => handleToggleActive(selectedUser.user_id, selectedUser.ativo)}
+                            >
+                              {selectedUser.ativo ? (
+                                <><UserX className="mr-1 h-4 w-4" /> Desativar</>
+                              ) : (
+                                <><UserCheck className="mr-1 h-4 w-4" /> Ativar</>
+                              )}
+                            </Button>
+                          )}
+                          {roleBadge(selectedUser.role)}
+                          {!selectedUser.ativo && <Badge variant="destructive">Inativo</Badge>}
+                        </div>
                       </div>
 
                       <Separator className="my-4" />
@@ -473,6 +573,52 @@ export default function UserManagement() {
           </div>
         </div>
       </main>
+
+      {/* Create User Dialog */}
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Novo Usuário</DialogTitle>
+            <DialogDescription>Crie um novo usuário diretamente pelo painel administrativo.</DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-3">
+            <div>
+              <Label>Nome *</Label>
+              <Input
+                value={newUserForm.display_name}
+                onChange={(e) => setNewUserForm((prev) => ({ ...prev, display_name: e.target.value }))}
+                placeholder="Nome completo"
+              />
+            </div>
+            <div>
+              <Label>E-mail *</Label>
+              <Input
+                type="email"
+                value={newUserForm.email}
+                onChange={(e) => setNewUserForm((prev) => ({ ...prev, email: e.target.value }))}
+                placeholder="usuario@email.com"
+              />
+            </div>
+            <div>
+              <Label>Senha *</Label>
+              <Input
+                type="password"
+                value={newUserForm.password}
+                onChange={(e) => setNewUserForm((prev) => ({ ...prev, password: e.target.value }))}
+                placeholder="Mínimo 6 caracteres"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>Cancelar</Button>
+            <Button onClick={handleCreateUser} disabled={creating}>
+              {creating ? 'Criando...' : 'Criar Usuário'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
