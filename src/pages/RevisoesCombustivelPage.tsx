@@ -388,7 +388,7 @@ export default function RevisoesCombustivelPage() {
 
               {filtered.length > 0 && (
                 <TableRow className="bg-muted/50 font-bold">
-                  <TableCell colSpan={6} className="px-4 py-2 text-right">
+                  <TableCell colSpan={7} className="px-4 py-2 text-right">
                     TOTAL
                   </TableCell>
                   <TableCell className="px-4 py-2 text-right">{formatCurrencyBR(totalGeral)}</TableCell>
