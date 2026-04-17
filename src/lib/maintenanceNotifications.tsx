@@ -76,8 +76,7 @@ export function useMaintenanceNotifications() {
 }
 
 export function MaintenanceNotificationProvider({ children }: { children: React.ReactNode }) {
-  const auth = useContext(AuthContext as any) as { user: any } | undefined;
-  const user = auth?.user ?? null;
+  const { user } = useAuth();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [miniPanelOpen, setMiniPanelOpen] = useState(false);
