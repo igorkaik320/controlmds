@@ -37,12 +37,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let initialised = false;
 
     const loadUserData = async (userId: string) => {
-      await Promise.all([fetchProfile(userId), fetchRole(userId)]);
-      if (isMounted) setLoading(false);
+      try {
+        await Promise.all([fetchProfile(userId), fetchRole(userId)]);
+      } catch (err) {
+        console.error("[auth] loadUserData error:", err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
     };
 
     const refreshUserDataSilently = async (userId: string) => {
-      await Promise.all([fetchProfile(userId), fetchRole(userId)]);
+      try {
+        await Promise.all([fetchProfile(userId), fetchRole(userId)]);
+      } catch (err) {
+        console.error("[auth] refreshUserDataSilently error:", err);
+      }
     };
 
     // Get initial session first to avoid race conditions
