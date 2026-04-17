@@ -141,26 +141,89 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
-    const attempt = () => supabase.auth.signInWithPassword({ email, password });
+  const signIn = async (email: string, password: string) => {
+    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+    const diag = {
+      app: "ControlMDS",
+      url: SUPABASE_URL,
+      origin: typeof window !== "undefined" ? window.location.origin : "n/a",
+      userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "n/a",
+      online: typeof navigator !== "undefined" ? navigator.onLine : "n/a",
+      timestamp: new Date().toISOString(),
+    };
+
+    // 1) Pré-checagem de conectividade direta com o Supabase (isola DNS/firewall/extensões)
+    console.groupCollapsed("%c[ControlMDS] Diagnóstico de Login", "color:#2563eb;font-weight:bold");
+    console.log("Ambiente:", diag);
+    try {
+      const probeStart = performance.now();
+      const probe = await fetch(`${SUPABASE_URL}/auth/v1/health`, {
+        method: "GET",
+        cache: "no-store",
+        headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string },
+      });
+      console.log(
+        `Probe /auth/v1/health → status ${probe.status} em ${Math.round(performance.now() - probeStart)}ms`,
+      );
+    } catch (probeErr: any) {
+      console.error("❌ Falha ao acessar Supabase ANTES do login:", {
+        name: probeErr?.name,
+        message: probeErr?.message,
+        cause: probeErr?.cause,
+      });
+      console.warn(
+        "Causas prováveis: DNS local (tente 1.1.1.1/8.8.8.8), firewall corporativo, antivírus, extensão do navegador, VPN ou bloqueio do provedor.",
+      );
+    }
+
+    const attempt = async () => {
+      const start = performance.now();
+      try {
+        const result = await supabase.auth.signInWithPassword({ email, password });
+        console.log(
+          `signInWithPassword finalizado em ${Math.round(performance.now() - start)}ms`,
+          result.error ? { error: result.error } : "sucesso",
+        );
+        return result;
+      } catch (e: any) {
+        console.error("Exceção lançada por signInWithPassword:", {
+          name: e?.name,
+          message: e?.message,
+          stack: e?.stack,
+          cause: e?.cause,
+        });
+        return { data: null as any, error: e };
+      }
+    };
 
     let { error } = await attempt();
 
+    const isNetworkError = (msg?: string) =>
+      !!msg && /failed to fetch|networkerror|err_name_not_resolved|load failed|network request failed/i.test(msg);
+
     // Retry once on transient network errors (DNS hiccup, fetch abort, etc.)
-    if (error && /failed to fetch|networkerror|err_name_not_resolved|load failed/i.test(error.message ?? "")) {
+    if (error && isNetworkError(error.message)) {
+      console.warn("🔁 Erro de rede detectado, tentando novamente em 800ms...");
       await new Promise((r) => setTimeout(r, 800));
       ({ error } = await attempt());
     }
 
-    if (error && /failed to fetch|networkerror|err_name_not_resolved|load failed/i.test(error.message ?? "")) {
+    if (error && isNetworkError(error.message)) {
+      console.error("❌ Login falhou por erro de rede após retry. Diagnóstico final:", diag);
+      console.groupEnd();
       return {
         error: {
           ...error,
           message:
-            "Não foi possível conectar ao servidor. Tente: (1) recarregar a página com Ctrl+Shift+R, (2) desativar extensões/antivírus que bloqueiem o site, (3) testar em aba anônima ou em outra rede.",
+            "Não foi possível conectar ao servidor. Abra o DevTools (F12) → aba Console e envie o bloco '[ControlMDS] Diagnóstico de Login' para o suporte. Tente também: (1) Ctrl+Shift+R, (2) aba anônima, (3) trocar DNS para 1.1.1.1, (4) desativar VPN/antivírus.",
         },
       };
     }
 
+    if (error) {
+      console.warn("Login retornou erro (não é rede):", error.message);
+    }
+    console.groupEnd();
     return { error };
   };
 
