@@ -37,12 +37,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let initialised = false;
 
     const loadUserData = async (userId: string) => {
-      await Promise.all([fetchProfile(userId), fetchRole(userId)]);
-      if (isMounted) setLoading(false);
+      try {
+        await Promise.all([fetchProfile(userId), fetchRole(userId)]);
+      } catch (err) {
+        console.error("[auth] loadUserData error:", err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
     };
 
     const refreshUserDataSilently = async (userId: string) => {
-      await Promise.all([fetchProfile(userId), fetchRole(userId)]);
+      try {
+        await Promise.all([fetchProfile(userId), fetchRole(userId)]);
+      } catch (err) {
+        console.error("[auth] refreshUserDataSilently error:", err);
+      }
     };
 
     // Get initial session first to avoid race conditions
@@ -110,13 +119,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function fetchProfile(userId: string) {
-    const { data } = await supabase.from("profiles").select("display_name, role").eq("user_id", userId).single();
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("display_name, role")
+      .eq("user_id", userId)
+      .maybeSingle();
 
+    if (error) {
+      console.error("[auth] fetchProfile error:", error);
+      return;
+    }
     if (data) setProfile(data);
   }
 
   async function fetchRole(userId: string) {
-    const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+    const { data, error } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+
+    if (error) {
+      console.error("[auth] fetchRole error:", error);
+      setIsPending(true);
+      setUserRole("operador");
+      return;
+    }
 
     if (data && data.length > 0) {
       setIsPending(false);
