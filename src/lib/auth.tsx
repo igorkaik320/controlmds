@@ -140,7 +140,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const attempt = () => supabase.auth.signInWithPassword({ email, password });
+
+    let { error } = await attempt();
+
+    // Retry once on transient network errors (DNS hiccup, fetch abort, etc.)
+    if (error && /failed to fetch|networkerror|err_name_not_resolved|load failed/i.test(error.message ?? "")) {
+      await new Promise((r) => setTimeout(r, 800));
+      ({ error } = await attempt());
+    }
+
+    if (error && /failed to fetch|networkerror|err_name_not_resolved|load failed/i.test(error.message ?? "")) {
+      return {
+        error: {
+          ...error,
+          message:
+            "Não foi possível conectar ao servidor. Tente: (1) recarregar a página com Ctrl+Shift+R, (2) desativar extensões/antivírus que bloqueiem o site, (3) testar em aba anônima ou em outra rede.",
+        },
+      };
+    }
+
     return { error };
   };
 
