@@ -15,6 +15,12 @@ export const supabase = createClient(
       storage: localStorage,
       persistSession: true,
       autoRefreshToken: true,
+      detectSessionInUrl: true,
     },
+    global: {
+      headers: {
+        'X-Client-Info': 'controlmds/1.0.0'
+      }
+    }
   }
 )
