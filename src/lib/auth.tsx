@@ -141,7 +141,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
-  const signIn = async (email: string, password: string) => {
     const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
     const diag = {
       app: "ControlMDS",
