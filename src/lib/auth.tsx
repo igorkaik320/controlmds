@@ -119,13 +119,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function fetchProfile(userId: string) {
-    const { data } = await supabase.from("profiles").select("display_name, role").eq("user_id", userId).single();
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("display_name, role")
+      .eq("user_id", userId)
+      .maybeSingle();
 
+    if (error) {
+      console.error("[auth] fetchProfile error:", error);
+      return;
+    }
     if (data) setProfile(data);
   }
 
   async function fetchRole(userId: string) {
-    const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+    const { data, error } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+
+    if (error) {
+      console.error("[auth] fetchRole error:", error);
+      setIsPending(true);
+      setUserRole("operador");
+      return;
+    }
 
     if (data && data.length > 0) {
       setIsPending(false);
