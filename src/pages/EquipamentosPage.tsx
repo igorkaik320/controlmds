@@ -233,7 +233,20 @@ export default function EquipamentosPage() {
 
   async function handleImport(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
-    if (!file || !user) return;
+    console.group('[Importação Equipamentos]');
+    console.log('Arquivo selecionado:', file?.name, 'Tamanho:', file?.size);
+    console.log('Usuário:', user?.id);
+
+    if (!file) {
+      console.warn('Nenhum arquivo selecionado');
+      console.groupEnd();
+      return;
+    }
+    if (!user) {
+      toast.error('Usuário não autenticado. Faça login novamente.');
+      console.groupEnd();
+      return;
+    }
 
     setImporting(true);
     try {
@@ -241,9 +254,12 @@ export default function EquipamentosPage() {
       const wb = XLSX.read(buf, { type: 'array' });
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json<any>(ws, { defval: '' });
+      console.log(`Linhas lidas da planilha: ${rows.length}`);
+      console.log('Primeira linha (exemplo):', rows[0]);
+      console.log('Setores em memória:', setores.length, 'Obras:', obras.length);
 
       if (!rows.length) {
-        toast.error('Planilha vazia');
+        toast.error('Planilha vazia ou sem linhas válidas');
         return;
       }
 
@@ -314,15 +330,21 @@ export default function EquipamentosPage() {
         }
       }
 
+      console.log(`Resultado: ${sucesso} sucesso(s), ${erros.length} erro(s)`);
       if (sucesso > 0) toast.success(`${sucesso} equipamento(s) importado(s)`);
       if (erros.length) {
         console.warn('Erros de importação:', erros);
-        toast.error(`${erros.length} erro(s). Veja o console para detalhes.`);
+        toast.error(`${erros.length} erro(s). Veja o console (F12) para detalhes.`);
+      }
+      if (sucesso === 0 && erros.length === 0) {
+        toast.warning('Nenhum equipamento foi importado. Verifique a planilha.');
       }
       load();
     } catch (e: any) {
-      toast.error('Erro ao ler planilha: ' + e.message);
+      console.error('Erro fatal na importação:', e);
+      toast.error('Erro ao ler planilha: ' + (e?.message || 'desconhecido'));
     } finally {
+      console.groupEnd();
       setImporting(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
