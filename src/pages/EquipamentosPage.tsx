@@ -268,8 +268,8 @@ export default function EquipamentosPage() {
       const situacoesValidas = new Set(SITUACOES_EQUIPAMENTO.map((s) => s.value));
 
       // Mapa de equipamentos existentes indexados por número de patrimônio (normalizado)
-      const patrimonioMap = new Map(
-        equipamentos
+      const patrimonioMap = new Map<string, Equipamento>(
+        items
           .filter((eq) => eq.n_patrimonio && eq.n_patrimonio.trim())
           .map((eq) => [eq.n_patrimonio!.trim().toLowerCase(), eq])
       );
