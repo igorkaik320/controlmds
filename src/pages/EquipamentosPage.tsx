@@ -186,9 +186,9 @@ export default function EquipamentosPage() {
       'N Patrimonio',
       'N Serie',
       'Nota Fiscal',
-      'Origem (Obra)',
       'Localizacao Atual (Obra)',
       'Situacao',
+      'Observacao',
     ];
 
     const exemplo = [
@@ -201,15 +201,14 @@ export default function EquipamentosPage() {
         'SN123456',
         'NF-9999',
         obras[0]?.nome || 'Obra A',
-        obras[0]?.nome || 'Obra A',
         'estoque',
+        'Equipamento em bom estado',
       ],
     ];
 
     const ws = XLSX.utils.aoa_to_sheet([headers, ...exemplo]);
     ws['!cols'] = headers.map(() => ({ wch: 25 }));
 
-    // Aba de instruções
     const instrucoes = [
       ['INSTRUÇÕES PARA IMPORTAÇÃO DE EQUIPAMENTOS'],
       [''],
@@ -219,8 +218,9 @@ export default function EquipamentosPage() {
       ...SITUACOES_EQUIPAMENTO.map((s) => [`${s.value}  →  ${s.label}`]),
       [''],
       ['Setor: digite o nome exato de um setor já cadastrado (ou deixe em branco)'],
-      ['Origem / Localização: digite o nome exato de uma obra já cadastrada (ou deixe em branco)'],
+      ['Localização: digite o nome exato de uma obra já cadastrada (ou deixe em branco)'],
       [''],
+      ['Se o N° Patrimônio já existir, o equipamento será ATUALIZADO. Caso contrário, será criado novo.'],
       ['Apague a linha de exemplo antes de importar.'],
     ];
     const wsInstr = XLSX.utils.aoa_to_sheet(instrucoes);
@@ -443,7 +443,6 @@ export default function EquipamentosPage() {
               <TableHead>N° Patrimônio</TableHead>
               <TableHead>N° Série</TableHead>
               <TableHead>Marca / Modelo</TableHead>
-              <TableHead>Origem</TableHead>
               <TableHead>Localização</TableHead>
               <TableHead>Situação</TableHead>
               <TableHead>Auditoria</TableHead>
@@ -453,7 +452,7 @@ export default function EquipamentosPage() {
           <TableBody>
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={9} className="text-center text-muted-foreground">
+                <TableCell colSpan={8} className="text-center text-muted-foreground">
                   Nenhum equipamento encontrado
                 </TableCell>
               </TableRow>
@@ -465,7 +464,6 @@ export default function EquipamentosPage() {
                 <TableCell>{i.n_patrimonio || '-'}</TableCell>
                 <TableCell>{i.n_serie || '-'}</TableCell>
                 <TableCell>{[i.marca, i.modelo].filter(Boolean).join(' / ') || '-'}</TableCell>
-                <TableCell>{i.origem_obra_nome || '-'}</TableCell>
                 <TableCell>{i.localizacao_obra_nome || '-'}</TableCell>
                 <TableCell>
                   <Badge variant={situacaoVariant(i.situacao)}>{situacaoLabel(i.situacao)}</Badge>
@@ -481,6 +479,14 @@ export default function EquipamentosPage() {
                 </TableCell>
                 <TableCell>
                   <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      title="Ver histórico de manutenções"
+                      onClick={() => openHistorico(i)}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
                     {canEdit('equipamentos') && (
                       <Button variant="ghost" size="icon" onClick={() => openEdit(i)}>
                         <Pencil className="h-4 w-4" />
@@ -593,22 +599,6 @@ export default function EquipamentosPage() {
             </div>
 
             <div>
-              <Label>Origem (Obra)</Label>
-              <Select
-                value={origemSelectValue}
-                onValueChange={(v) => setForm((p) => ({ ...p, origem_obra_id: v === 'none' ? '' : v }))}
-              >
-                <SelectTrigger><SelectValue placeholder="Selecione a obra de origem" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Nenhuma</SelectItem>
-                  {obras.map((o) => (
-                    <SelectItem key={o.id} value={o.id}>{o.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
               <Label>Localização Atual (Obra)</Label>
               <Select
                 value={localSelectValue}
@@ -622,6 +612,16 @@ export default function EquipamentosPage() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="sm:col-span-2">
+              <Label>Observação</Label>
+              <Textarea
+                value={form.observacao}
+                onChange={(e) => setForm((p) => ({ ...p, observacao: e.target.value }))}
+                placeholder="Anotações sobre o equipamento (opcional)"
+                rows={3}
+              />
             </div>
           </div>
 
