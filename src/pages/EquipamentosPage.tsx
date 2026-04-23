@@ -6,7 +6,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Pencil, Trash2, Upload, Download } from 'lucide-react';
+import { Plus, Pencil, Trash2, Upload, Download, Eye, Wrench } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/lib/auth';
 import { useModulePermissions } from '@/hooks/useModulePermissions';
 import {
@@ -15,8 +16,10 @@ import {
   updateEquipamento,
   deleteEquipamento,
   fetchSetores,
+  fetchManutencoes,
   SITUACOES_EQUIPAMENTO,
   type Equipamento,
+  type Manutencao,
   type SituacaoEquipamento,
 } from '@/lib/equipamentosService';
 import { fetchObras, type Obra } from '@/lib/obrasService';
@@ -33,9 +36,9 @@ const emptyForm = {
   n_patrimonio: '',
   n_serie: '',
   nota_fiscal: '',
-  origem_obra_id: '',
   localizacao_obra_id: '',
   situacao: 'estoque' as SituacaoEquipamento,
+  observacao: '',
 };
 
 const situacaoLabel = (v?: string | null) =>
@@ -65,6 +68,10 @@ export default function EquipamentosPage() {
   const [form, setForm] = useState(emptyForm);
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [historicoOpen, setHistoricoOpen] = useState(false);
+  const [historicoEquip, setHistoricoEquip] = useState<Equipamento | null>(null);
+  const [historicoItems, setHistoricoItems] = useState<Manutencao[]>([]);
+  const [historicoLoading, setHistoricoLoading] = useState(false);
 
   const profileMap = useProfileMap();
 
@@ -117,9 +124,9 @@ export default function EquipamentosPage() {
       n_patrimonio: item.n_patrimonio || '',
       n_serie: item.n_serie || '',
       nota_fiscal: item.nota_fiscal || '',
-      origem_obra_id: item.origem_obra_id || '',
       localizacao_obra_id: item.localizacao_obra_id || '',
       situacao: (item.situacao as SituacaoEquipamento) || 'estoque',
+      observacao: (item as any).observacao || '',
     });
     setShowDialog(true);
   }
@@ -131,7 +138,6 @@ export default function EquipamentosPage() {
     }
 
     try {
-      const origemObra = obras.find((o) => o.id === form.origem_obra_id);
       const localObra = obras.find((o) => o.id === form.localizacao_obra_id);
 
       const payload: any = {
@@ -142,11 +148,10 @@ export default function EquipamentosPage() {
         n_patrimonio: form.n_patrimonio.trim() || null,
         n_serie: form.n_serie.trim() || null,
         nota_fiscal: form.nota_fiscal.trim() || null,
-        origem_obra_id: form.origem_obra_id || null,
-        origem_obra_nome: origemObra?.nome || null,
         localizacao_obra_id: form.localizacao_obra_id || null,
         localizacao_obra_nome: localObra?.nome || null,
         situacao: form.situacao,
+        observacao: form.observacao.trim() || null,
       };
 
       if (editingId) {
@@ -185,9 +190,9 @@ export default function EquipamentosPage() {
       'N Patrimonio',
       'N Serie',
       'Nota Fiscal',
-      'Origem (Obra)',
       'Localizacao Atual (Obra)',
       'Situacao',
+      'Observacao',
     ];
 
     const exemplo = [
@@ -200,15 +205,14 @@ export default function EquipamentosPage() {
         'SN123456',
         'NF-9999',
         obras[0]?.nome || 'Obra A',
-        obras[0]?.nome || 'Obra A',
         'estoque',
+        'Equipamento em bom estado',
       ],
     ];
 
     const ws = XLSX.utils.aoa_to_sheet([headers, ...exemplo]);
     ws['!cols'] = headers.map(() => ({ wch: 25 }));
 
-    // Aba de instruções
     const instrucoes = [
       ['INSTRUÇÕES PARA IMPORTAÇÃO DE EQUIPAMENTOS'],
       [''],
@@ -218,8 +222,9 @@ export default function EquipamentosPage() {
       ...SITUACOES_EQUIPAMENTO.map((s) => [`${s.value}  →  ${s.label}`]),
       [''],
       ['Setor: digite o nome exato de um setor já cadastrado (ou deixe em branco)'],
-      ['Origem / Localização: digite o nome exato de uma obra já cadastrada (ou deixe em branco)'],
+      ['Localização: digite o nome exato de uma obra já cadastrada (ou deixe em branco)'],
       [''],
+      ['Se o N° Patrimônio já existir, o equipamento será ATUALIZADO. Caso contrário, será criado novo.'],
       ['Apague a linha de exemplo antes de importar.'],
     ];
     const wsInstr = XLSX.utils.aoa_to_sheet(instrucoes);
@@ -287,21 +292,16 @@ export default function EquipamentosPage() {
         }
 
         const setorNomeRaw = String(row['Setor'] || '').trim();
-        const origemRaw = String(row['Origem (Obra)'] || row['Origem'] || '').trim();
         const localRaw = String(row['Localizacao Atual (Obra)'] || row['Localização Atual (Obra)'] || row['Localizacao Atual'] || '').trim();
         const situacaoRaw = String(row['Situacao'] || row['Situação'] || 'estoque').trim().toLowerCase();
         const nPatrimonio = String(row['N Patrimonio'] || row['N° Patrimônio'] || row['N Patrimônio'] || '').trim();
+        const observacaoRaw = String(row['Observacao'] || row['Observação'] || '').trim();
 
         const setor = setorNomeRaw ? setorMap.get(setorNomeRaw.toLowerCase()) : null;
-        const origem = origemRaw ? obraMap.get(origemRaw.toLowerCase()) : null;
         const local = localRaw ? obraMap.get(localRaw.toLowerCase()) : null;
 
         if (setorNomeRaw && !setor) {
           erros.push(`Linha ${i + 2}: setor "${setorNomeRaw}" não encontrado`);
-          continue;
-        }
-        if (origemRaw && !origem) {
-          erros.push(`Linha ${i + 2}: obra origem "${origemRaw}" não encontrada`);
           continue;
         }
         if (localRaw && !local) {
@@ -322,11 +322,10 @@ export default function EquipamentosPage() {
           n_patrimonio: nPatrimonio || null,
           n_serie: String(row['N Serie'] || row['N° Série'] || row['N Série'] || '').trim() || null,
           nota_fiscal: String(row['Nota Fiscal'] || '').trim() || null,
-          origem_obra_id: origem?.id || null,
-          origem_obra_nome: origem?.nome || null,
           localizacao_obra_id: local?.id || null,
           localizacao_obra_nome: local?.nome || null,
           situacao,
+          observacao: observacaoRaw || null,
         };
 
         // Se tem patrimônio e já existe → atualiza apenas campos alterados
@@ -384,12 +383,26 @@ export default function EquipamentosPage() {
     }
   }
 
+  async function openHistorico(equip: Equipamento) {
+    setHistoricoEquip(equip);
+    setHistoricoOpen(true);
+    setHistoricoLoading(true);
+    try {
+      const todas = await fetchManutencoes();
+      setHistoricoItems(todas.filter((m) => m.equipamento_id === equip.id));
+    } catch (e: any) {
+      toast.error('Erro ao carregar histórico: ' + e.message);
+      setHistoricoItems([]);
+    } finally {
+      setHistoricoLoading(false);
+    }
+  }
+
   if (loading) {
     return <div className="flex min-h-screen items-center justify-center"><p>Carregando...</p></div>;
   }
 
   const sectorSelectValue = form.setor_id || 'none';
-  const origemSelectValue = form.origem_obra_id || 'none';
   const localSelectValue = form.localizacao_obra_id || 'none';
 
   return (
@@ -443,7 +456,6 @@ export default function EquipamentosPage() {
               <TableHead>N° Patrimônio</TableHead>
               <TableHead>N° Série</TableHead>
               <TableHead>Marca / Modelo</TableHead>
-              <TableHead>Origem</TableHead>
               <TableHead>Localização</TableHead>
               <TableHead>Situação</TableHead>
               <TableHead>Auditoria</TableHead>
@@ -453,7 +465,7 @@ export default function EquipamentosPage() {
           <TableBody>
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={9} className="text-center text-muted-foreground">
+                <TableCell colSpan={8} className="text-center text-muted-foreground">
                   Nenhum equipamento encontrado
                 </TableCell>
               </TableRow>
@@ -465,7 +477,6 @@ export default function EquipamentosPage() {
                 <TableCell>{i.n_patrimonio || '-'}</TableCell>
                 <TableCell>{i.n_serie || '-'}</TableCell>
                 <TableCell>{[i.marca, i.modelo].filter(Boolean).join(' / ') || '-'}</TableCell>
-                <TableCell>{i.origem_obra_nome || '-'}</TableCell>
                 <TableCell>{i.localizacao_obra_nome || '-'}</TableCell>
                 <TableCell>
                   <Badge variant={situacaoVariant(i.situacao)}>{situacaoLabel(i.situacao)}</Badge>
@@ -481,6 +492,14 @@ export default function EquipamentosPage() {
                 </TableCell>
                 <TableCell>
                   <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      title="Ver histórico de manutenções"
+                      onClick={() => openHistorico(i)}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
                     {canEdit('equipamentos') && (
                       <Button variant="ghost" size="icon" onClick={() => openEdit(i)}>
                         <Pencil className="h-4 w-4" />
@@ -593,22 +612,6 @@ export default function EquipamentosPage() {
             </div>
 
             <div>
-              <Label>Origem (Obra)</Label>
-              <Select
-                value={origemSelectValue}
-                onValueChange={(v) => setForm((p) => ({ ...p, origem_obra_id: v === 'none' ? '' : v }))}
-              >
-                <SelectTrigger><SelectValue placeholder="Selecione a obra de origem" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Nenhuma</SelectItem>
-                  {obras.map((o) => (
-                    <SelectItem key={o.id} value={o.id}>{o.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
               <Label>Localização Atual (Obra)</Label>
               <Select
                 value={localSelectValue}
@@ -623,11 +626,86 @@ export default function EquipamentosPage() {
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="sm:col-span-2">
+              <Label>Observação</Label>
+              <Textarea
+                value={form.observacao}
+                onChange={(e) => setForm((p) => ({ ...p, observacao: e.target.value }))}
+                placeholder="Anotações sobre o equipamento (opcional)"
+                rows={3}
+              />
+            </div>
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDialog(false)}>Cancelar</Button>
             <Button onClick={handleSubmit}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={historicoOpen} onOpenChange={setHistoricoOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Wrench className="h-5 w-5" />
+              Histórico de Manutenções
+            </DialogTitle>
+            <DialogDescription>
+              {historicoEquip?.nome}
+              {historicoEquip?.n_patrimonio ? ` — Patrimônio ${historicoEquip.n_patrimonio}` : ''}
+            </DialogDescription>
+          </DialogHeader>
+
+          {historicoLoading ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">Carregando histórico...</p>
+          ) : historicoItems.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              Nenhuma manutenção registrada para este equipamento.
+            </p>
+          ) : (
+            <div className="rounded-md border overflow-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Fornecedor</TableHead>
+                    <TableHead>Valor</TableHead>
+                    <TableHead>Próxima</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {historicoItems
+                    .slice()
+                    .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime())
+                    .map((m) => (
+                      <TableRow key={m.id}>
+                        <TableCell>{new Date(m.data).toLocaleDateString('pt-BR')}</TableCell>
+                        <TableCell>{m.fornecedor_nome || '-'}</TableCell>
+                        <TableCell>
+                          R$ {Number(m.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </TableCell>
+                        <TableCell>
+                          {m.proxima_manutencao
+                            ? new Date(m.proxima_manutencao).toLocaleDateString('pt-BR')
+                            : '-'}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={m.ativo ? 'default' : 'outline'}>
+                            {m.ativo ? 'Ativa' : 'Inativa'}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setHistoricoOpen(false)}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

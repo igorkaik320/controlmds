@@ -104,8 +104,8 @@ export default function ManutencaoPage() {
   }
 
   async function handleSubmit() {
-    if (!user || !form.equipamento_id || !form.setor_id || !form.data || !form.proxima_manutencao) {
-      toast.error('Preencha todos os campos obrigatórios');
+    if (!user || !form.equipamento_id || !form.setor_id || !form.data) {
+      toast.error('Preencha equipamento, setor e data');
       return;
     }
 
@@ -123,7 +123,7 @@ export default function ManutencaoPage() {
         fornecedor_nome: fornecedor?.nome_fornecedor || null,
         data: form.data,
         valor: parseFloat(form.valor) || 0,
-        proxima_manutencao: form.proxima_manutencao,
+        proxima_manutencao: form.proxima_manutencao || null,
         avisar_dias_antes: parseInt(form.avisar_dias_antes) || 10,
         ativo: form.ativo,
         created_by: user.id,
@@ -160,7 +160,7 @@ export default function ManutencaoPage() {
   function verificarManutencoesProximas() {
     const hoje = new Date();
     const manutencoesProximas = items.filter(item => {
-      if (!item.ativo) return false;
+      if (!item.ativo || !item.proxima_manutencao) return false;
       const dataProxima = new Date(item.proxima_manutencao);
       const diasDiff = Math.ceil((dataProxima.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
       return diasDiff <= item.avisar_dias_antes && diasDiff >= 0;
@@ -168,7 +168,7 @@ export default function ManutencaoPage() {
 
     if (manutencoesProximas.length > 0) {
       manutencoesProximas.forEach(item => {
-        const dataProxima = new Date(item.proxima_manutencao);
+        const dataProxima = new Date(item.proxima_manutencao!);
         const diasDiff = Math.ceil((dataProxima.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
         const fornecedorInfo = item.fornecedor_nome ? ` - Fornecedor: ${item.fornecedor_nome}` : '';
         toast.warning(`⚠️ Manutenção próxima: ${item.equipamento_nome} (${item.setor_nome})${fornecedorInfo} - Faltam ${diasDiff} dias`, {
@@ -250,10 +250,13 @@ export default function ManutencaoPage() {
 
             {filtered.map((i) => {
               const hoje = new Date();
-              const dataProxima = new Date(i.proxima_manutencao);
-              const diasDiff = Math.ceil((dataProxima.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
-              const estaProximo = i.ativo && diasDiff <= i.avisar_dias_antes && diasDiff >= 0;
-              const estaVencido = i.ativo && diasDiff < 0;
+              const temProxima = !!i.proxima_manutencao;
+              const dataProxima = temProxima ? new Date(i.proxima_manutencao!) : null;
+              const diasDiff = dataProxima
+                ? Math.ceil((dataProxima.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24))
+                : 0;
+              const estaProximo = temProxima && i.ativo && diasDiff <= i.avisar_dias_antes && diasDiff >= 0;
+              const estaVencido = temProxima && i.ativo && diasDiff < 0;
 
               return (
                 <TableRow key={i.id} className={estaVencido ? 'bg-red-50' : estaProximo ? 'bg-yellow-50' : ''}>
@@ -263,7 +266,7 @@ export default function ManutencaoPage() {
                   <TableCell>{new Date(i.data).toLocaleDateString('pt-BR')}</TableCell>
                   <TableCell>R$ {i.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</TableCell>
                   <TableCell className={estaVencido ? 'text-red-600 font-semibold' : estaProximo ? 'text-yellow-600 font-semibold' : ''}>
-                    {new Date(i.proxima_manutencao).toLocaleDateString('pt-BR')}
+                    {temProxima ? new Date(i.proxima_manutencao!).toLocaleDateString('pt-BR') : '-'}
                     {estaVencido && ' (Vencido)'}
                     {estaProximo && !estaVencido && ` (${diasDiff} dias)`}
                   </TableCell>
@@ -408,12 +411,15 @@ export default function ManutencaoPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Próxima Manutenção *</Label>
+                <Label>Próxima Manutenção</Label>
                 <Input 
                   type="date"
                   value={form.proxima_manutencao} 
                   onChange={(e) => setForm((p) => ({ ...p, proxima_manutencao: e.target.value }))} 
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Opcional — deixe em branco se este equipamento não precisa retornar.
+                </p>
               </div>
 
               <div>
