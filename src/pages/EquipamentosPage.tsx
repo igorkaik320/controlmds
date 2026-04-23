@@ -68,6 +68,10 @@ export default function EquipamentosPage() {
   const [form, setForm] = useState(emptyForm);
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [historicoOpen, setHistoricoOpen] = useState(false);
+  const [historicoEquip, setHistoricoEquip] = useState<Equipamento | null>(null);
+  const [historicoItems, setHistoricoItems] = useState<Manutencao[]>([]);
+  const [historicoLoading, setHistoricoLoading] = useState(false);
 
   const profileMap = useProfileMap();
 
@@ -376,6 +380,21 @@ export default function EquipamentosPage() {
       console.groupEnd();
       setImporting(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  }
+
+  async function openHistorico(equip: Equipamento) {
+    setHistoricoEquip(equip);
+    setHistoricoOpen(true);
+    setHistoricoLoading(true);
+    try {
+      const todas = await fetchManutencoes();
+      setHistoricoItems(todas.filter((m) => m.equipamento_id === equip.id));
+    } catch (e: any) {
+      toast.error('Erro ao carregar histórico: ' + e.message);
+      setHistoricoItems([]);
+    } finally {
+      setHistoricoLoading(false);
     }
   }
 
