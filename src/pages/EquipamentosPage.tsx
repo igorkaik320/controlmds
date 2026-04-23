@@ -6,7 +6,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Pencil, Trash2, Upload, Download } from 'lucide-react';
+import { Plus, Pencil, Trash2, Upload, Download, Eye, Wrench } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/lib/auth';
 import { useModulePermissions } from '@/hooks/useModulePermissions';
 import {
@@ -15,8 +16,10 @@ import {
   updateEquipamento,
   deleteEquipamento,
   fetchSetores,
+  fetchManutencoes,
   SITUACOES_EQUIPAMENTO,
   type Equipamento,
+  type Manutencao,
   type SituacaoEquipamento,
 } from '@/lib/equipamentosService';
 import { fetchObras, type Obra } from '@/lib/obrasService';
@@ -33,9 +36,9 @@ const emptyForm = {
   n_patrimonio: '',
   n_serie: '',
   nota_fiscal: '',
-  origem_obra_id: '',
   localizacao_obra_id: '',
   situacao: 'estoque' as SituacaoEquipamento,
+  observacao: '',
 };
 
 const situacaoLabel = (v?: string | null) =>
