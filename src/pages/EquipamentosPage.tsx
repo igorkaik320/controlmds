@@ -47,10 +47,9 @@ const situacaoLabel = (v?: string | null) =>
 const situacaoVariant = (v?: string | null): 'default' | 'secondary' | 'destructive' | 'outline' => {
   switch (v) {
     case 'estoque': return 'default';
+    case 'em_uso': return 'secondary';
+    case 'com_defeito': return 'outline';
     case 'incinerado': return 'destructive';
-    case 'fazer_busca': return 'destructive';
-    case 'assistencia': return 'secondary';
-    case 'defeito_sede': return 'outline';
     default: return 'outline';
   }
 };
