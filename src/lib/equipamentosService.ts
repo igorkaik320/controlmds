@@ -3,17 +3,15 @@ import { recordAuditEntry } from '@/lib/audit';
 
 export type SituacaoEquipamento =
   | 'estoque'
-  | 'incinerado'
-  | 'fazer_busca'
-  | 'assistencia'
-  | 'defeito_sede';
+  | 'em_uso'
+  | 'com_defeito'
+  | 'incinerado';
 
 export const SITUACOES_EQUIPAMENTO: { value: SituacaoEquipamento; label: string }[] = [
   { value: 'estoque', label: 'Estoque' },
+  { value: 'em_uso', label: 'Em Uso' },
+  { value: 'com_defeito', label: 'Com Defeito' },
   { value: 'incinerado', label: 'Incinerado' },
-  { value: 'fazer_busca', label: 'Fazer Busca' },
-  { value: 'assistencia', label: 'Assistência' },
-  { value: 'defeito_sede', label: 'Com Defeito na Sede' },
 ];
 
 export interface Equipamento {
