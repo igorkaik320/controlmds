@@ -30,6 +30,7 @@ export interface Equipamento {
   localizacao_obra_nome?: string | null;
   situacao?: SituacaoEquipamento | null;
   observacao?: string | null;
+  responsavel?: string | null;
   created_by: string;
   created_at: string;
   updated_by?: string | null;

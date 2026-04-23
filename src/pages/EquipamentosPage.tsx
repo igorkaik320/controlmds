@@ -23,6 +23,7 @@ import {
   type SituacaoEquipamento,
 } from '@/lib/equipamentosService';
 import { fetchObras, type Obra } from '@/lib/obrasService';
+import { fetchResponsaveis, type Responsavel } from '@/lib/comprasService';
 import { toast } from 'sonner';
 import AuditInfo from '@/components/AuditInfo';
 import { useProfileMap } from '@/hooks/useProfileMap';
@@ -39,6 +40,7 @@ const emptyForm = {
   localizacao_obra_id: '',
   situacao: 'estoque' as SituacaoEquipamento,
   observacao: '',
+  responsavel: '',
 };
 
 const situacaoLabel = (v?: string | null) =>
@@ -60,6 +62,7 @@ export default function EquipamentosPage() {
   const [items, setItems] = useState<Equipamento[]>([]);
   const [setores, setSetores] = useState<any[]>([]);
   const [obras, setObras] = useState<Obra[]>([]);
+  const [responsaveis, setResponsaveis] = useState<Responsavel[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -76,14 +79,16 @@ export default function EquipamentosPage() {
 
   const load = useCallback(async () => {
     try {
-      const [equipamentosData, setoresData, obrasData] = await Promise.all([
+      const [equipamentosData, setoresData, obrasData, responsaveisData] = await Promise.all([
         fetchEquipamentos(),
         fetchSetores(),
         fetchObras(),
+        fetchResponsaveis().catch(() => []),
       ]);
       setItems(equipamentosData);
       setSetores(setoresData);
       setObras(obrasData);
+      setResponsaveis(responsaveisData);
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -126,6 +131,7 @@ export default function EquipamentosPage() {
       localizacao_obra_id: item.localizacao_obra_id || '',
       situacao: (item.situacao as SituacaoEquipamento) || 'estoque',
       observacao: (item as any).observacao || '',
+      responsavel: (item as any).responsavel || '',
     });
     setShowDialog(true);
   }
@@ -151,6 +157,7 @@ export default function EquipamentosPage() {
         localizacao_obra_nome: localObra?.nome || null,
         situacao: form.situacao,
         observacao: form.observacao.trim() || null,
+        responsavel: form.responsavel.trim() || null,
       };
 
       if (editingId) {
