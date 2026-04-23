@@ -644,6 +644,71 @@ export default function EquipamentosPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={historicoOpen} onOpenChange={setHistoricoOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Wrench className="h-5 w-5" />
+              Histórico de Manutenções
+            </DialogTitle>
+            <DialogDescription>
+              {historicoEquip?.nome}
+              {historicoEquip?.n_patrimonio ? ` — Patrimônio ${historicoEquip.n_patrimonio}` : ''}
+            </DialogDescription>
+          </DialogHeader>
+
+          {historicoLoading ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">Carregando histórico...</p>
+          ) : historicoItems.length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              Nenhuma manutenção registrada para este equipamento.
+            </p>
+          ) : (
+            <div className="rounded-md border overflow-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Fornecedor</TableHead>
+                    <TableHead>Valor</TableHead>
+                    <TableHead>Próxima</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {historicoItems
+                    .slice()
+                    .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime())
+                    .map((m) => (
+                      <TableRow key={m.id}>
+                        <TableCell>{new Date(m.data).toLocaleDateString('pt-BR')}</TableCell>
+                        <TableCell>{m.fornecedor_nome || '-'}</TableCell>
+                        <TableCell>
+                          R$ {Number(m.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                        </TableCell>
+                        <TableCell>
+                          {m.proxima_manutencao
+                            ? new Date(m.proxima_manutencao).toLocaleDateString('pt-BR')
+                            : '-'}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={m.ativo ? 'default' : 'outline'}>
+                            {m.ativo ? 'Ativa' : 'Inativa'}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setHistoricoOpen(false)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
