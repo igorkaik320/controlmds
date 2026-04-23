@@ -390,7 +390,6 @@ export default function EquipamentosPage() {
   }
 
   const sectorSelectValue = form.setor_id || 'none';
-  const origemSelectValue = form.origem_obra_id || 'none';
   const localSelectValue = form.localizacao_obra_id || 'none';
 
   return (
