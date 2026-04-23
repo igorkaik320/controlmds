@@ -1,13 +1,36 @@
 import { supabase } from '@/integrations/supabase/client';
 import { recordAuditEntry } from '@/lib/audit';
 
+export type SituacaoEquipamento =
+  | 'estoque'
+  | 'incinerado'
+  | 'fazer_busca'
+  | 'assistencia'
+  | 'defeito_sede';
+
+export const SITUACOES_EQUIPAMENTO: { value: SituacaoEquipamento; label: string }[] = [
+  { value: 'estoque', label: 'Estoque' },
+  { value: 'incinerado', label: 'Incinerado' },
+  { value: 'fazer_busca', label: 'Fazer Busca' },
+  { value: 'assistencia', label: 'Assistência' },
+  { value: 'defeito_sede', label: 'Com Defeito na Sede' },
+];
+
 export interface Equipamento {
   id: string;
   nome: string;
-  marca?: string;
-  modelo?: string;
-  setor_id?: string;
-  setor_nome?: string;
+  marca?: string | null;
+  modelo?: string | null;
+  setor_id?: string | null;
+  setor_nome?: string | null;
+  n_patrimonio?: string | null;
+  n_serie?: string | null;
+  nota_fiscal?: string | null;
+  origem_obra_id?: string | null;
+  origem_obra_nome?: string | null;
+  localizacao_obra_id?: string | null;
+  localizacao_obra_nome?: string | null;
+  situacao?: SituacaoEquipamento | null;
   created_by: string;
   created_at: string;
   updated_by?: string | null;
@@ -44,7 +67,6 @@ export interface Manutencao {
 
 // ---- Equipamentos ----
 export async function fetchEquipamentos(): Promise<Equipamento[]> {
-  console.log('Buscando equipamentos...');
   const { data, error } = await supabase
     .from('equipamentos')
     .select('*')
@@ -53,16 +75,13 @@ export async function fetchEquipamentos(): Promise<Equipamento[]> {
     console.error('Erro ao buscar equipamentos:', error);
     throw error;
   }
-  console.log('Equipamentos encontrados:', data);
   return data || [];
 }
 
 export async function saveEquipamento(e: Omit<Equipamento, 'id' | 'created_at' | 'updated_at'>, userId: string) {
-  console.log('Salvando equipamento:', e, 'userId:', userId);
-  
   // Buscar nome do setor se fornecido
-  let setorNome = null;
-  if (e.setor_id) {
+  let setorNome = (e as any).setor_nome ?? null;
+  if (e.setor_id && !setorNome) {
     const { data: setorData } = await supabase
       .from('setores')
       .select('nome')
@@ -70,12 +89,12 @@ export async function saveEquipamento(e: Omit<Equipamento, 'id' | 'created_at' |
       .single();
     setorNome = setorData?.nome || null;
   }
-  
+
   const timestamp = new Date().toISOString();
   const { data, error } = await supabase
     .from('equipamentos')
-    .insert({ 
-      ...e, 
+    .insert({
+      ...e,
       setor_nome: setorNome,
       created_by: userId,
       created_at: timestamp,
@@ -87,7 +106,6 @@ export async function saveEquipamento(e: Omit<Equipamento, 'id' | 'created_at' |
     console.error('Erro ao salvar equipamento:', error);
     throw error;
   }
-  console.log('Equipamento salvo:', data);
 
   await recordAuditEntry({
     entity_type: 'equipamentos',
