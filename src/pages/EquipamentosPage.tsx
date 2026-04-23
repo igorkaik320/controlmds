@@ -638,6 +638,22 @@ export default function EquipamentosPage() {
               </Select>
             </div>
 
+            <div>
+              <Label>Responsável</Label>
+              <Select
+                value={form.responsavel || 'none'}
+                onValueChange={(v) => setForm((p) => ({ ...p, responsavel: v === 'none' ? '' : v }))}
+              >
+                <SelectTrigger><SelectValue placeholder="Selecione o responsável" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhum</SelectItem>
+                  {responsaveis.map((r) => (
+                    <SelectItem key={r.id} value={r.nome}>{r.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="sm:col-span-2">
               <Label>Observação</Label>
               <Textarea
