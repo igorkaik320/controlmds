@@ -197,6 +197,7 @@ export default function EquipamentosPage() {
       'N Serie',
       'Nota Fiscal',
       'Localizacao Atual (Obra)',
+      'Responsavel',
       'Situacao',
       'Observacao',
     ];
@@ -211,6 +212,7 @@ export default function EquipamentosPage() {
         'SN123456',
         'NF-9999',
         obras[0]?.nome || 'Obra A',
+        responsaveis[0]?.nome || 'João Silva',
         'estoque',
         'Equipamento em bom estado',
       ],
@@ -229,6 +231,7 @@ export default function EquipamentosPage() {
       [''],
       ['Setor: digite o nome exato de um setor já cadastrado (ou deixe em branco)'],
       ['Localização: digite o nome exato de uma obra já cadastrada (ou deixe em branco)'],
+      ['Responsável: digite o nome exato de um responsável já cadastrado (ou deixe em branco)'],
       [''],
       ['Se o N° Patrimônio já existir, o equipamento será ATUALIZADO. Caso contrário, será criado novo.'],
       ['Apague a linha de exemplo antes de importar.'],
@@ -302,6 +305,7 @@ export default function EquipamentosPage() {
         const situacaoRaw = String(row['Situacao'] || row['Situação'] || 'estoque').trim().toLowerCase();
         const nPatrimonio = String(row['N Patrimonio'] || row['N° Patrimônio'] || row['N Patrimônio'] || '').trim();
         const observacaoRaw = String(row['Observacao'] || row['Observação'] || '').trim();
+        const responsavelRaw = String(row['Responsavel'] || row['Responsável'] || '').trim();
 
         const setor = setorNomeRaw ? setorMap.get(setorNomeRaw.toLowerCase()) : null;
         const local = localRaw ? obraMap.get(localRaw.toLowerCase()) : null;
@@ -332,6 +336,7 @@ export default function EquipamentosPage() {
           localizacao_obra_nome: local?.nome || null,
           situacao,
           observacao: observacaoRaw || null,
+          responsavel: responsavelRaw || null,
         };
 
         // Se tem patrimônio e já existe → atualiza apenas campos alterados
