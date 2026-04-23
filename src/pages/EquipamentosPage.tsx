@@ -120,9 +120,9 @@ export default function EquipamentosPage() {
       n_patrimonio: item.n_patrimonio || '',
       n_serie: item.n_serie || '',
       nota_fiscal: item.nota_fiscal || '',
-      origem_obra_id: item.origem_obra_id || '',
       localizacao_obra_id: item.localizacao_obra_id || '',
       situacao: (item.situacao as SituacaoEquipamento) || 'estoque',
+      observacao: (item as any).observacao || '',
     });
     setShowDialog(true);
   }
@@ -134,7 +134,6 @@ export default function EquipamentosPage() {
     }
 
     try {
-      const origemObra = obras.find((o) => o.id === form.origem_obra_id);
       const localObra = obras.find((o) => o.id === form.localizacao_obra_id);
 
       const payload: any = {
@@ -145,11 +144,10 @@ export default function EquipamentosPage() {
         n_patrimonio: form.n_patrimonio.trim() || null,
         n_serie: form.n_serie.trim() || null,
         nota_fiscal: form.nota_fiscal.trim() || null,
-        origem_obra_id: form.origem_obra_id || null,
-        origem_obra_nome: origemObra?.nome || null,
         localizacao_obra_id: form.localizacao_obra_id || null,
         localizacao_obra_nome: localObra?.nome || null,
         situacao: form.situacao,
+        observacao: form.observacao.trim() || null,
       };
 
       if (editingId) {
