@@ -330,15 +330,21 @@ export default function EquipamentosPage() {
         }
       }
 
+      console.log(`Resultado: ${sucesso} sucesso(s), ${erros.length} erro(s)`);
       if (sucesso > 0) toast.success(`${sucesso} equipamento(s) importado(s)`);
       if (erros.length) {
         console.warn('Erros de importação:', erros);
-        toast.error(`${erros.length} erro(s). Veja o console para detalhes.`);
+        toast.error(`${erros.length} erro(s). Veja o console (F12) para detalhes.`);
+      }
+      if (sucesso === 0 && erros.length === 0) {
+        toast.warning('Nenhum equipamento foi importado. Verifique a planilha.');
       }
       load();
     } catch (e: any) {
-      toast.error('Erro ao ler planilha: ' + e.message);
+      console.error('Erro fatal na importação:', e);
+      toast.error('Erro ao ler planilha: ' + (e?.message || 'desconhecido'));
     } finally {
+      console.groupEnd();
       setImporting(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
