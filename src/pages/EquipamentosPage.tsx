@@ -468,6 +468,7 @@ export default function EquipamentosPage() {
               <TableHead>N° Série</TableHead>
               <TableHead>Marca / Modelo</TableHead>
               <TableHead>Localização</TableHead>
+              <TableHead>Responsável</TableHead>
               <TableHead>Situação</TableHead>
               <TableHead>Auditoria</TableHead>
               <TableHead></TableHead>
@@ -476,7 +477,7 @@ export default function EquipamentosPage() {
           <TableBody>
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground">
+                <TableCell colSpan={9} className="text-center text-muted-foreground">
                   Nenhum equipamento encontrado
                 </TableCell>
               </TableRow>
@@ -489,6 +490,7 @@ export default function EquipamentosPage() {
                 <TableCell>{i.n_serie || '-'}</TableCell>
                 <TableCell>{[i.marca, i.modelo].filter(Boolean).join(' / ') || '-'}</TableCell>
                 <TableCell>{i.localizacao_obra_nome || '-'}</TableCell>
+                <TableCell>{(i as any).responsavel || '-'}</TableCell>
                 <TableCell>
                   <Badge variant={situacaoVariant(i.situacao)}>{situacaoLabel(i.situacao)}</Badge>
                 </TableCell>
