@@ -288,21 +288,16 @@ export default function EquipamentosPage() {
         }
 
         const setorNomeRaw = String(row['Setor'] || '').trim();
-        const origemRaw = String(row['Origem (Obra)'] || row['Origem'] || '').trim();
         const localRaw = String(row['Localizacao Atual (Obra)'] || row['Localização Atual (Obra)'] || row['Localizacao Atual'] || '').trim();
         const situacaoRaw = String(row['Situacao'] || row['Situação'] || 'estoque').trim().toLowerCase();
         const nPatrimonio = String(row['N Patrimonio'] || row['N° Patrimônio'] || row['N Patrimônio'] || '').trim();
+        const observacaoRaw = String(row['Observacao'] || row['Observação'] || '').trim();
 
         const setor = setorNomeRaw ? setorMap.get(setorNomeRaw.toLowerCase()) : null;
-        const origem = origemRaw ? obraMap.get(origemRaw.toLowerCase()) : null;
         const local = localRaw ? obraMap.get(localRaw.toLowerCase()) : null;
 
         if (setorNomeRaw && !setor) {
           erros.push(`Linha ${i + 2}: setor "${setorNomeRaw}" não encontrado`);
-          continue;
-        }
-        if (origemRaw && !origem) {
-          erros.push(`Linha ${i + 2}: obra origem "${origemRaw}" não encontrada`);
           continue;
         }
         if (localRaw && !local) {
@@ -323,11 +318,10 @@ export default function EquipamentosPage() {
           n_patrimonio: nPatrimonio || null,
           n_serie: String(row['N Serie'] || row['N° Série'] || row['N Série'] || '').trim() || null,
           nota_fiscal: String(row['Nota Fiscal'] || '').trim() || null,
-          origem_obra_id: origem?.id || null,
-          origem_obra_nome: origem?.nome || null,
           localizacao_obra_id: local?.id || null,
           localizacao_obra_nome: local?.nome || null,
           situacao,
+          observacao: observacaoRaw || null,
         };
 
         // Se tem patrimônio e já existe → atualiza apenas campos alterados
