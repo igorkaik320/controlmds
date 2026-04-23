@@ -267,7 +267,15 @@ export default function EquipamentosPage() {
       const obraMap = new Map(obras.map((o) => [o.nome.toLowerCase().trim(), o]));
       const situacoesValidas = new Set(SITUACOES_EQUIPAMENTO.map((s) => s.value));
 
-      let sucesso = 0;
+      // Mapa de equipamentos existentes indexados por número de patrimônio (normalizado)
+      const patrimonioMap = new Map(
+        equipamentos
+          .filter((eq) => eq.n_patrimonio && eq.n_patrimonio.trim())
+          .map((eq) => [eq.n_patrimonio!.trim().toLowerCase(), eq])
+      );
+
+      let criados = 0;
+      let atualizados = 0;
       const erros: string[] = [];
 
       for (let i = 0; i < rows.length; i++) {
@@ -282,6 +290,7 @@ export default function EquipamentosPage() {
         const origemRaw = String(row['Origem (Obra)'] || row['Origem'] || '').trim();
         const localRaw = String(row['Localizacao Atual (Obra)'] || row['Localização Atual (Obra)'] || row['Localizacao Atual'] || '').trim();
         const situacaoRaw = String(row['Situacao'] || row['Situação'] || 'estoque').trim().toLowerCase();
+        const nPatrimonio = String(row['N Patrimonio'] || row['N° Patrimônio'] || row['N Patrimônio'] || '').trim();
 
         const setor = setorNomeRaw ? setorMap.get(setorNomeRaw.toLowerCase()) : null;
         const origem = origemRaw ? obraMap.get(origemRaw.toLowerCase()) : null;
@@ -304,40 +313,65 @@ export default function EquipamentosPage() {
           ? situacaoRaw
           : 'estoque') as SituacaoEquipamento;
 
+        const dados = {
+          nome,
+          marca: String(row['Marca'] || '').trim() || null,
+          modelo: String(row['Modelo'] || '').trim() || null,
+          setor_id: setor?.id || null,
+          setor_nome: setor?.nome || null,
+          n_patrimonio: nPatrimonio || null,
+          n_serie: String(row['N Serie'] || row['N° Série'] || row['N Série'] || '').trim() || null,
+          nota_fiscal: String(row['Nota Fiscal'] || '').trim() || null,
+          origem_obra_id: origem?.id || null,
+          origem_obra_nome: origem?.nome || null,
+          localizacao_obra_id: local?.id || null,
+          localizacao_obra_nome: local?.nome || null,
+          situacao,
+        };
+
+        // Se tem patrimônio e já existe → atualiza apenas campos alterados
+        const existente = nPatrimonio ? patrimonioMap.get(nPatrimonio.toLowerCase()) : null;
+
         try {
-          await saveEquipamento(
-            {
-              nome,
-              marca: String(row['Marca'] || '').trim() || null,
-              modelo: String(row['Modelo'] || '').trim() || null,
-              setor_id: setor?.id || null,
-              setor_nome: setor?.nome || null,
-              n_patrimonio: String(row['N Patrimonio'] || row['N° Patrimônio'] || row['N Patrimônio'] || '').trim() || null,
-              n_serie: String(row['N Serie'] || row['N° Série'] || row['N Série'] || '').trim() || null,
-              nota_fiscal: String(row['Nota Fiscal'] || '').trim() || null,
-              origem_obra_id: origem?.id || null,
-              origem_obra_nome: origem?.nome || null,
-              localizacao_obra_id: local?.id || null,
-              localizacao_obra_nome: local?.nome || null,
-              situacao,
-              created_by: user.id,
-            } as any,
-            user.id
-          );
-          sucesso++;
+          if (existente) {
+            const diff: Record<string, any> = {};
+            (Object.keys(dados) as (keyof typeof dados)[]).forEach((k) => {
+              const novo = dados[k];
+              const antigo = (existente as any)[k];
+              const novoNorm = novo === '' ? null : novo;
+              const antigoNorm = antigo === '' ? null : antigo;
+              if (novoNorm !== antigoNorm) diff[k] = novoNorm;
+            });
+
+            if (Object.keys(diff).length === 0) {
+              console.log(`Linha ${i + 2}: patrimônio "${nPatrimonio}" já existe, sem alterações`);
+              continue;
+            }
+
+            await updateEquipamento(existente.id, diff, user.id);
+            atualizados++;
+            console.log(`Linha ${i + 2}: patrimônio "${nPatrimonio}" atualizado`, diff);
+          } else {
+            await saveEquipamento({ ...dados, created_by: user.id } as any, user.id);
+            criados++;
+          }
         } catch (e: any) {
           erros.push(`Linha ${i + 2}: ${e.message}`);
         }
       }
 
-      console.log(`Resultado: ${sucesso} sucesso(s), ${erros.length} erro(s)`);
-      if (sucesso > 0) toast.success(`${sucesso} equipamento(s) importado(s)`);
+      console.log(`Resultado: ${criados} criado(s), ${atualizados} atualizado(s), ${erros.length} erro(s)`);
+      const partes: string[] = [];
+      if (criados > 0) partes.push(`${criados} criado(s)`);
+      if (atualizados > 0) partes.push(`${atualizados} atualizado(s)`);
+      if (partes.length) toast.success(`Importação concluída: ${partes.join(', ')}`);
+
       if (erros.length) {
         console.warn('Erros de importação:', erros);
         toast.error(`${erros.length} erro(s). Veja o console (F12) para detalhes.`);
       }
-      if (sucesso === 0 && erros.length === 0) {
-        toast.warning('Nenhum equipamento foi importado. Verifique a planilha.');
+      if (criados === 0 && atualizados === 0 && erros.length === 0) {
+        toast.warning('Nenhum equipamento foi importado ou atualizado. Verifique a planilha.');
       }
       load();
     } catch (e: any) {
