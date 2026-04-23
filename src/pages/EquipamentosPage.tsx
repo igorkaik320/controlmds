@@ -23,6 +23,7 @@ import {
   type SituacaoEquipamento,
 } from '@/lib/equipamentosService';
 import { fetchObras, type Obra } from '@/lib/obrasService';
+import { fetchResponsaveis, type Responsavel } from '@/lib/comprasService';
 import { toast } from 'sonner';
 import AuditInfo from '@/components/AuditInfo';
 import { useProfileMap } from '@/hooks/useProfileMap';
@@ -39,6 +40,7 @@ const emptyForm = {
   localizacao_obra_id: '',
   situacao: 'estoque' as SituacaoEquipamento,
   observacao: '',
+  responsavel: '',
 };
 
 const situacaoLabel = (v?: string | null) =>
@@ -60,6 +62,7 @@ export default function EquipamentosPage() {
   const [items, setItems] = useState<Equipamento[]>([]);
   const [setores, setSetores] = useState<any[]>([]);
   const [obras, setObras] = useState<Obra[]>([]);
+  const [responsaveis, setResponsaveis] = useState<Responsavel[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -76,14 +79,16 @@ export default function EquipamentosPage() {
 
   const load = useCallback(async () => {
     try {
-      const [equipamentosData, setoresData, obrasData] = await Promise.all([
+      const [equipamentosData, setoresData, obrasData, responsaveisData] = await Promise.all([
         fetchEquipamentos(),
         fetchSetores(),
         fetchObras(),
+        fetchResponsaveis().catch(() => []),
       ]);
       setItems(equipamentosData);
       setSetores(setoresData);
       setObras(obrasData);
+      setResponsaveis(responsaveisData);
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -126,6 +131,7 @@ export default function EquipamentosPage() {
       localizacao_obra_id: item.localizacao_obra_id || '',
       situacao: (item.situacao as SituacaoEquipamento) || 'estoque',
       observacao: (item as any).observacao || '',
+      responsavel: (item as any).responsavel || '',
     });
     setShowDialog(true);
   }
@@ -151,6 +157,7 @@ export default function EquipamentosPage() {
         localizacao_obra_nome: localObra?.nome || null,
         situacao: form.situacao,
         observacao: form.observacao.trim() || null,
+        responsavel: form.responsavel.trim() || null,
       };
 
       if (editingId) {
@@ -190,6 +197,7 @@ export default function EquipamentosPage() {
       'N Serie',
       'Nota Fiscal',
       'Localizacao Atual (Obra)',
+      'Responsavel',
       'Situacao',
       'Observacao',
     ];
@@ -204,6 +212,7 @@ export default function EquipamentosPage() {
         'SN123456',
         'NF-9999',
         obras[0]?.nome || 'Obra A',
+        responsaveis[0]?.nome || 'João Silva',
         'estoque',
         'Equipamento em bom estado',
       ],
@@ -222,6 +231,7 @@ export default function EquipamentosPage() {
       [''],
       ['Setor: digite o nome exato de um setor já cadastrado (ou deixe em branco)'],
       ['Localização: digite o nome exato de uma obra já cadastrada (ou deixe em branco)'],
+      ['Responsável: digite o nome exato de um responsável já cadastrado (ou deixe em branco)'],
       [''],
       ['Se o N° Patrimônio já existir, o equipamento será ATUALIZADO. Caso contrário, será criado novo.'],
       ['Apague a linha de exemplo antes de importar.'],
@@ -295,6 +305,7 @@ export default function EquipamentosPage() {
         const situacaoRaw = String(row['Situacao'] || row['Situação'] || 'estoque').trim().toLowerCase();
         const nPatrimonio = String(row['N Patrimonio'] || row['N° Patrimônio'] || row['N Patrimônio'] || '').trim();
         const observacaoRaw = String(row['Observacao'] || row['Observação'] || '').trim();
+        const responsavelRaw = String(row['Responsavel'] || row['Responsável'] || '').trim();
 
         const setor = setorNomeRaw ? setorMap.get(setorNomeRaw.toLowerCase()) : null;
         const local = localRaw ? obraMap.get(localRaw.toLowerCase()) : null;
@@ -325,6 +336,7 @@ export default function EquipamentosPage() {
           localizacao_obra_nome: local?.nome || null,
           situacao,
           observacao: observacaoRaw || null,
+          responsavel: responsavelRaw || null,
         };
 
         // Se tem patrimônio e já existe → atualiza apenas campos alterados
@@ -456,6 +468,7 @@ export default function EquipamentosPage() {
               <TableHead>N° Série</TableHead>
               <TableHead>Marca / Modelo</TableHead>
               <TableHead>Localização</TableHead>
+              <TableHead>Responsável</TableHead>
               <TableHead>Situação</TableHead>
               <TableHead>Auditoria</TableHead>
               <TableHead></TableHead>
@@ -464,7 +477,7 @@ export default function EquipamentosPage() {
           <TableBody>
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground">
+                <TableCell colSpan={9} className="text-center text-muted-foreground">
                   Nenhum equipamento encontrado
                 </TableCell>
               </TableRow>
@@ -477,6 +490,7 @@ export default function EquipamentosPage() {
                 <TableCell>{i.n_serie || '-'}</TableCell>
                 <TableCell>{[i.marca, i.modelo].filter(Boolean).join(' / ') || '-'}</TableCell>
                 <TableCell>{i.localizacao_obra_nome || '-'}</TableCell>
+                <TableCell>{(i as any).responsavel || '-'}</TableCell>
                 <TableCell>
                   <Badge variant={situacaoVariant(i.situacao)}>{situacaoLabel(i.situacao)}</Badge>
                 </TableCell>
@@ -621,6 +635,22 @@ export default function EquipamentosPage() {
                   <SelectItem value="none">Nenhuma</SelectItem>
                   {obras.map((o) => (
                     <SelectItem key={o.id} value={o.id}>{o.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Responsável</Label>
+              <Select
+                value={form.responsavel || 'none'}
+                onValueChange={(v) => setForm((p) => ({ ...p, responsavel: v === 'none' ? '' : v }))}
+              >
+                <SelectTrigger><SelectValue placeholder="Selecione o responsável" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhum</SelectItem>
+                  {responsaveis.map((r) => (
+                    <SelectItem key={r.id} value={r.nome}>{r.nome}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
