@@ -70,7 +70,8 @@ export async function fetchEquipamentos(): Promise<Equipamento[]> {
   const { data, error } = await supabase
     .from('equipamentos')
     .select('*')
-    .order('nome');
+    .order('numero_patrimonio', { ascending: true, nullsFirst: false })
+    .order('nome', { ascending: true });
   if (error) {
     console.error('Erro ao buscar equipamentos:', error);
     throw error;
