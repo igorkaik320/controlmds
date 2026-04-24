@@ -548,6 +548,24 @@ export default function EquipamentosPage() {
                 className="hidden"
                 onChange={handleImport}
               />
+              <Button size="sm" variant="outline" onClick={() => {
+                if (items.length === 0) {
+                  toast.error('Cadastre um equipamento antes de registrar movimentos');
+                  return;
+                }
+                setMovimentoForm({
+                  equipamento_id: '',
+                  tipo: 'transferencia',
+                  obra_destino_id: '',
+                  motivo_baixa: 'doacao',
+                  data: new Date().toISOString().slice(0, 10),
+                  observacao: '',
+                });
+                setMovimentoOpen(true);
+              }}>
+                <ArrowRightLeft className="h-4 w-4 mr-1" />
+                Novo Movimento
+              </Button>
               <Button size="sm" onClick={openNew}>
                 <Plus className="h-4 w-4 mr-1" />
                 Novo Equipamento
@@ -557,12 +575,27 @@ export default function EquipamentosPage() {
         </div>
       </div>
 
-      <Input
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Buscar por nome, marca, modelo, patrimônio ou série..."
-        className="max-w-sm"
-      />
+      <div className="grid gap-2 sm:grid-cols-3">
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Buscar por nome, marca, modelo ou série..."
+        />
+        <Input
+          value={searchPatrimonio}
+          onChange={(e) => setSearchPatrimonio(e.target.value)}
+          placeholder="Filtrar por N° Patrimônio..."
+        />
+        <Select value={filtroObraId} onValueChange={setFiltroObraId}>
+          <SelectTrigger><SelectValue placeholder="Filtrar por obra..." /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas as obras</SelectItem>
+            {obras.map((o) => (
+              <SelectItem key={o.id} value={o.id}>{o.nome}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
       <div className="rounded-md border overflow-auto">
         <Table>
