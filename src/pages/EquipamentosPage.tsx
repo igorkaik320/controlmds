@@ -499,11 +499,16 @@ export default function EquipamentosPage() {
     setHistoricoOpen(true);
     setHistoricoLoading(true);
     try {
-      const todas = await fetchManutencoes();
+      const [todas, movs] = await Promise.all([
+        fetchManutencoes(),
+        fetchMovimentosEquipamento(equip.id).catch(() => []),
+      ]);
       setHistoricoItems(todas.filter((m) => m.equipamento_id === equip.id));
+      setHistoricoMovimentos(movs);
     } catch (e: any) {
       toast.error('Erro ao carregar histórico: ' + e.message);
       setHistoricoItems([]);
+      setHistoricoMovimentos([]);
     } finally {
       setHistoricoLoading(false);
     }
