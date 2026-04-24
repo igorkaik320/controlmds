@@ -69,14 +69,23 @@ export interface Manutencao {
 export async function fetchEquipamentos(): Promise<Equipamento[]> {
   const { data, error } = await supabase
     .from('equipamentos')
-    .select('*')
-    .order('numero_patrimonio', { ascending: true, nullsFirst: false })
-    .order('nome', { ascending: true });
+    .select('*');
   if (error) {
     console.error('Erro ao buscar equipamentos:', error);
     throw error;
   }
-  return data || [];
+  const items = (data || []) as Equipamento[];
+  // Ordenação natural pelo n_patrimonio (ex: mds1, mds2, mds10)
+  // Quem não tem patrimônio vai pro final, ordenado por nome.
+  const collator = new Intl.Collator('pt-BR', { numeric: true, sensitivity: 'base' });
+  return items.sort((a, b) => {
+    const pa = (a.n_patrimonio || '').trim();
+    const pb = (b.n_patrimonio || '').trim();
+    if (pa && pb) return collator.compare(pa, pb);
+    if (pa) return -1;
+    if (pb) return 1;
+    return collator.compare(a.nome || '', b.nome || '');
+  });
 }
 
 export async function saveEquipamento(e: Omit<Equipamento, 'id' | 'created_at' | 'updated_at'>, userId: string) {
