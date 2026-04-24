@@ -827,52 +827,217 @@ export default function EquipamentosPage() {
 
           {historicoLoading ? (
             <p className="py-6 text-center text-sm text-muted-foreground">Carregando histórico...</p>
-          ) : historicoItems.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              Nenhuma manutenção registrada para este equipamento.
-            </p>
           ) : (
-            <div className="rounded-md border overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Fornecedor</TableHead>
-                    <TableHead>Valor</TableHead>
-                    <TableHead>Próxima</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {historicoItems
-                    .slice()
-                    .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime())
-                    .map((m) => (
-                      <TableRow key={m.id}>
-                        <TableCell>{new Date(m.data).toLocaleDateString('pt-BR')}</TableCell>
-                        <TableCell>{m.fornecedor_nome || '-'}</TableCell>
-                        <TableCell>
-                          R$ {Number(m.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </TableCell>
-                        <TableCell>
-                          {m.proxima_manutencao
-                            ? new Date(m.proxima_manutencao).toLocaleDateString('pt-BR')
-                            : '-'}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={m.ativo ? 'default' : 'outline'}>
-                            {m.ativo ? 'Ativa' : 'Inativa'}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                </TableBody>
-              </Table>
+            <div className="space-y-6">
+              <div>
+                <h4 className="text-sm font-semibold mb-2">Manutenções</h4>
+                {historicoItems.length === 0 ? (
+                  <p className="py-4 text-center text-sm text-muted-foreground">
+                    Nenhuma manutenção registrada.
+                  </p>
+                ) : (
+                  <div className="rounded-md border overflow-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Data</TableHead>
+                          <TableHead>Fornecedor</TableHead>
+                          <TableHead>Valor</TableHead>
+                          <TableHead>Próxima</TableHead>
+                          <TableHead>Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {historicoItems
+                          .slice()
+                          .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime())
+                          .map((m) => (
+                            <TableRow key={m.id}>
+                              <TableCell>{new Date(m.data).toLocaleDateString('pt-BR')}</TableCell>
+                              <TableCell>{m.fornecedor_nome || '-'}</TableCell>
+                              <TableCell>
+                                R$ {Number(m.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              </TableCell>
+                              <TableCell>
+                                {m.proxima_manutencao
+                                  ? new Date(m.proxima_manutencao).toLocaleDateString('pt-BR')
+                                  : '-'}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={m.ativo ? 'default' : 'outline'}>
+                                  {m.ativo ? 'Ativa' : 'Inativa'}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <h4 className="text-sm font-semibold mb-2">Movimentações</h4>
+                {historicoMovimentos.length === 0 ? (
+                  <p className="py-4 text-center text-sm text-muted-foreground">
+                    Nenhuma movimentação registrada.
+                  </p>
+                ) : (
+                  <div className="rounded-md border overflow-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Data</TableHead>
+                          <TableHead>Tipo</TableHead>
+                          <TableHead>Detalhes</TableHead>
+                          <TableHead>Observação</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {historicoMovimentos.map((m) => (
+                          <TableRow key={m.id}>
+                            <TableCell>{new Date(m.data).toLocaleDateString('pt-BR')}</TableCell>
+                            <TableCell>
+                              <Badge variant={m.tipo === 'baixa' ? 'destructive' : 'secondary'}>
+                                {m.tipo === 'baixa' ? 'Baixa' : 'Transferência'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {m.tipo === 'transferencia'
+                                ? `${m.obra_origem_nome || '—'} → ${m.obra_destino_nome || '—'}`
+                                : MOTIVOS_BAIXA.find((mb) => mb.value === m.motivo_baixa)?.label || '-'}
+                            </TableCell>
+                            <TableCell className="max-w-xs truncate" title={m.observacao || ''}>
+                              {m.observacao || '-'}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setHistoricoOpen(false)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo de Movimento (Transferência ou Baixa) */}
+      <Dialog open={movimentoOpen} onOpenChange={setMovimentoOpen}>
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ArrowRightLeft className="h-5 w-5" />
+              Novo Movimento
+            </DialogTitle>
+            <DialogDescription>
+              Registre uma transferência entre obras ou uma baixa do equipamento.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4">
+            <div>
+              <Label>Tipo de Movimento *</Label>
+              <Select
+                value={movimentoForm.tipo}
+                onValueChange={(v) =>
+                  setMovimentoForm((p) => ({ ...p, tipo: v as TipoMovimento }))
+                }
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="transferencia">Transferência entre obras</SelectItem>
+                  <SelectItem value="baixa">Baixa do equipamento</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Equipamento *</Label>
+              <Select
+                value={movimentoForm.equipamento_id || ''}
+                onValueChange={(v) => setMovimentoForm((p) => ({ ...p, equipamento_id: v }))}
+              >
+                <SelectTrigger><SelectValue placeholder="Selecione o equipamento" /></SelectTrigger>
+                <SelectContent>
+                  {items.map((eq) => (
+                    <SelectItem key={eq.id} value={eq.id}>
+                      {eq.nome}
+                      {eq.n_patrimonio ? ` (${eq.n_patrimonio})` : ''}
+                      {eq.localizacao_obra_nome ? ` — ${eq.localizacao_obra_nome}` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {movimentoForm.tipo === 'transferencia' ? (
+              <div>
+                <Label>Obra de Destino *</Label>
+                <Select
+                  value={movimentoForm.obra_destino_id || ''}
+                  onValueChange={(v) => setMovimentoForm((p) => ({ ...p, obra_destino_id: v }))}
+                >
+                  <SelectTrigger><SelectValue placeholder="Selecione a obra de destino" /></SelectTrigger>
+                  <SelectContent>
+                    {obras.map((o) => (
+                      <SelectItem key={o.id} value={o.id}>{o.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {movimentoForm.equipamento_id && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Origem atual:{' '}
+                    {items.find((i) => i.id === movimentoForm.equipamento_id)?.localizacao_obra_nome || '—'}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div>
+                <Label>Motivo da Baixa *</Label>
+                <Select
+                  value={movimentoForm.motivo_baixa}
+                  onValueChange={(v) =>
+                    setMovimentoForm((p) => ({ ...p, motivo_baixa: v as MotivoBaixa }))
+                  }
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {MOTIVOS_BAIXA.map((m) => (
+                      <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            <div>
+              <Label>Data *</Label>
+              <Input
+                type="date"
+                value={movimentoForm.data}
+                onChange={(e) => setMovimentoForm((p) => ({ ...p, data: e.target.value }))}
+              />
+            </div>
+
+            <div>
+              <Label>Observação</Label>
+              <Textarea
+                value={movimentoForm.observacao}
+                onChange={(e) => setMovimentoForm((p) => ({ ...p, observacao: e.target.value }))}
+                placeholder="Observações sobre o movimento (opcional)"
+                rows={3}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMovimentoOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSubmitMovimento}>Registrar Movimento</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
