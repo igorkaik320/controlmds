@@ -17,10 +17,16 @@ import {
   deleteEquipamento,
   fetchSetores,
   fetchManutencoes,
+  saveMovimentoEquipamento,
+  fetchMovimentosEquipamento,
   SITUACOES_EQUIPAMENTO,
+  MOTIVOS_BAIXA,
   type Equipamento,
   type Manutencao,
   type SituacaoEquipamento,
+  type TipoMovimento,
+  type MotivoBaixa,
+  type MovimentoEquipamento,
 } from '@/lib/equipamentosService';
 import { fetchObras, type Obra } from '@/lib/obrasService';
 import { fetchResponsaveis, type Responsavel } from '@/lib/comprasService';
