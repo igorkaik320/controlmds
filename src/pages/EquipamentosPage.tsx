@@ -73,13 +73,34 @@ export default function EquipamentosPage() {
   const [showDialog, setShowDialog] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [searchPatrimonio, setSearchPatrimonio] = useState('');
+  const [filtroObraId, setFiltroObraId] = useState<string>('all');
   const [form, setForm] = useState(emptyForm);
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [historicoOpen, setHistoricoOpen] = useState(false);
   const [historicoEquip, setHistoricoEquip] = useState<Equipamento | null>(null);
   const [historicoItems, setHistoricoItems] = useState<Manutencao[]>([]);
+  const [historicoMovimentos, setHistoricoMovimentos] = useState<MovimentoEquipamento[]>([]);
   const [historicoLoading, setHistoricoLoading] = useState(false);
+
+  // Movimento (transferência ou baixa)
+  const [movimentoOpen, setMovimentoOpen] = useState(false);
+  const [movimentoForm, setMovimentoForm] = useState<{
+    equipamento_id: string;
+    tipo: TipoMovimento;
+    obra_destino_id: string;
+    motivo_baixa: MotivoBaixa;
+    data: string;
+    observacao: string;
+  }>({
+    equipamento_id: '',
+    tipo: 'transferencia',
+    obra_destino_id: '',
+    motivo_baixa: 'doacao',
+    data: new Date().toISOString().slice(0, 10),
+    observacao: '',
+  });
 
   const profileMap = useProfileMap();
 
