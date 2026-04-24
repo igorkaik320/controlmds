@@ -323,3 +323,87 @@ export async function deleteManutencao(id: string, userId: string) {
     user_id: userId,
   });
 }
+
+// ---- Movimentos (Transferências e Baixas) ----
+export type TipoMovimento = 'transferencia' | 'baixa';
+export type MotivoBaixa = 'doacao' | 'extravio' | 'incinerado';
+
+export const MOTIVOS_BAIXA: { value: MotivoBaixa; label: string }[] = [
+  { value: 'doacao', label: 'Doação' },
+  { value: 'extravio', label: 'Extravio' },
+  { value: 'incinerado', label: 'Incinerado' },
+];
+
+export interface MovimentoEquipamento {
+  id: string;
+  equipamento_id: string;
+  equipamento_nome: string;
+  tipo: TipoMovimento;
+  obra_origem_id?: string | null;
+  obra_origem_nome?: string | null;
+  obra_destino_id?: string | null;
+  obra_destino_nome?: string | null;
+  motivo_baixa?: MotivoBaixa | null;
+  data: string;
+  observacao?: string | null;
+  created_by?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export async function fetchMovimentosEquipamento(equipamentoId?: string): Promise<MovimentoEquipamento[]> {
+  let query = (supabase as any)
+    .from('equipamentos_movimentos')
+    .select('*')
+    .order('data', { ascending: false });
+  if (equipamentoId) query = query.eq('equipamento_id', equipamentoId);
+  const { data, error } = await query;
+  if (error) throw error;
+  return data || [];
+}
+
+export async function saveMovimentoEquipamento(
+  m: Omit<MovimentoEquipamento, 'id' | 'created_at' | 'updated_at'>,
+  userId: string
+) {
+  const { data, error } = await (supabase as any)
+    .from('equipamentos_movimentos')
+    .insert({ ...m, created_by: userId })
+    .select()
+    .single();
+  if (error) throw error;
+
+  // Atualiza o equipamento conforme o tipo do movimento
+  if (m.tipo === 'transferencia') {
+    await supabase
+      .from('equipamentos')
+      .update({
+        localizacao_obra_id: m.obra_destino_id || null,
+        localizacao_obra_nome: m.obra_destino_nome || null,
+        updated_at: new Date().toISOString(),
+        updated_by: userId,
+      } as any)
+      .eq('id', m.equipamento_id);
+  } else if (m.tipo === 'baixa') {
+    const novaSituacao: SituacaoEquipamento =
+      m.motivo_baixa === 'incinerado' ? 'incinerado' : 'com_defeito';
+    await supabase
+      .from('equipamentos')
+      .update({
+        situacao: novaSituacao,
+        updated_at: new Date().toISOString(),
+        updated_by: userId,
+      } as any)
+      .eq('id', m.equipamento_id);
+  }
+
+  await recordAuditEntry({
+    entity_type: 'equipamentos_movimentos',
+    entity_id: data.id,
+    action: 'criacao',
+    new_values: data,
+    user_id: userId,
+  });
+
+  return data;
+}

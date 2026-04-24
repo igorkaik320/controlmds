@@ -171,6 +171,57 @@ export type Database = {
         }
         Relationships: []
       }
+      equipamentos_movimentos: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data: string
+          equipamento_id: string
+          equipamento_nome: string
+          id: string
+          motivo_baixa: string | null
+          obra_destino_id: string | null
+          obra_destino_nome: string | null
+          obra_origem_id: string | null
+          obra_origem_nome: string | null
+          observacao: string | null
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data?: string
+          equipamento_id: string
+          equipamento_nome: string
+          id?: string
+          motivo_baixa?: string | null
+          obra_destino_id?: string | null
+          obra_destino_nome?: string | null
+          obra_origem_id?: string | null
+          obra_origem_nome?: string | null
+          observacao?: string | null
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data?: string
+          equipamento_id?: string
+          equipamento_nome?: string
+          id?: string
+          motivo_baixa?: string | null
+          obra_destino_id?: string | null
+          obra_destino_nome?: string | null
+          obra_origem_id?: string | null
+          obra_origem_nome?: string | null
+          observacao?: string | null
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           ativo: boolean

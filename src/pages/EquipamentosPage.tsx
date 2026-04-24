@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Pencil, Trash2, Upload, Download, Eye, Wrench } from 'lucide-react';
+import { Plus, Pencil, Trash2, Upload, Download, Eye, Wrench, ArrowRightLeft } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/lib/auth';
 import { useModulePermissions } from '@/hooks/useModulePermissions';
@@ -17,10 +17,16 @@ import {
   deleteEquipamento,
   fetchSetores,
   fetchManutencoes,
+  saveMovimentoEquipamento,
+  fetchMovimentosEquipamento,
   SITUACOES_EQUIPAMENTO,
+  MOTIVOS_BAIXA,
   type Equipamento,
   type Manutencao,
   type SituacaoEquipamento,
+  type TipoMovimento,
+  type MotivoBaixa,
+  type MovimentoEquipamento,
 } from '@/lib/equipamentosService';
 import { fetchObras, type Obra } from '@/lib/obrasService';
 import { fetchResponsaveis, type Responsavel } from '@/lib/comprasService';
@@ -67,13 +73,34 @@ export default function EquipamentosPage() {
   const [showDialog, setShowDialog] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [searchPatrimonio, setSearchPatrimonio] = useState('');
+  const [filtroObraId, setFiltroObraId] = useState<string>('all');
   const [form, setForm] = useState(emptyForm);
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [historicoOpen, setHistoricoOpen] = useState(false);
   const [historicoEquip, setHistoricoEquip] = useState<Equipamento | null>(null);
   const [historicoItems, setHistoricoItems] = useState<Manutencao[]>([]);
+  const [historicoMovimentos, setHistoricoMovimentos] = useState<MovimentoEquipamento[]>([]);
   const [historicoLoading, setHistoricoLoading] = useState(false);
+
+  // Movimento (transferência ou baixa)
+  const [movimentoOpen, setMovimentoOpen] = useState(false);
+  const [movimentoForm, setMovimentoForm] = useState<{
+    equipamento_id: string;
+    tipo: TipoMovimento;
+    obra_destino_id: string;
+    motivo_baixa: MotivoBaixa;
+    data: string;
+    observacao: string;
+  }>({
+    equipamento_id: '',
+    tipo: 'transferencia',
+    obra_destino_id: '',
+    motivo_baixa: 'doacao',
+    data: new Date().toISOString().slice(0, 10),
+    observacao: '',
+  });
 
   const profileMap = useProfileMap();
 
@@ -101,16 +128,89 @@ export default function EquipamentosPage() {
   }, [load]);
 
   const filtered = items.filter((i) => {
-    const s = search.toLowerCase();
-    return (
+    const s = search.trim().toLowerCase();
+    const sp = searchPatrimonio.trim().toLowerCase();
+
+    const matchNome = !s || (
       i.nome.toLowerCase().includes(s) ||
       i.marca?.toLowerCase().includes(s) ||
       i.modelo?.toLowerCase().includes(s) ||
-      i.setor_nome?.toLowerCase().includes(s) ||
-      i.n_patrimonio?.toLowerCase().includes(s) ||
       i.n_serie?.toLowerCase().includes(s)
     );
+
+    const matchPatrimonio = !sp || (i.n_patrimonio?.toLowerCase().includes(sp) ?? false);
+
+    const matchObra = filtroObraId === 'all' || i.localizacao_obra_id === filtroObraId;
+
+    return matchNome && matchPatrimonio && matchObra;
   });
+
+  function openMovimento(equip: Equipamento) {
+    setMovimentoForm({
+      equipamento_id: equip.id,
+      tipo: 'transferencia',
+      obra_destino_id: '',
+      motivo_baixa: 'doacao',
+      data: new Date().toISOString().slice(0, 10),
+      observacao: '',
+    });
+    setMovimentoOpen(true);
+  }
+
+  async function handleSubmitMovimento() {
+    if (!user) return;
+    const equip = items.find((i) => i.id === movimentoForm.equipamento_id);
+    if (!equip) {
+      toast.error('Selecione um equipamento');
+      return;
+    }
+
+    try {
+      if (movimentoForm.tipo === 'transferencia') {
+        if (!movimentoForm.obra_destino_id) {
+          toast.error('Selecione a obra de destino');
+          return;
+        }
+        if (movimentoForm.obra_destino_id === equip.localizacao_obra_id) {
+          toast.error('A obra de destino é a mesma da localização atual');
+          return;
+        }
+        const destino = obras.find((o) => o.id === movimentoForm.obra_destino_id);
+        await saveMovimentoEquipamento({
+          equipamento_id: equip.id,
+          equipamento_nome: equip.nome,
+          tipo: 'transferencia',
+          obra_origem_id: equip.localizacao_obra_id || null,
+          obra_origem_nome: equip.localizacao_obra_nome || null,
+          obra_destino_id: destino?.id || null,
+          obra_destino_nome: destino?.nome || null,
+          motivo_baixa: null,
+          data: movimentoForm.data,
+          observacao: movimentoForm.observacao.trim() || null,
+        }, user.id);
+        toast.success('Transferência registrada');
+      } else {
+        await saveMovimentoEquipamento({
+          equipamento_id: equip.id,
+          equipamento_nome: equip.nome,
+          tipo: 'baixa',
+          obra_origem_id: equip.localizacao_obra_id || null,
+          obra_origem_nome: equip.localizacao_obra_nome || null,
+          obra_destino_id: null,
+          obra_destino_nome: null,
+          motivo_baixa: movimentoForm.motivo_baixa,
+          data: movimentoForm.data,
+          observacao: movimentoForm.observacao.trim() || null,
+        }, user.id);
+        toast.success('Baixa registrada');
+      }
+      setMovimentoOpen(false);
+      load();
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  }
+
 
   function openNew() {
     setEditingId(null);
@@ -399,11 +499,16 @@ export default function EquipamentosPage() {
     setHistoricoOpen(true);
     setHistoricoLoading(true);
     try {
-      const todas = await fetchManutencoes();
+      const [todas, movs] = await Promise.all([
+        fetchManutencoes(),
+        fetchMovimentosEquipamento(equip.id).catch(() => []),
+      ]);
       setHistoricoItems(todas.filter((m) => m.equipamento_id === equip.id));
+      setHistoricoMovimentos(movs);
     } catch (e: any) {
       toast.error('Erro ao carregar histórico: ' + e.message);
       setHistoricoItems([]);
+      setHistoricoMovimentos([]);
     } finally {
       setHistoricoLoading(false);
     }
@@ -443,6 +548,24 @@ export default function EquipamentosPage() {
                 className="hidden"
                 onChange={handleImport}
               />
+              <Button size="sm" variant="outline" onClick={() => {
+                if (items.length === 0) {
+                  toast.error('Cadastre um equipamento antes de registrar movimentos');
+                  return;
+                }
+                setMovimentoForm({
+                  equipamento_id: '',
+                  tipo: 'transferencia',
+                  obra_destino_id: '',
+                  motivo_baixa: 'doacao',
+                  data: new Date().toISOString().slice(0, 10),
+                  observacao: '',
+                });
+                setMovimentoOpen(true);
+              }}>
+                <ArrowRightLeft className="h-4 w-4 mr-1" />
+                Novo Movimento
+              </Button>
               <Button size="sm" onClick={openNew}>
                 <Plus className="h-4 w-4 mr-1" />
                 Novo Equipamento
@@ -452,12 +575,27 @@ export default function EquipamentosPage() {
         </div>
       </div>
 
-      <Input
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Buscar por nome, marca, modelo, patrimônio ou série..."
-        className="max-w-sm"
-      />
+      <div className="grid gap-2 sm:grid-cols-3">
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Buscar por nome, marca, modelo ou série..."
+        />
+        <Input
+          value={searchPatrimonio}
+          onChange={(e) => setSearchPatrimonio(e.target.value)}
+          placeholder="Filtrar por N° Patrimônio..."
+        />
+        <Select value={filtroObraId} onValueChange={setFiltroObraId}>
+          <SelectTrigger><SelectValue placeholder="Filtrar por obra..." /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas as obras</SelectItem>
+            {obras.map((o) => (
+              <SelectItem key={o.id} value={o.id}>{o.nome}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
       <div className="rounded-md border overflow-auto">
         <Table>
@@ -689,52 +827,217 @@ export default function EquipamentosPage() {
 
           {historicoLoading ? (
             <p className="py-6 text-center text-sm text-muted-foreground">Carregando histórico...</p>
-          ) : historicoItems.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              Nenhuma manutenção registrada para este equipamento.
-            </p>
           ) : (
-            <div className="rounded-md border overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Fornecedor</TableHead>
-                    <TableHead>Valor</TableHead>
-                    <TableHead>Próxima</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {historicoItems
-                    .slice()
-                    .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime())
-                    .map((m) => (
-                      <TableRow key={m.id}>
-                        <TableCell>{new Date(m.data).toLocaleDateString('pt-BR')}</TableCell>
-                        <TableCell>{m.fornecedor_nome || '-'}</TableCell>
-                        <TableCell>
-                          R$ {Number(m.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                        </TableCell>
-                        <TableCell>
-                          {m.proxima_manutencao
-                            ? new Date(m.proxima_manutencao).toLocaleDateString('pt-BR')
-                            : '-'}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={m.ativo ? 'default' : 'outline'}>
-                            {m.ativo ? 'Ativa' : 'Inativa'}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                </TableBody>
-              </Table>
+            <div className="space-y-6">
+              <div>
+                <h4 className="text-sm font-semibold mb-2">Manutenções</h4>
+                {historicoItems.length === 0 ? (
+                  <p className="py-4 text-center text-sm text-muted-foreground">
+                    Nenhuma manutenção registrada.
+                  </p>
+                ) : (
+                  <div className="rounded-md border overflow-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Data</TableHead>
+                          <TableHead>Fornecedor</TableHead>
+                          <TableHead>Valor</TableHead>
+                          <TableHead>Próxima</TableHead>
+                          <TableHead>Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {historicoItems
+                          .slice()
+                          .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime())
+                          .map((m) => (
+                            <TableRow key={m.id}>
+                              <TableCell>{new Date(m.data).toLocaleDateString('pt-BR')}</TableCell>
+                              <TableCell>{m.fornecedor_nome || '-'}</TableCell>
+                              <TableCell>
+                                R$ {Number(m.valor || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                              </TableCell>
+                              <TableCell>
+                                {m.proxima_manutencao
+                                  ? new Date(m.proxima_manutencao).toLocaleDateString('pt-BR')
+                                  : '-'}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant={m.ativo ? 'default' : 'outline'}>
+                                  {m.ativo ? 'Ativa' : 'Inativa'}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <h4 className="text-sm font-semibold mb-2">Movimentações</h4>
+                {historicoMovimentos.length === 0 ? (
+                  <p className="py-4 text-center text-sm text-muted-foreground">
+                    Nenhuma movimentação registrada.
+                  </p>
+                ) : (
+                  <div className="rounded-md border overflow-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Data</TableHead>
+                          <TableHead>Tipo</TableHead>
+                          <TableHead>Detalhes</TableHead>
+                          <TableHead>Observação</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {historicoMovimentos.map((m) => (
+                          <TableRow key={m.id}>
+                            <TableCell>{new Date(m.data).toLocaleDateString('pt-BR')}</TableCell>
+                            <TableCell>
+                              <Badge variant={m.tipo === 'baixa' ? 'destructive' : 'secondary'}>
+                                {m.tipo === 'baixa' ? 'Baixa' : 'Transferência'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {m.tipo === 'transferencia'
+                                ? `${m.obra_origem_nome || '—'} → ${m.obra_destino_nome || '—'}`
+                                : MOTIVOS_BAIXA.find((mb) => mb.value === m.motivo_baixa)?.label || '-'}
+                            </TableCell>
+                            <TableCell className="max-w-xs truncate" title={m.observacao || ''}>
+                              {m.observacao || '-'}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setHistoricoOpen(false)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo de Movimento (Transferência ou Baixa) */}
+      <Dialog open={movimentoOpen} onOpenChange={setMovimentoOpen}>
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ArrowRightLeft className="h-5 w-5" />
+              Novo Movimento
+            </DialogTitle>
+            <DialogDescription>
+              Registre uma transferência entre obras ou uma baixa do equipamento.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4">
+            <div>
+              <Label>Tipo de Movimento *</Label>
+              <Select
+                value={movimentoForm.tipo}
+                onValueChange={(v) =>
+                  setMovimentoForm((p) => ({ ...p, tipo: v as TipoMovimento }))
+                }
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="transferencia">Transferência entre obras</SelectItem>
+                  <SelectItem value="baixa">Baixa do equipamento</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Equipamento *</Label>
+              <Select
+                value={movimentoForm.equipamento_id || ''}
+                onValueChange={(v) => setMovimentoForm((p) => ({ ...p, equipamento_id: v }))}
+              >
+                <SelectTrigger><SelectValue placeholder="Selecione o equipamento" /></SelectTrigger>
+                <SelectContent>
+                  {items.map((eq) => (
+                    <SelectItem key={eq.id} value={eq.id}>
+                      {eq.nome}
+                      {eq.n_patrimonio ? ` (${eq.n_patrimonio})` : ''}
+                      {eq.localizacao_obra_nome ? ` — ${eq.localizacao_obra_nome}` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {movimentoForm.tipo === 'transferencia' ? (
+              <div>
+                <Label>Obra de Destino *</Label>
+                <Select
+                  value={movimentoForm.obra_destino_id || ''}
+                  onValueChange={(v) => setMovimentoForm((p) => ({ ...p, obra_destino_id: v }))}
+                >
+                  <SelectTrigger><SelectValue placeholder="Selecione a obra de destino" /></SelectTrigger>
+                  <SelectContent>
+                    {obras.map((o) => (
+                      <SelectItem key={o.id} value={o.id}>{o.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {movimentoForm.equipamento_id && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Origem atual:{' '}
+                    {items.find((i) => i.id === movimentoForm.equipamento_id)?.localizacao_obra_nome || '—'}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div>
+                <Label>Motivo da Baixa *</Label>
+                <Select
+                  value={movimentoForm.motivo_baixa}
+                  onValueChange={(v) =>
+                    setMovimentoForm((p) => ({ ...p, motivo_baixa: v as MotivoBaixa }))
+                  }
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {MOTIVOS_BAIXA.map((m) => (
+                      <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            <div>
+              <Label>Data *</Label>
+              <Input
+                type="date"
+                value={movimentoForm.data}
+                onChange={(e) => setMovimentoForm((p) => ({ ...p, data: e.target.value }))}
+              />
+            </div>
+
+            <div>
+              <Label>Observação</Label>
+              <Textarea
+                value={movimentoForm.observacao}
+                onChange={(e) => setMovimentoForm((p) => ({ ...p, observacao: e.target.value }))}
+                placeholder="Observações sobre o movimento (opcional)"
+                rows={3}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMovimentoOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSubmitMovimento}>Registrar Movimento</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
