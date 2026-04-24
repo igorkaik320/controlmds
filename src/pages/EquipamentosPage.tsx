@@ -128,16 +128,89 @@ export default function EquipamentosPage() {
   }, [load]);
 
   const filtered = items.filter((i) => {
-    const s = search.toLowerCase();
-    return (
+    const s = search.trim().toLowerCase();
+    const sp = searchPatrimonio.trim().toLowerCase();
+
+    const matchNome = !s || (
       i.nome.toLowerCase().includes(s) ||
       i.marca?.toLowerCase().includes(s) ||
       i.modelo?.toLowerCase().includes(s) ||
-      i.setor_nome?.toLowerCase().includes(s) ||
-      i.n_patrimonio?.toLowerCase().includes(s) ||
       i.n_serie?.toLowerCase().includes(s)
     );
+
+    const matchPatrimonio = !sp || (i.n_patrimonio?.toLowerCase().includes(sp) ?? false);
+
+    const matchObra = filtroObraId === 'all' || i.localizacao_obra_id === filtroObraId;
+
+    return matchNome && matchPatrimonio && matchObra;
   });
+
+  function openMovimento(equip: Equipamento) {
+    setMovimentoForm({
+      equipamento_id: equip.id,
+      tipo: 'transferencia',
+      obra_destino_id: '',
+      motivo_baixa: 'doacao',
+      data: new Date().toISOString().slice(0, 10),
+      observacao: '',
+    });
+    setMovimentoOpen(true);
+  }
+
+  async function handleSubmitMovimento() {
+    if (!user) return;
+    const equip = items.find((i) => i.id === movimentoForm.equipamento_id);
+    if (!equip) {
+      toast.error('Selecione um equipamento');
+      return;
+    }
+
+    try {
+      if (movimentoForm.tipo === 'transferencia') {
+        if (!movimentoForm.obra_destino_id) {
+          toast.error('Selecione a obra de destino');
+          return;
+        }
+        if (movimentoForm.obra_destino_id === equip.localizacao_obra_id) {
+          toast.error('A obra de destino é a mesma da localização atual');
+          return;
+        }
+        const destino = obras.find((o) => o.id === movimentoForm.obra_destino_id);
+        await saveMovimentoEquipamento({
+          equipamento_id: equip.id,
+          equipamento_nome: equip.nome,
+          tipo: 'transferencia',
+          obra_origem_id: equip.localizacao_obra_id || null,
+          obra_origem_nome: equip.localizacao_obra_nome || null,
+          obra_destino_id: destino?.id || null,
+          obra_destino_nome: destino?.nome || null,
+          motivo_baixa: null,
+          data: movimentoForm.data,
+          observacao: movimentoForm.observacao.trim() || null,
+        }, user.id);
+        toast.success('Transferência registrada');
+      } else {
+        await saveMovimentoEquipamento({
+          equipamento_id: equip.id,
+          equipamento_nome: equip.nome,
+          tipo: 'baixa',
+          obra_origem_id: equip.localizacao_obra_id || null,
+          obra_origem_nome: equip.localizacao_obra_nome || null,
+          obra_destino_id: null,
+          obra_destino_nome: null,
+          motivo_baixa: movimentoForm.motivo_baixa,
+          data: movimentoForm.data,
+          observacao: movimentoForm.observacao.trim() || null,
+        }, user.id);
+        toast.success('Baixa registrada');
+      }
+      setMovimentoOpen(false);
+      load();
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  }
+
 
   function openNew() {
     setEditingId(null);
