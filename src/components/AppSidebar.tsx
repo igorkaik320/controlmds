@@ -107,6 +107,7 @@ export function AppSidebar() {
       { title: 'Revisões', url: '/combustivel/revisoes', icon: Wrench, module: 'revisoes_combustivel' },
       { title: 'Equipamentos', url: '/equipamentos', icon: Archive, module: 'equipamentos' },
       { title: 'Manutenção', url: '/manutencao/equipamentos', icon: AlertTriangle, module: 'manutencao_equipamentos' },
+      { title: 'Serviços de Máquinas', url: '/servicos-maquinas', icon: Wrench, module: 'servicos_maquinas' },
     ],
   });
 
@@ -136,6 +137,7 @@ export function AppSidebar() {
       { title: 'Setores', url: '/setores', icon: MapPin, module: 'setores' },
       { title: 'Postos de Combustível', url: '/postos-combustivel', icon: MapPinned, module: 'postos_combustivel' },
       { title: 'Tipos de Combustível', url: '/tipos-combustivel', icon: Flame, module: 'tipos_combustivel' },
+      { title: 'Componentes / Peças', url: '/componentes-maquinas', icon: Cog, module: 'componentes_maquinas' },
     ],
   });
 

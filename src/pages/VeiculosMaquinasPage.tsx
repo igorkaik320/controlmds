@@ -5,7 +5,8 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Eye } from 'lucide-react';
+import HistoricoMaquinaDialog from '@/components/servicos/HistoricoMaquinaDialog';
 import { useAuth } from '@/lib/auth';
 import { useModulePermissions } from '@/hooks/useModulePermissions';
 import {
@@ -37,6 +38,7 @@ export default function VeiculosMaquinasPage() {
   const [search, setSearch] = useState('');
   const [form, setForm] = useState(emptyForm);
   const [responsaveis, setResponsaveis] = useState<Responsavel[]>([]);
+  const [historicoVeiculo, setHistoricoVeiculo] = useState<VeiculoMaquina | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -193,6 +195,14 @@ function openNew() {
                 </TableCell>
                 <TableCell>
                   <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      title="Histórico de serviços"
+                      onClick={() => setHistoricoVeiculo(item)}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
                     {canEdit('veiculos_maquinas') && (
                       <Button variant="ghost" size="icon" onClick={() => openEdit(item)}>
                         <Pencil className="h-4 w-4" />
@@ -278,6 +288,12 @@ function openNew() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <HistoricoMaquinaDialog
+        open={!!historicoVeiculo}
+        onOpenChange={(o) => !o && setHistoricoVeiculo(null)}
+        veiculo={historicoVeiculo}
+      />
     </div>
   );
 }
