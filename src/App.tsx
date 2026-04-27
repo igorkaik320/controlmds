@@ -34,6 +34,8 @@ import EmpresasPage from "./pages/EmpresasPage";
 import PainelExecutivoPage from "./pages/PainelExecutivoPage";
 import FaturadosParcelasPage from "./pages/FaturadosParcelasPage";
 import ContasPagarPage from '@/pages/ContasPagarPage';
+import ServicosMaquinasPage from "./pages/ServicosMaquinasPage";
+import ComponentesMaquinasPage from "./pages/ComponentesMaquinasPage";
 import NotFound from "./pages/NotFound";
 import type { ModuleKey } from "@/lib/modulePermissions";
 import { Lock } from "lucide-react";
@@ -239,6 +241,14 @@ const App = () => (
                 <Route
                   path="/manutencao/equipamentos"
                   element={<ModuleRoute module="manutencao_equipamentos"><ManutencaoPage /></ModuleRoute>}
+                />
+                <Route
+                  path="/servicos-maquinas"
+                  element={<ModuleRoute module="servicos_maquinas"><ServicosMaquinasPage /></ModuleRoute>}
+                />
+                <Route
+                  path="/componentes-maquinas"
+                  element={<ModuleRoute module="componentes_maquinas"><ComponentesMaquinasPage /></ModuleRoute>}
                 />
 
                 <Route path="/painel-executivo" element={<AdminRoute><PainelExecutivoPage /></AdminRoute>} />
