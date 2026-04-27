@@ -288,6 +288,12 @@ function openNew() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <HistoricoMaquinaDialog
+        open={!!historicoVeiculo}
+        onOpenChange={(o) => !o && setHistoricoVeiculo(null)}
+        veiculo={historicoVeiculo}
+      />
     </div>
   );
 }
