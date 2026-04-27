@@ -195,6 +195,14 @@ function openNew() {
                 </TableCell>
                 <TableCell>
                   <div className="flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      title="Histórico de serviços"
+                      onClick={() => setHistoricoVeiculo(item)}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
                     {canEdit('veiculos_maquinas') && (
                       <Button variant="ghost" size="icon" onClick={() => openEdit(item)}>
                         <Pencil className="h-4 w-4" />
