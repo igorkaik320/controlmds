@@ -4,6 +4,7 @@ import { recordAuditEntry } from '@/lib/audit';
 // ---- Types ----
 export type TipoServico = 'conserto' | 'troca_pecas' | 'conserto_troca_pecas';
 export type StatusPeca = 'trocada' | 'defeito';
+export type TipoMedicao = 'horimetro' | 'km';
 
 export interface ComponenteMaquina {
   id: string;
@@ -31,6 +32,7 @@ export interface ServicoMaquina {
   veiculo_id: string;
   obra_id: string | null;
   data: string;
+  tipo_medicao: TipoMedicao;
   horimetro: number | null;
   tipo_servico: TipoServico;
   observacao: string | null;
@@ -167,6 +169,7 @@ export async function saveServico(
     veiculo_id: string;
     obra_id: string | null;
     data: string;
+    tipo_medicao: TipoMedicao;
     horimetro: number | null;
     tipo_servico: TipoServico;
     observacao: string | null;
@@ -212,6 +215,7 @@ export async function updateServico(
     veiculo_id: string;
     obra_id: string | null;
     data: string;
+    tipo_medicao: TipoMedicao;
     horimetro: number | null;
     tipo_servico: TipoServico;
     observacao: string | null;
