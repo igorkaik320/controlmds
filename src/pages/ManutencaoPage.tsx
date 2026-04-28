@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Pencil, Trash2, Wrench, Calendar, DollarSign, Bell, AlertTriangle } from 'lucide-react';
 import FornecedorSelect from '@/components/compras/FornecedorSelect';
+import EquipamentoSelect from '@/components/equipamentos/EquipamentoSelect';
 import { useAuth } from '@/lib/auth';
 import { useModulePermissions } from '@/hooks/useModulePermissions';
 import { 
@@ -49,6 +50,7 @@ export default function ManutencaoPage() {
   const profileMap = useProfileMap();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [equipamentoSearch, setEquipamentoSearch] = useState('');
   const [form, setForm] = useState(emptyForm);
 
   const load = useCallback(async () => {
@@ -77,9 +79,12 @@ export default function ManutencaoPage() {
 
   const filtered = items.filter((i) => {
     const s = search.toLowerCase();
+    
+    // Busca apenas nos campos da tabela de manutenção
     return i.equipamento_nome.toLowerCase().includes(s) || 
            i.setor_nome.toLowerCase().includes(s) ||
-           (i.fornecedor_nome || '').toLowerCase().includes(s);
+           (i.fornecedor_nome || '').toLowerCase().includes(s) ||
+           i.observacao?.toLowerCase().includes(s);
   });
 
   function openNew() {
@@ -329,10 +334,9 @@ export default function ManutencaoPage() {
           <div className="grid gap-4">
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <Label>Equipamento *</Label>
-                <Select
+                <EquipamentoSelect
                   value={form.equipamento_id}
-                  onValueChange={(value) => {
+                  onChange={(value) => {
                     const selected = equipamentos.find((equip) => equip.id === value);
                     setForm((p) => ({
                       ...p,
@@ -340,18 +344,11 @@ export default function ManutencaoPage() {
                       setor_id: selected?.setor_id || '',
                     }));
                   }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o equipamento" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {equipamentos.map((equip) => (
-                      <SelectItem key={equip.id} value={equip.id}>
-                        {equip.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  equipamentos={equipamentos}
+                  valueMode="id"
+                  placeholder="Digite nome ou número de patrimônio"
+                  label="Equipamento *"
+                />
               </div>
 
               <div>
