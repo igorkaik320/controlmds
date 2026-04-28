@@ -218,6 +218,11 @@ export default function HistoricoMaquinaDialog({ open, onOpenChange, veiculo }: 
                   <p className="text-2xl font-bold">
                     {stats.intervaloMedio != null ? `${stats.intervaloMedio} dias` : '—'}
                   </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {stats.intervaloMedioHorimetro != null
+                      ? `${stats.intervaloMedioHorimetro} h de uso`
+                      : 'horímetro indisponível'}
+                  </p>
                 </CardContent>
               </Card>
               <Card>
