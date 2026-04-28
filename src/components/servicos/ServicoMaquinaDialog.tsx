@@ -21,6 +21,7 @@ import {
   ServicoMaquina,
   ServicoPecaInput,
   StatusPeca,
+  TipoMedicao,
   TipoServico,
   fetchComponentes,
   saveComponente,
@@ -45,6 +46,7 @@ const emptyServico = {
   veiculo_id: '',
   obra_id: '' as string,
   data: new Date().toISOString().slice(0, 10),
+  tipo_medicao: 'horimetro' as TipoMedicao,
   horimetro: '' as string,
   tipo_servico: 'conserto' as TipoServico,
   observacao: '',
@@ -88,6 +90,7 @@ export default function ServicoMaquinaDialog({
         veiculo_id: editing.veiculo_id,
         obra_id: editing.obra_id || '',
         data: editing.data,
+        tipo_medicao: (editing.tipo_medicao || 'horimetro') as TipoMedicao,
         horimetro: editing.horimetro != null ? String(editing.horimetro) : '',
         tipo_servico: editing.tipo_servico,
         observacao: editing.observacao || '',
@@ -150,12 +153,13 @@ export default function ServicoMaquinaDialog({
     const horimetroNum =
       form.horimetro.trim() === '' ? null : Number(form.horimetro.replace(',', '.'));
     if (horimetroNum != null && (Number.isNaN(horimetroNum) || horimetroNum < 0))
-      return toast.error('Horímetro inválido');
+      return toast.error(form.tipo_medicao === 'km' ? 'Quilometragem inválida' : 'Horímetro inválido');
 
     const payload = {
       veiculo_id: form.veiculo_id,
       obra_id: form.obra_id || null,
       data: form.data,
+      tipo_medicao: form.tipo_medicao,
       horimetro: horimetroNum,
       tipo_servico: form.tipo_servico,
       observacao: form.observacao.trim() || null,
@@ -242,12 +246,32 @@ export default function ServicoMaquinaDialog({
               </div>
 
               <div>
-                <Label>Horímetro atual (h)</Label>
+                <Label>Tipo de medição *</Label>
+                <Select
+                  value={form.tipo_medicao}
+                  onValueChange={(v) =>
+                    setForm((p) => ({ ...p, tipo_medicao: v as TipoMedicao }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="horimetro">Horímetro (h)</SelectItem>
+                    <SelectItem value="km">Quilometragem (km)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>
+                  {form.tipo_medicao === 'km' ? 'Quilometragem atual (km)' : 'Horímetro atual (h)'}
+                </Label>
                 <Input
                   inputMode="decimal"
                   value={form.horimetro}
                   onChange={(e) => setForm((p) => ({ ...p, horimetro: e.target.value }))}
-                  placeholder="Ex.: 250"
+                  placeholder={form.tipo_medicao === 'km' ? 'Ex.: 12500' : 'Ex.: 250'}
                 />
               </div>
 
