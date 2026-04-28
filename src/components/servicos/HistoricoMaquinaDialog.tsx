@@ -107,7 +107,7 @@ export default function HistoricoMaquinaDialog({ open, onOpenChange, veiculo }: 
       }
     });
 
-    return { total, ultimoHorimetro, intervaloMedio, pecaTop };
+    return { total, ultimoHorimetro, intervaloMedio, intervaloMedioHorimetro, pecaTop };
   }, [servicos]);
 
   const porPeca = useMemo(() => {
