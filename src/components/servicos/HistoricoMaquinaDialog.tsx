@@ -297,7 +297,8 @@ export default function HistoricoMaquinaDialog({ open, onOpenChange, veiculo }: 
                       <TableHead>Trocadas</TableHead>
                       <TableHead>Com defeito</TableHead>
                       <TableHead>Última ocorrência</TableHead>
-                      <TableHead>Intervalo médio</TableHead>
+                      <TableHead>Intervalo médio (dias)</TableHead>
+                      <TableHead>Intervalo médio (horímetro)</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
