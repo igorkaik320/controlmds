@@ -43,7 +43,13 @@ export default function HistoricoMaquinaDialog({ open, onOpenChange, veiculo }: 
 
   const stats = useMemo(() => {
     if (servicos.length === 0)
-      return { total: 0, ultimoHorimetro: null as number | null, intervaloMedio: null as number | null, pecaTop: null as string | null };
+      return {
+        total: 0,
+        ultimoHorimetro: null as number | null,
+        intervaloMedio: null as number | null,
+        intervaloMedioHorimetro: null as number | null,
+        pecaTop: null as string | null,
+      };
 
     const total = servicos.length;
     const ultimoHorimetro =
@@ -55,11 +61,30 @@ export default function HistoricoMaquinaDialog({ open, onOpenChange, veiculo }: 
       .sort((a, b) => a - b);
     let intervaloMedio: number | null = null;
     if (datasOrd.length > 1) {
-      let total = 0;
+      let totalDias = 0;
       for (let i = 1; i < datasOrd.length; i++) {
-        total += (datasOrd[i] - datasOrd[i - 1]) / (1000 * 60 * 60 * 24);
+        totalDias += (datasOrd[i] - datasOrd[i - 1]) / (1000 * 60 * 60 * 24);
       }
-      intervaloMedio = Math.round(total / (datasOrd.length - 1));
+      intervaloMedio = Math.round(totalDias / (datasOrd.length - 1));
+    }
+
+    // intervalo médio entre serviços (em horímetro / horas de uso)
+    const horimetrosOrd = [...servicos]
+      .filter((s) => s.horimetro != null)
+      .sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime())
+      .map((s) => Number(s.horimetro));
+    let intervaloMedioHorimetro: number | null = null;
+    if (horimetrosOrd.length > 1) {
+      let totalH = 0;
+      let count = 0;
+      for (let i = 1; i < horimetrosOrd.length; i++) {
+        const diff = horimetrosOrd[i] - horimetrosOrd[i - 1];
+        if (diff >= 0) {
+          totalH += diff;
+          count += 1;
+        }
+      }
+      if (count > 0) intervaloMedioHorimetro = Math.round(totalH / count);
     }
 
     // peça mais trocada
@@ -82,23 +107,28 @@ export default function HistoricoMaquinaDialog({ open, onOpenChange, veiculo }: 
       }
     });
 
-    return { total, ultimoHorimetro, intervaloMedio, pecaTop };
+    return { total, ultimoHorimetro, intervaloMedio, intervaloMedioHorimetro, pecaTop };
   }, [servicos]);
 
   const porPeca = useMemo(() => {
     const map = new Map<
       string,
-      { nome: string; datas: string[]; trocadas: number; defeitos: number }
+      {
+        nome: string;
+        eventos: { data: string; horimetro: number | null }[];
+        trocadas: number;
+        defeitos: number;
+      }
     >();
     for (const s of servicos) {
       for (const p of s.pecas || []) {
         const cur = map.get(p.componente_id) || {
           nome: p.componente?.nome || 'Sem nome',
-          datas: [],
+          eventos: [],
           trocadas: 0,
           defeitos: 0,
         };
-        cur.datas.push(s.data);
+        cur.eventos.push({ data: s.data, horimetro: s.horimetro ?? null });
         if (p.status === 'trocada') cur.trocadas += 1;
         else cur.defeitos += 1;
         map.set(p.componente_id, cur);
@@ -107,25 +137,45 @@ export default function HistoricoMaquinaDialog({ open, onOpenChange, veiculo }: 
 
     return Array.from(map.entries())
       .map(([id, v]) => {
-        const ord = [...v.datas].sort();
+        const ord = [...v.eventos].sort(
+          (a, b) => new Date(a.data).getTime() - new Date(b.data).getTime()
+        );
         let intervalo: number | null = null;
         if (ord.length > 1) {
           let total = 0;
           for (let i = 1; i < ord.length; i++) {
             total +=
-              (new Date(ord[i]).getTime() - new Date(ord[i - 1]).getTime()) /
+              (new Date(ord[i].data).getTime() - new Date(ord[i - 1].data).getTime()) /
               (1000 * 60 * 60 * 24);
           }
           intervalo = Math.round(total / (ord.length - 1));
         }
+
+        // intervalo médio em horímetro
+        let intervaloHorimetro: number | null = null;
+        const comH = ord.filter((e) => e.horimetro != null);
+        if (comH.length > 1) {
+          let totalH = 0;
+          let count = 0;
+          for (let i = 1; i < comH.length; i++) {
+            const diff = (comH[i].horimetro as number) - (comH[i - 1].horimetro as number);
+            if (diff >= 0) {
+              totalH += diff;
+              count += 1;
+            }
+          }
+          if (count > 0) intervaloHorimetro = Math.round(totalH / count);
+        }
+
         return {
           id,
           nome: v.nome,
-          ocorrencias: v.datas.length,
+          ocorrencias: v.eventos.length,
           trocadas: v.trocadas,
           defeitos: v.defeitos,
-          ultima: ord[ord.length - 1],
+          ultima: ord[ord.length - 1].data,
           intervalo,
+          intervaloHorimetro,
         };
       })
       .sort((a, b) => b.ocorrencias - a.ocorrencias);
@@ -167,6 +217,11 @@ export default function HistoricoMaquinaDialog({ open, onOpenChange, veiculo }: 
                   </p>
                   <p className="text-2xl font-bold">
                     {stats.intervaloMedio != null ? `${stats.intervaloMedio} dias` : '—'}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {stats.intervaloMedioHorimetro != null
+                      ? `${stats.intervaloMedioHorimetro} h de uso`
+                      : 'horímetro indisponível'}
                   </p>
                 </CardContent>
               </Card>
@@ -242,13 +297,14 @@ export default function HistoricoMaquinaDialog({ open, onOpenChange, veiculo }: 
                       <TableHead>Trocadas</TableHead>
                       <TableHead>Com defeito</TableHead>
                       <TableHead>Última ocorrência</TableHead>
-                      <TableHead>Intervalo médio</TableHead>
+                      <TableHead>Intervalo médio (dias)</TableHead>
+                      <TableHead>Intervalo médio (horímetro)</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {porPeca.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center text-muted-foreground">
+                        <TableCell colSpan={7} className="text-center text-muted-foreground">
                           Nenhuma peça registrada
                         </TableCell>
                       </TableRow>
@@ -262,6 +318,9 @@ export default function HistoricoMaquinaDialog({ open, onOpenChange, veiculo }: 
                         <TableCell>{formatDate(p.ultima)}</TableCell>
                         <TableCell>
                           {p.intervalo != null ? `${p.intervalo} dias` : '—'}
+                        </TableCell>
+                        <TableCell>
+                          {p.intervaloHorimetro != null ? `${p.intervaloHorimetro} h` : '—'}
                         </TableCell>
                       </TableRow>
                     ))}
