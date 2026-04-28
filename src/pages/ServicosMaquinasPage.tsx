@@ -146,7 +146,7 @@ export default function ServicosMaquinasPage() {
               <TableHead>Data</TableHead>
               <TableHead>Máquina</TableHead>
               <TableHead>Obra</TableHead>
-              <TableHead>Horímetro</TableHead>
+              <TableHead>Medição</TableHead>
               <TableHead>Tipo</TableHead>
               <TableHead>Peças</TableHead>
               <TableHead>Observação</TableHead>
@@ -172,7 +172,7 @@ export default function ServicosMaquinasPage() {
                   </div>
                 </TableCell>
                 <TableCell>{(s as any).obra?.nome || '—'}</TableCell>
-                <TableCell>{s.horimetro != null ? `${s.horimetro} h` : '—'}</TableCell>
+                <TableCell>{s.horimetro != null ? `${s.horimetro} ${s.tipo_medicao === 'km' ? 'km' : 'h'}` : '—'}</TableCell>
                 <TableCell>{TIPO_SERVICO_LABEL[s.tipo_servico]}</TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-1 max-w-[260px]">

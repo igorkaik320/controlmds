@@ -240,7 +240,7 @@ export default function HistoricoMaquinaDialog({ open, onOpenChange, veiculo }: 
                   <TableHeader>
                     <TableRow>
                       <TableHead>Data</TableHead>
-                      <TableHead>Horímetro</TableHead>
+                      <TableHead>Medição</TableHead>
                       <TableHead>Tipo</TableHead>
                       <TableHead>Obra</TableHead>
                       <TableHead>Peças</TableHead>
@@ -258,7 +258,7 @@ export default function HistoricoMaquinaDialog({ open, onOpenChange, veiculo }: 
                     {servicos.map((s) => (
                       <TableRow key={s.id}>
                         <TableCell>{formatDate(s.data)}</TableCell>
-                        <TableCell>{s.horimetro != null ? `${s.horimetro} h` : '—'}</TableCell>
+                        <TableCell>{s.horimetro != null ? `${s.horimetro} ${s.tipo_medicao === 'km' ? 'km' : 'h'}` : '—'}</TableCell>
                         <TableCell>{TIPO_SERVICO_LABEL[s.tipo_servico]}</TableCell>
                         <TableCell>{(s as any).obra?.nome || '—'}</TableCell>
                         <TableCell>
