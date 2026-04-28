@@ -304,7 +304,7 @@ export default function HistoricoMaquinaDialog({ open, onOpenChange, veiculo }: 
                   <TableBody>
                     {porPeca.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center text-muted-foreground">
+                        <TableCell colSpan={7} className="text-center text-muted-foreground">
                           Nenhuma peça registrada
                         </TableCell>
                       </TableRow>
@@ -318,6 +318,9 @@ export default function HistoricoMaquinaDialog({ open, onOpenChange, veiculo }: 
                         <TableCell>{formatDate(p.ultima)}</TableCell>
                         <TableCell>
                           {p.intervalo != null ? `${p.intervalo} dias` : '—'}
+                        </TableCell>
+                        <TableCell>
+                          {p.intervaloHorimetro != null ? `${p.intervaloHorimetro} h` : '—'}
                         </TableCell>
                       </TableRow>
                     ))}
