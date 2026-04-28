@@ -43,7 +43,13 @@ export default function HistoricoMaquinaDialog({ open, onOpenChange, veiculo }: 
 
   const stats = useMemo(() => {
     if (servicos.length === 0)
-      return { total: 0, ultimoHorimetro: null as number | null, intervaloMedio: null as number | null, pecaTop: null as string | null };
+      return {
+        total: 0,
+        ultimoHorimetro: null as number | null,
+        intervaloMedio: null as number | null,
+        intervaloMedioHorimetro: null as number | null,
+        pecaTop: null as string | null,
+      };
 
     const total = servicos.length;
     const ultimoHorimetro =
@@ -55,11 +61,30 @@ export default function HistoricoMaquinaDialog({ open, onOpenChange, veiculo }: 
       .sort((a, b) => a - b);
     let intervaloMedio: number | null = null;
     if (datasOrd.length > 1) {
-      let total = 0;
+      let totalDias = 0;
       for (let i = 1; i < datasOrd.length; i++) {
-        total += (datasOrd[i] - datasOrd[i - 1]) / (1000 * 60 * 60 * 24);
+        totalDias += (datasOrd[i] - datasOrd[i - 1]) / (1000 * 60 * 60 * 24);
       }
-      intervaloMedio = Math.round(total / (datasOrd.length - 1));
+      intervaloMedio = Math.round(totalDias / (datasOrd.length - 1));
+    }
+
+    // intervalo médio entre serviços (em horímetro / horas de uso)
+    const horimetrosOrd = [...servicos]
+      .filter((s) => s.horimetro != null)
+      .sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime())
+      .map((s) => Number(s.horimetro));
+    let intervaloMedioHorimetro: number | null = null;
+    if (horimetrosOrd.length > 1) {
+      let totalH = 0;
+      let count = 0;
+      for (let i = 1; i < horimetrosOrd.length; i++) {
+        const diff = horimetrosOrd[i] - horimetrosOrd[i - 1];
+        if (diff >= 0) {
+          totalH += diff;
+          count += 1;
+        }
+      }
+      if (count > 0) intervaloMedioHorimetro = Math.round(totalH / count);
     }
 
     // peça mais trocada
