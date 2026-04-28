@@ -113,17 +113,22 @@ export default function HistoricoMaquinaDialog({ open, onOpenChange, veiculo }: 
   const porPeca = useMemo(() => {
     const map = new Map<
       string,
-      { nome: string; datas: string[]; trocadas: number; defeitos: number }
+      {
+        nome: string;
+        eventos: { data: string; horimetro: number | null }[];
+        trocadas: number;
+        defeitos: number;
+      }
     >();
     for (const s of servicos) {
       for (const p of s.pecas || []) {
         const cur = map.get(p.componente_id) || {
           nome: p.componente?.nome || 'Sem nome',
-          datas: [],
+          eventos: [],
           trocadas: 0,
           defeitos: 0,
         };
-        cur.datas.push(s.data);
+        cur.eventos.push({ data: s.data, horimetro: s.horimetro ?? null });
         if (p.status === 'trocada') cur.trocadas += 1;
         else cur.defeitos += 1;
         map.set(p.componente_id, cur);
@@ -132,25 +137,45 @@ export default function HistoricoMaquinaDialog({ open, onOpenChange, veiculo }: 
 
     return Array.from(map.entries())
       .map(([id, v]) => {
-        const ord = [...v.datas].sort();
+        const ord = [...v.eventos].sort(
+          (a, b) => new Date(a.data).getTime() - new Date(b.data).getTime()
+        );
         let intervalo: number | null = null;
         if (ord.length > 1) {
           let total = 0;
           for (let i = 1; i < ord.length; i++) {
             total +=
-              (new Date(ord[i]).getTime() - new Date(ord[i - 1]).getTime()) /
+              (new Date(ord[i].data).getTime() - new Date(ord[i - 1].data).getTime()) /
               (1000 * 60 * 60 * 24);
           }
           intervalo = Math.round(total / (ord.length - 1));
         }
+
+        // intervalo médio em horímetro
+        let intervaloHorimetro: number | null = null;
+        const comH = ord.filter((e) => e.horimetro != null);
+        if (comH.length > 1) {
+          let totalH = 0;
+          let count = 0;
+          for (let i = 1; i < comH.length; i++) {
+            const diff = (comH[i].horimetro as number) - (comH[i - 1].horimetro as number);
+            if (diff >= 0) {
+              totalH += diff;
+              count += 1;
+            }
+          }
+          if (count > 0) intervaloHorimetro = Math.round(totalH / count);
+        }
+
         return {
           id,
           nome: v.nome,
-          ocorrencias: v.datas.length,
+          ocorrencias: v.eventos.length,
           trocadas: v.trocadas,
           defeitos: v.defeitos,
-          ultima: ord[ord.length - 1],
+          ultima: ord[ord.length - 1].data,
           intervalo,
+          intervaloHorimetro,
         };
       })
       .sort((a, b) => b.ocorrencias - a.ocorrencias);
