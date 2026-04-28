@@ -97,7 +97,6 @@ export default function AppSidebar() {
         { title: 'Dashboard', url: '/combustivel/dashboard', icon: Fuel },
         { title: 'Abastecimentos', url: '/combustivel/abastecimentos', icon: Droplets },
         { title: 'Revisões', url: '/combustivel/revisoes', icon: Wrench },
-        { title: 'Manutenção', url: '/manutencao/equipamentos', icon: Tools },
       ],
     },
     {

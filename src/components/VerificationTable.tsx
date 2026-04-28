@@ -11,13 +11,16 @@ interface Props {
   canDelete?: boolean;
 }
 
-function formatDate(iso: string) {
-  if (!iso) return '—';
+function formatDate(iso: string | null | undefined) {
+  if (!iso || typeof iso !== 'string') return '—';
 
-  const [y, m, d] = iso.split('-');
-  if (!y || !m || !d) return '—';
-
-  return `${d}/${m}/${y}`;
+  try {
+    const [y, m, d] = iso.split('-');
+    if (!y || !m || !d) return '—';
+    return `${d}/${m}/${y}`;
+  } catch {
+    return '—';
+  }
 }
 
 function formatDateTime(iso: string) {

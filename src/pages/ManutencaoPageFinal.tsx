@@ -57,9 +57,14 @@ const SELECT_NONE_VALUE = '__none__';
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
-const parseDateOnly = (value: string) => {
-  const onlyDate = value.split('T')[0];
-  return new Date(`${onlyDate}T00:00:00`);
+const parseDateOnly = (value: string | null | undefined) => {
+  if (!value || typeof value !== 'string') return new Date();
+  try {
+    const onlyDate = value.split('T')[0];
+    return new Date(`${onlyDate}T00:00:00`);
+  } catch {
+    return new Date();
+  }
 };
 
 const formatLocalDate = (value: string) => parseDateOnly(value).toLocaleDateString('pt-BR');

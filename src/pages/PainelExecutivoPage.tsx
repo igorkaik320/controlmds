@@ -102,15 +102,26 @@ type CompraSemPedido = {
   valor: number;
 };
 
-function formatDateBR(date: string) {
-  if (!date) return '';
-  const [y, m, d] = date.split('-');
-  return `${d}/${m}/${y}`;
+function formatDateBR(date: string | null | undefined) {
+  if (!date || typeof date !== 'string') return '';
+  try {
+    const [y, m, d] = date.split('-');
+    if (!y || !m || !d) return '';
+    return `${d}/${m}/${y}`;
+  } catch {
+    return '';
+  }
 }
 
-function monthLabel(isoDate: string) {
-  const [year, month] = isoDate.split('-');
-  return `${month}/${year.slice(2)}`;
+function monthLabel(isoDate: string | null | undefined) {
+  if (!isoDate || typeof isoDate !== 'string') return '';
+  try {
+    const [year, month] = isoDate.split('-');
+    if (!year || !month) return '';
+    return `${month}/${year.slice(2)}`;
+  } catch {
+    return '';
+  }
 }
 
 export default function PainelExecutivoPage() {

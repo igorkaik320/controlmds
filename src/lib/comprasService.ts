@@ -555,8 +555,13 @@ export function formatCurrencyBR(value: number): string {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 }
 
-export function formatDateBR(iso: string): string {
-  if (!iso) return '';
-  const [y, m, d] = iso.split('-');
-  return `${d}/${m}/${y}`;
+export function formatDateBR(iso: string | null | undefined): string {
+  if (!iso || typeof iso !== 'string') return '';
+  try {
+    const [y, m, d] = iso.split('-');
+    if (!y || !m || !d) return '';
+    return `${d}/${m}/${y}`;
+  } catch {
+    return '';
+  }
 }

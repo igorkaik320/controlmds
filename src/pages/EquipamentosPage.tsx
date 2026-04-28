@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Pencil, Trash2, Upload, Download, Eye, Wrench, ArrowRightLeft } from 'lucide-react';
+import { Plus, Pencil, Trash2, Upload, Download, Eye, Wrench, ArrowRightLeft, WrenchIcon } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/lib/auth';
 import { useModulePermissions } from '@/hooks/useModulePermissions';
@@ -30,6 +30,10 @@ import {
 } from '@/lib/equipamentosService';
 import { fetchObras, type Obra } from '@/lib/obrasService';
 import { fetchResponsaveis, type Responsavel } from '@/lib/comprasService';
+import { fetchFornecedores, type Fornecedor } from '@/lib/comprasService';
+import FornecedorSelect from '@/components/compras/FornecedorSelect';
+import ManutencaoDialog from '@/components/equipamentos/ManutencaoDialog';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import { toast } from 'sonner';
 import AuditInfo from '@/components/AuditInfo';
 import { useProfileMap } from '@/hooks/useProfileMap';
@@ -69,6 +73,7 @@ export default function EquipamentosPage() {
   const [setores, setSetores] = useState<any[]>([]);
   const [obras, setObras] = useState<Obra[]>([]);
   const [responsaveis, setResponsaveis] = useState<Responsavel[]>([]);
+  const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -83,6 +88,10 @@ export default function EquipamentosPage() {
   const [historicoItems, setHistoricoItems] = useState<Manutencao[]>([]);
   const [historicoMovimentos, setHistoricoMovimentos] = useState<MovimentoEquipamento[]>([]);
   const [historicoLoading, setHistoricoLoading] = useState(false);
+
+  // Manutenção
+  const [showManutencaoDialog, setShowManutencaoDialog] = useState(false);
+  const [selectedEquipamento, setSelectedEquipamento] = useState<Equipamento | null>(null);
 
   // Movimento (transferência ou baixa)
   const [movimentoOpen, setMovimentoOpen] = useState(false);
@@ -106,16 +115,18 @@ export default function EquipamentosPage() {
 
   const load = useCallback(async () => {
     try {
-      const [equipamentosData, setoresData, obrasData, responsaveisData] = await Promise.all([
+      const [equipamentosData, setoresData, obrasData, responsaveisData, fornecedoresData] = await Promise.all([
         fetchEquipamentos(),
         fetchSetores(),
         fetchObras(),
         fetchResponsaveis().catch(() => []),
+        fetchFornecedores().catch(() => []),
       ]);
       setItems(equipamentosData);
       setSetores(setoresData);
       setObras(obrasData);
       setResponsaveis(responsaveisData);
+      setFornecedores(fornecedoresData);
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -234,6 +245,11 @@ export default function EquipamentosPage() {
       responsavel: (item as any).responsavel || '',
     });
     setShowDialog(true);
+  }
+
+  function openManutencao(equipamento: Equipamento) {
+    setSelectedEquipamento(equipamento);
+    setShowManutencaoDialog(true);
   }
 
   async function handleSubmit() {
@@ -652,6 +668,16 @@ export default function EquipamentosPage() {
                       <Eye className="h-4 w-4" />
                     </Button>
                     {canEdit('equipamentos') && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Cadastrar manutenção"
+                        onClick={() => openManutencao(i)}
+                      >
+                        <Wrench className="h-4 w-4" />
+                      </Button>
+                    )}
+                    {canEdit('equipamentos') && (
                       <Button variant="ghost" size="icon" onClick={() => openEdit(i)}>
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -1041,6 +1067,15 @@ export default function EquipamentosPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Diálogo de Manutenção */}
+      <ErrorBoundary>
+        <ManutencaoDialog
+          open={showManutencaoDialog}
+          onOpenChange={setShowManutencaoDialog}
+          equipamento={selectedEquipamento}
+        />
+      </ErrorBoundary>
     </div>
   );
 }

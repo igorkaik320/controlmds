@@ -13,6 +13,8 @@ export interface VeiculoMaquina {
   categoria: string;
   categoria_id?: string | null;
   responsavel_id?: string | null;
+  tipo_medicao?: 'km' | 'horimetro';
+  ultima_quilometragem?: number | null;
   created_by: string;
   created_at: string;
 }

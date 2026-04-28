@@ -25,10 +25,15 @@ import AuditInfo from '@/components/AuditInfo';
 import { useProfileMap } from '@/hooks/useProfileMap';
 import ServicoMaquinaDialog from '@/components/servicos/ServicoMaquinaDialog';
 
-function formatDate(d: string) {
-  if (!d) return '—';
-  const [y, m, day] = d.split('-');
-  return `${day}/${m}/${y}`;
+function formatDate(d: string | null | undefined) {
+  if (!d || typeof d !== 'string') return '—';
+  try {
+    const [y, m, day] = d.split('-');
+    if (!y || !m || !day) return '—';
+    return `${day}/${m}/${y}`;
+  } catch {
+    return '—';
+  }
 }
 
 export default function ServicosMaquinasPage() {

@@ -124,11 +124,16 @@ export function formatCurrency(value: number): string {
   }).format(value);
 }
 
-export function parseDateOnly(value: string): Date {
-  const isoSegment = value.split('T')[0];
-  return new Date(`${isoSegment}T00:00:00`);
+export function parseDateOnly(value: string | null | undefined): Date {
+  if (!value || typeof value !== 'string') return new Date();
+  try {
+    const isoSegment = value.split('T')[0];
+    return new Date(`${isoSegment}T00:00:00`);
+  } catch {
+    return new Date();
+  }
 }
 
-export function formatLocalDate(value: string): string {
+export function formatLocalDate(value: string | null | undefined): string {
   return parseDateOnly(value).toLocaleDateString('pt-BR');
 }

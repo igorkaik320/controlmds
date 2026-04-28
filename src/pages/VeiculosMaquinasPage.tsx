@@ -25,6 +25,8 @@ const emptyForm = {
   tipo: 'veiculo' as 'veiculo' | 'maquina',
   placa: '',
   responsavel_id: '_none',
+  tipo_medicao: 'km' as 'km' | 'horimetro',
+  ultima_quilometragem: '',
 };
 
 export default function VeiculosMaquinasPage() {
@@ -107,6 +109,8 @@ function openNew() {
         categoria_id: null,
         categoria: '',
         responsavel_id: form.responsavel_id === '_none' ? null : form.responsavel_id,
+        tipo_medicao: form.tipo_medicao,
+        ultima_quilometragem: form.ultima_quilometragem || null,
       };
 
       if (editingId) {
@@ -165,6 +169,8 @@ function openNew() {
               <TableRow>
                 <TableHead>Tipo</TableHead>
                 <TableHead>Placa</TableHead>
+                <TableHead>Medição</TableHead>
+                <TableHead>Última Medição</TableHead>
                 <TableHead>Responsável</TableHead>
                 <TableHead>Auditoria</TableHead>
                 <TableHead></TableHead>
@@ -173,7 +179,7 @@ function openNew() {
           <TableBody>
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground">
+                <TableCell colSpan={7} className="text-center text-muted-foreground">
                   Nenhum registro
                 </TableCell>
               </TableRow>
@@ -183,6 +189,8 @@ function openNew() {
               <TableRow key={item.id}>
                 <TableCell>{item.tipo === 'veiculo' ? 'Veiculo' : 'Maquina'}</TableCell>
                 <TableCell>{item.placa}</TableCell>
+                <TableCell>{item.tipo_medicao === 'horimetro' ? 'Horímetro' : 'KM'}</TableCell>
+                <TableCell>{item.ultima_quilometragem || '-'}</TableCell>
                 <TableCell>{(item as any).responsavel?.nome || '—'}</TableCell>
                 <TableCell>
                   <AuditInfo
@@ -261,6 +269,32 @@ function openNew() {
                 placeholder="RXE-5D11"
               />
             </div>
+            <div>
+              <Label>Tipo de Medição *</Label>
+              <Select
+                value={form.tipo_medicao}
+                onValueChange={(value) => setForm((prev) => ({ ...prev, tipo_medicao: value as 'km' | 'horimetro' }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="km">Quilometragem (KM)</SelectItem>
+                  <SelectItem value="horimetro">Horímetro (Horas)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label>Última {form.tipo_medicao === 'km' ? 'Quilometragem' : 'Horimetragem'} *</Label>
+              <Input
+                type="number"
+                value={form.ultima_quilometragem}
+                onChange={(e) => setForm((prev) => ({ ...prev, ultima_quilometragem: e.target.value }))}
+                placeholder={form.tipo_medicao === 'km' ? 'Ex: 15000' : 'Ex: 2500'}
+              />
+            </div>
+            
             <div>
               <Label>Responsável</Label>
               <Select

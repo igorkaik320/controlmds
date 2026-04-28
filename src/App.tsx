@@ -29,7 +29,6 @@ import TiposCombustivelPage from "./pages/TiposCombustivelPage";
 import AbastecimentosPage from "./pages/AbastecimentosPage";
 import DashboardCombustivelPage from "./pages/DashboardCombustivelPage";
 import RevisoesCombustivelPage from "./pages/RevisoesCombustivelPage";
-import ManutencaoPage from "./pages/ManutencaoPage";
 import EmpresasPage from "./pages/EmpresasPage";
 import PainelExecutivoPage from "./pages/PainelExecutivoPage";
 import FaturadosParcelasPage from "./pages/FaturadosParcelasPage";
@@ -99,7 +98,6 @@ function HomeRoute() {
     { module: "combustivel_dashboard", path: "/combustivel/dashboard" },
     { module: "abastecimentos", path: "/combustivel/abastecimentos" },
     { module: "revisoes_combustivel", path: "/combustivel/revisoes" },
-    { module: "manutencao_equipamentos", path: "/manutencao/equipamentos" },
     { module: "empresas", path: "/empresas" },
     { module: "equipamentos", path: "/equipamentos" },
     { module: "setores", path: "/setores" },
@@ -239,11 +237,7 @@ const App = () => (
                   path="/combustivel/dashboard"
                   element={<ModuleRoute module="combustivel_dashboard"><DashboardCombustivelPage /></ModuleRoute>}
                 />
-                <Route
-                  path="/manutencao/equipamentos"
-                  element={<ModuleRoute module="manutencao_equipamentos"><ManutencaoPage /></ModuleRoute>}
-                />
-                <Route
+                                <Route
                   path="/servicos-maquinas"
                   element={<ModuleRoute module="servicos_maquinas"><ServicosMaquinasPage /></ModuleRoute>}
                 />

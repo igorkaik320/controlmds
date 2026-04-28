@@ -22,10 +22,15 @@ interface Props {
   veiculo: VeiculoMaquina | null;
 }
 
-function formatDate(d: string) {
-  if (!d) return '—';
-  const [y, m, day] = d.split('-');
-  return `${day}/${m}/${y}`;
+function formatDate(d: string | null | undefined) {
+  if (!d || typeof d !== 'string') return '—';
+  try {
+    const [y, m, day] = d.split('-');
+    if (!y || !m || !day) return '—';
+    return `${day}/${m}/${y}`;
+  } catch {
+    return '—';
+  }
 }
 
 export default function HistoricoMaquinaDialog({ open, onOpenChange, veiculo }: Props) {
@@ -204,9 +209,14 @@ export default function HistoricoMaquinaDialog({ open, onOpenChange, veiculo }: 
               </Card>
               <Card>
                 <CardContent className="p-4">
-                  <p className="text-xs text-muted-foreground">Último horímetro</p>
+                  <p className="text-xs text-muted-foreground">
+                    Última {veiculo?.tipo_medicao === 'horimetro' ? 'horímetro' : 'quilometragem'}
+                  </p>
                   <p className="text-2xl font-bold">
-                    {stats.ultimoHorimetro != null ? `${stats.ultimoHorimetro} h` : '—'}
+                    {stats.ultimoHorimetro != null 
+                      ? `${stats.ultimoHorimetro} ${veiculo?.tipo_medicao === 'horimetro' ? 'h' : 'km'}` 
+                      : '—'
+                    }
                   </p>
                 </CardContent>
               </Card>
@@ -220,8 +230,8 @@ export default function HistoricoMaquinaDialog({ open, onOpenChange, veiculo }: 
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
                     {stats.intervaloMedioHorimetro != null
-                      ? `${stats.intervaloMedioHorimetro} h de uso`
-                      : 'horímetro indisponível'}
+                      ? `${stats.intervaloMedioHorimetro} ${veiculo?.tipo_medicao === 'horimetro' ? 'h de uso' : 'km'}`
+                      : `${veiculo?.tipo_medicao === 'horimetro' ? 'horímetro' : 'quilometragem'} indisponível`}
                   </p>
                 </CardContent>
               </Card>
@@ -298,7 +308,7 @@ export default function HistoricoMaquinaDialog({ open, onOpenChange, veiculo }: 
                       <TableHead>Com defeito</TableHead>
                       <TableHead>Última ocorrência</TableHead>
                       <TableHead>Intervalo médio (dias)</TableHead>
-                      <TableHead>Intervalo médio (horímetro)</TableHead>
+                      <TableHead>Intervalo médio ({veiculo?.tipo_medicao === 'horimetro' ? 'horímetro' : 'quilometragem'})</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -320,7 +330,10 @@ export default function HistoricoMaquinaDialog({ open, onOpenChange, veiculo }: 
                           {p.intervalo != null ? `${p.intervalo} dias` : '—'}
                         </TableCell>
                         <TableCell>
-                          {p.intervaloHorimetro != null ? `${p.intervaloHorimetro} h` : '—'}
+                          {p.intervaloHorimetro != null 
+                            ? `${p.intervaloHorimetro} ${veiculo?.tipo_medicao === 'horimetro' ? 'h' : 'km'}` 
+                            : '—'
+                          }
                         </TableCell>
                       </TableRow>
                     ))}

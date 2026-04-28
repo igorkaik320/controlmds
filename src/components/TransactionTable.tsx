@@ -28,9 +28,15 @@ function typeLabel(type: string) {
   }
 }
 
-function formatDate(iso: string) {
-  const [y, m, d] = iso.split('-');
-  return `${d}/${m}/${y}`;
+function formatDate(iso: string | null | undefined) {
+  if (!iso || typeof iso !== 'string') return '-';
+  try {
+    const [y, m, d] = iso.split('-');
+    if (!y || !m || !d) return '-';
+    return `${d}/${m}/${y}`;
+  } catch {
+    return '-';
+  }
 }
 
 export default function TransactionTable({

@@ -106,7 +106,6 @@ export function AppSidebar() {
       { title: 'Abastecimentos', url: '/combustivel/abastecimentos', icon: Droplets, module: 'abastecimentos' },
       { title: 'Revisões', url: '/combustivel/revisoes', icon: Wrench, module: 'revisoes_combustivel' },
       { title: 'Equipamentos', url: '/equipamentos', icon: Archive, module: 'equipamentos' },
-      { title: 'Manutenção', url: '/manutencao/equipamentos', icon: AlertTriangle, module: 'manutencao_equipamentos' },
       { title: 'Serviços de Máquinas', url: '/servicos-maquinas', icon: Wrench, module: 'servicos_maquinas' },
     ],
   });

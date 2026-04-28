@@ -4,9 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useMaintenanceNotifications } from "@/lib/maintenanceNotifications";
 
-const formatLocalDate = (value: string) => {
-  const onlyDate = value.split("T")[0];
-  return new Date(`${onlyDate}T00:00:00`).toLocaleDateString("pt-BR");
+const formatLocalDate = (value: string | null | undefined) => {
+  if (!value || typeof value !== 'string') return new Date().toLocaleDateString("pt-BR");
+  try {
+    const onlyDate = value.split("T")[0];
+    return new Date(`${onlyDate}T00:00:00`).toLocaleDateString("pt-BR");
+  } catch {
+    return new Date().toLocaleDateString("pt-BR");
+  }
 };
 
 export function NotificationMenu() {
