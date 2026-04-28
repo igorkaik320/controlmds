@@ -233,6 +233,7 @@ export default function ManutencaoPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Equipamento</TableHead>
+              <TableHead>Patrimônio</TableHead>
               <TableHead>Setor</TableHead>
               <TableHead>Fornecedor</TableHead>
               <TableHead>Data da Manutenção</TableHead>
@@ -247,7 +248,7 @@ export default function ManutencaoPage() {
           <TableBody>
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={10} className="text-center text-muted-foreground">
+                <TableCell colSpan={11} className="text-center text-muted-foreground">
                   Nenhuma manutenção encontrada
                 </TableCell>
               </TableRow>
@@ -266,6 +267,12 @@ export default function ManutencaoPage() {
               return (
                 <TableRow key={i.id} className={estaVencido ? 'bg-red-50' : estaProximo ? 'bg-yellow-50' : ''}>
                   <TableCell className="font-medium">{i.equipamento_nome}</TableCell>
+                  <TableCell>
+                    {(() => {
+                      const equipamento = equipamentos.find(e => e.id === i.equipamento_id);
+                      return equipamento?.n_patrimonio || '-';
+                    })()}
+                  </TableCell>
                   <TableCell>{i.setor_nome}</TableCell>
                   <TableCell>{i.fornecedor_nome || '-'}</TableCell>
                   <TableCell>{new Date(i.data).toLocaleDateString('pt-BR')}</TableCell>
