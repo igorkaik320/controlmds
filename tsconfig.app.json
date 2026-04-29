@@ -31,23 +31,5 @@
   },
   "include": [
     "src"
-  ],
-  "exclude": [
-    "src/components/AppSidebarFixed.tsx",
-    "src/components/AppSidebarSimple.tsx",
-    "src/pages/EquipamentosPageWithDB.tsx",
-    "src/pages/EquipamentosPageWorking.tsx",
-    "src/pages/EquipamentosPageWorking2.tsx",
-    "src/pages/EquipamentosPageFixed.tsx",
-    "src/pages/EquipamentosPageFinal.tsx",
-    "src/pages/EquipamentosPageSimple.tsx",
-    "src/pages/EquipamentosPageTest.tsx",
-    "src/pages/EquipamentosPageTeste.tsx",
-    "src/pages/EquipamentosPageAutoSetup.tsx",
-    "src/pages/ManutencaoPage.tsx",
-    "src/pages/ManutencaoPageFinal.tsx",
-    "src/pages/ManutencaoPageFixed.tsx",
-    "src/pages/SetoresPage.tsx",
-    "src/pages/SetoresPageWorking.tsx"
   ]
 }
