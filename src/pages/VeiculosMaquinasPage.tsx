@@ -85,6 +85,8 @@ function openNew() {
       tipo: item.tipo,
       placa: item.placa,
       responsavel_id: item.responsavel_id || '_none',
+      tipo_medicao: (item.tipo_medicao as 'km' | 'horimetro') || 'km',
+      ultima_quilometragem: item.ultima_quilometragem != null ? String(item.ultima_quilometragem) : '',
     });
     setShowDialog(true);
   }
