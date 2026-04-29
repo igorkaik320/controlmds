@@ -27,6 +27,7 @@ export const MODULES = [
   { key: 'config_relatorio', label: 'Config. Relatorio' },
   { key: 'contas_pagar', label: 'Contas a Pagar' },
   { key: 'servicos', label: 'Serviços' },
+  { key: 'servicos_maquinas', label: 'Serviços de Máquinas' },
   { key: 'componentes_maquinas', label: 'Componentes / Peças' },
 ] as const;
 

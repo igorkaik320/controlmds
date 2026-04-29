@@ -181,7 +181,8 @@ export default function ManutencaoDialog({ open, onOpenChange, equipamento }: Pr
         proxima_manutencao: form.definir_proxima ? form.proxima_manutencao : null,
         avisar_dias_antes: form.receber_avisos ? parseInt(form.avisar_dias_antes) : 0,
         ativo: true,
-        observacao: form.observacao.trim() || null
+        observacao: form.observacao.trim() || null,
+        created_by: user.id,
       };
 
       if (editingManutencao) {
