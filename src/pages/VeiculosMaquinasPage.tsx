@@ -112,7 +112,7 @@ function openNew() {
         categoria: '',
         responsavel_id: form.responsavel_id === '_none' ? null : form.responsavel_id,
         tipo_medicao: form.tipo_medicao,
-        ultima_quilometragem: form.ultima_quilometragem || null,
+        ultima_quilometragem: form.ultima_quilometragem ? Number(form.ultima_quilometragem) : null,
       };
 
       if (editingId) {
