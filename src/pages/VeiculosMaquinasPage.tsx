@@ -116,7 +116,7 @@ function openNew() {
       };
 
       if (editingId) {
-        await updateVeiculo(editingId, payload, user.id);
+        await updateVeiculo(editingId, payload as any, user.id);
         toast.success('Atualizado');
       } else {
         await saveVeiculo(payload as any, user.id);
