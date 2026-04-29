@@ -394,8 +394,8 @@ export interface UserWithRole {
 }
 
 export async function fetchAllUsersWithRoles(): Promise<UserWithRole[]> {
-  const { data: profiles } = await supabase.from('profiles').select('user_id, display_name, created_at, ativo');
-  const { data: roles } = await supabase.from('user_roles').select('user_id, role');
+  const { data: profiles, error: profilesError } = await supabase.from('profiles').select('user_id, display_name, created_at');
+  const { data: roles, error: rolesError } = await supabase.from('user_roles').select('user_id, role');
 
   const roleMap: Record<string, string> = {};
 
@@ -414,7 +414,7 @@ export async function fetchAllUsersWithRoles(): Promise<UserWithRole[]> {
       display_name: p.display_name || 'Sem nome',
       role: roleMap[p.user_id] || 'operador',
       created_at: p.created_at || new Date().toISOString(),
-      ativo: (p as any).ativo ?? true,
+      ativo: true, // Todos usuários considerados ativos por padrão
     }));
 
     for (const r of roles || []) {

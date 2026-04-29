@@ -30,6 +30,40 @@ import {
 } from '@/lib/servicosMaquinasService';
 import { useAuth } from '@/lib/auth';
 
+// Função para formatar valor monetário (para input)
+function formatarValor(valor: string | null | undefined): string {
+  if (!valor || typeof valor !== 'string') return '';
+  
+  // Remove tudo que não é número
+  const numeros = valor.replace(/\D/g, '');
+  
+  // Converte para número e formata
+  const numero = parseFloat(numeros) / 100;
+  
+  if (isNaN(numero)) return '';
+  
+  return numero.toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+}
+
+// Função para formatar número para exibição (sem multiplicação)
+function formatarNumero(valor: number): string {
+  if (isNaN(valor) || valor === 0) return '0,00';
+  return valor.toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+}
+
+// Função para converter valor formatado para número
+function converterValorFormatado(valor: string): number {
+  const numeros = valor.replace(/\D/g, '');
+  const numero = parseFloat(numeros) / 100;
+  return isNaN(numero) ? 0 : numero;
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -51,6 +85,9 @@ const emptyServico = {
   tipo_servico: 'conserto' as TipoServico,
   observacao: '',
   observacao_pecas: '',
+  valor_mao_obra: '',
+  valor_material: '',
+  valor_total: '0,00',
 };
 
 export default function ServicoMaquinaDialog({
@@ -95,6 +132,9 @@ export default function ServicoMaquinaDialog({
         tipo_servico: editing.tipo_servico,
         observacao: editing.observacao || '',
         observacao_pecas: editing.observacao_pecas || '',
+        valor_mao_obra: editing.valor_mao_obra && editing.valor_mao_obra > 0 ? formatarValor(String(editing.valor_mao_obra * 100)) : '',
+        valor_material: editing.valor_material && editing.valor_material > 0 ? formatarValor(String(editing.valor_material * 100)) : '',
+        valor_total: editing.valor_total && editing.valor_total > 0 ? formatarValor(String(editing.valor_total * 100)) : '0,00',
       });
       setPecas(
         (editing.pecas || []).map((p, i) => ({
@@ -109,6 +149,16 @@ export default function ServicoMaquinaDialog({
       setPecas([]);
     }
   }, [editing, open, defaultVeiculoId]);
+
+  // Calcular total automaticamente quando os valores mudam
+  useEffect(() => {
+    const valorMaoObraNum = converterValorFormatado(form.valor_mao_obra);
+    const valorMaterialNum = converterValorFormatado(form.valor_material);
+    const total = valorMaoObraNum + valorMaterialNum;
+    // Usar formatação normal sem multiplicação
+    const totalFormatado = formatarNumero(total);
+    setForm((p) => ({ ...p, valor_total: totalFormatado }));
+  }, [form.valor_mao_obra, form.valor_material]);
 
   const requerPecas = form.tipo_servico !== 'conserto';
 
@@ -155,6 +205,10 @@ export default function ServicoMaquinaDialog({
     if (horimetroNum != null && (Number.isNaN(horimetroNum) || horimetroNum < 0))
       return toast.error(form.tipo_medicao === 'km' ? 'Quilometragem inválida' : 'Horímetro inválido');
 
+    const valorMaoObraNum = converterValorFormatado(form.valor_mao_obra);
+    const valorMaterialNum = converterValorFormatado(form.valor_material);
+    const valorTotalNum = valorMaoObraNum + valorMaterialNum;
+
     const payload = {
       veiculo_id: form.veiculo_id,
       obra_id: form.obra_id || null,
@@ -164,6 +218,9 @@ export default function ServicoMaquinaDialog({
       tipo_servico: form.tipo_servico,
       observacao: form.observacao.trim() || null,
       observacao_pecas: form.observacao_pecas.trim() || null,
+      valor_mao_obra: valorMaoObraNum || null,
+      valor_material: valorMaterialNum || null,
+      valor_total: valorTotalNum || null,
     };
 
     const pecasPayload: ServicoPecaInput[] = requerPecas
@@ -294,6 +351,49 @@ export default function ServicoMaquinaDialog({
                     </SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div>
+                <Label>Valor Mão de Obra</Label>
+                <Input
+                  type="text"
+                  value={form.valor_mao_obra}
+                  onChange={(e) => {
+                    const valor = e.target.value;
+                    // Formatação automática enquanto digita
+                    const valorFormatado = formatarValor(valor);
+                    setForm((p) => ({ ...p, valor_mao_obra: valorFormatado }));
+                  }}
+                  placeholder="0,00"
+                  inputMode="decimal"
+                />
+              </div>
+
+              <div>
+                <Label>Valor Material</Label>
+                <Input
+                  type="text"
+                  value={form.valor_material}
+                  onChange={(e) => {
+                    const valor = e.target.value;
+                    // Formatação automática enquanto digita
+                    const valorFormatado = formatarValor(valor);
+                    setForm((p) => ({ ...p, valor_material: valorFormatado }));
+                  }}
+                  placeholder="0,00"
+                  inputMode="decimal"
+                />
+              </div>
+
+              <div>
+                <Label>Valor Total</Label>
+                <Input
+                  type="text"
+                  value={form.valor_total}
+                  disabled
+                  className="bg-muted font-semibold"
+                  readOnly
+                />
               </div>
             </div>
 

@@ -37,6 +37,9 @@ export interface ServicoMaquina {
   tipo_servico: TipoServico;
   observacao: string | null;
   observacao_pecas: string | null;
+  valor_mao_obra: number | null;
+  valor_material: number | null;
+  valor_total: number | null;
   created_by: string | null;
   created_at: string;
   updated_by?: string | null;
