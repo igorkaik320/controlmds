@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Clock } from "lucide-react";
@@ -8,39 +9,50 @@ import { AuthProvider, useAuth } from "@/lib/auth";
 import { useBeforeUnloadDraftGuard } from "@/lib/draftGuard";
 import { useModulePermissions } from "@/hooks/useModulePermissions";
 import AppLayout from "@/components/AppLayout";
-import Index from "./pages/Index";
-import Auth from "./pages/Auth";
-import AuditLog from "./pages/AuditLog";
-import UserManagement from "./pages/UserManagement";
-import ComprasAvistaPage from "./pages/ComprasAvistaPage";
-import ComprasFaturadasPage from "./pages/ComprasFaturadasPage";
-import EspelhoGeralPage from "./pages/EspelhoGeralPage";
-import ProgramacaoSemanalPage from "./pages/ProgramacaoSemanalPage";
-import EspelhoSemanalPage from "./pages/EspelhoSemanalPage";
-import ConfigRelatorioPage from "./pages/ConfigRelatorioPage";
-import FornecedoresPage from "./pages/FornecedoresPage";
-import ObrasPage from "./pages/ObrasPage";
-import ResponsaveisPage from "./pages/ResponsaveisPage";
-import VeiculosMaquinasPage from "./pages/VeiculosMaquinasPage";
-import EquipamentosPage from "./pages/EquipamentosPage";
-import SetoresPage from "./pages/SetoresPage";
-import PostosCombustivelPage from "./pages/PostosCombustivelPage";
-import TiposCombustivelPage from "./pages/TiposCombustivelPage";
-import AbastecimentosPage from "./pages/AbastecimentosPage";
-import DashboardCombustivelPage from "./pages/DashboardCombustivelPage";
-import RevisoesCombustivelPage from "./pages/RevisoesCombustivelPage";
-import EmpresasPage from "./pages/EmpresasPage";
-import PainelExecutivoPage from "./pages/PainelExecutivoPage";
-import FaturadosParcelasPage from "./pages/FaturadosParcelasPage";
-import ContasPagarPage from '@/pages/ContasPagarPage';
-import ServicosMaquinasPage from "./pages/ServicosMaquinasPage";
-import ComponentesMaquinasPage from "./pages/ComponentesMaquinasPage";
-import NotFound from "./pages/NotFound";
 import type { ModuleKey } from "@/lib/modulePermissions";
 import { Lock } from "lucide-react";
 import { MaintenanceNotificationProvider } from "@/lib/maintenanceNotifications";
 
-const queryClient = new QueryClient();
+// Lazy-loaded pages — reduces initial bundle dramatically
+const Index = lazy(() => import("./pages/Index"));
+const Auth = lazy(() => import("./pages/Auth"));
+const AuditLog = lazy(() => import("./pages/AuditLog"));
+const UserManagement = lazy(() => import("./pages/UserManagement"));
+const ComprasAvistaPage = lazy(() => import("./pages/ComprasAvistaPage"));
+const ComprasFaturadasPage = lazy(() => import("./pages/ComprasFaturadasPage"));
+const EspelhoGeralPage = lazy(() => import("./pages/EspelhoGeralPage"));
+const ProgramacaoSemanalPage = lazy(() => import("./pages/ProgramacaoSemanalPage"));
+const EspelhoSemanalPage = lazy(() => import("./pages/EspelhoSemanalPage"));
+const ConfigRelatorioPage = lazy(() => import("./pages/ConfigRelatorioPage"));
+const FornecedoresPage = lazy(() => import("./pages/FornecedoresPage"));
+const ObrasPage = lazy(() => import("./pages/ObrasPage"));
+const ResponsaveisPage = lazy(() => import("./pages/ResponsaveisPage"));
+const VeiculosMaquinasPage = lazy(() => import("./pages/VeiculosMaquinasPage"));
+const EquipamentosPage = lazy(() => import("./pages/EquipamentosPage"));
+const SetoresPage = lazy(() => import("./pages/SetoresPage"));
+const PostosCombustivelPage = lazy(() => import("./pages/PostosCombustivelPage"));
+const TiposCombustivelPage = lazy(() => import("./pages/TiposCombustivelPage"));
+const AbastecimentosPage = lazy(() => import("./pages/AbastecimentosPage"));
+const DashboardCombustivelPage = lazy(() => import("./pages/DashboardCombustivelPage"));
+const RevisoesCombustivelPage = lazy(() => import("./pages/RevisoesCombustivelPage"));
+const EmpresasPage = lazy(() => import("./pages/EmpresasPage"));
+const PainelExecutivoPage = lazy(() => import("./pages/PainelExecutivoPage"));
+const FaturadosParcelasPage = lazy(() => import("./pages/FaturadosParcelasPage"));
+const ContasPagarPage = lazy(() => import("@/pages/ContasPagarPage"));
+const ServicosMaquinasPage = lazy(() => import("./pages/ServicosMaquinasPage"));
+const ComponentesMaquinasPage = lazy(() => import("./pages/ComponentesMaquinasPage"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 min default
+      gcTime: 10 * 60 * 1000,
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+});
 
 function DraftGuards() {
   useBeforeUnloadDraftGuard();
@@ -51,6 +63,14 @@ function LoadingScreen() {
   return (
     <div className="flex min-h-screen items-center justify-center">
       <p>Carregando...</p>
+    </div>
+  );
+}
+
+function PageFallback() {
+  return (
+    <div className="flex min-h-[60vh] items-center justify-center">
+      <p className="text-muted-foreground">Carregando módulo...</p>
     </div>
   );
 }
@@ -177,7 +197,8 @@ const App = () => (
         <BrowserRouter>
           <AuthProvider>
             <MaintenanceNotificationProvider>
-              <Routes>
+              <Suspense fallback={<PageFallback />}>
+                <Routes>
                 <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
                 <Route path="/" element={<HomeRoute />} />
                 <Route path="/contas-pagar" element={<ModuleRoute module="contas_pagar"><ContasPagarPage /></ModuleRoute>} />
@@ -253,7 +274,8 @@ const App = () => (
                 <Route path="/config-relatorio" element={<AdminRoute><ConfigRelatorioPage /></AdminRoute>} />
 
                 <Route path="*" element={<NotFound />} />
-              </Routes>
+                </Routes>
+              </Suspense>
             </MaintenanceNotificationProvider>
           </AuthProvider>
         </BrowserRouter>
