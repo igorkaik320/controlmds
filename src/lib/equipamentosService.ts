@@ -59,6 +59,7 @@ export interface Manutencao {
   proxima_manutencao: string | null;
   avisar_dias_antes: number;
   ativo: boolean;
+  observacao?: string | null;
   created_by: string;
   created_at: string;
   updated_by?: string | null;
