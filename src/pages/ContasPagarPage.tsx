@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Pencil, Trash2, Eye, Calendar as CalendarIcon, Building, CheckSquare, FileText, Search } from 'lucide-react';
+import { Plus, Pencil, Trash2, Eye, Calendar as CalendarIcon, Building, CheckSquare, FileText, Search, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useModulePermissions } from '@/hooks/useModulePermissions';
 import { toast } from 'sonner';
@@ -53,12 +53,10 @@ export default function ContasPagarPage() {
   const [contaParcelas, setContaParcelas] = useState<ContaPagarComParcelas | null>(null);
   const [selectedParcelas, setSelectedParcelas] = useState<Set<string>>(new Set());
   const [showBulkStatus, setShowBulkStatus] = useState(false);
-<<<<<<< HEAD
   const [showReport, setShowReport] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
   const printRef = useRef<HTMLDivElement>(null);
-=======
 
   // Ordenação
   type SortKey = 'numero' | 'data_emissao' | 'empresa' | 'fornecedor' | 'valor_total' | 'parcela' | 'vencimento' | 'status' | 'observacao';
@@ -84,7 +82,6 @@ export default function ContasPagarPage() {
       ? <ArrowUp className="h-3 w-3 ml-1" />
       : <ArrowDown className="h-3 w-3 ml-1" />;
   }
->>>>>>> 21039db2dd71553b438863be1547ae029c3ef7ac
   
   // Filtros
   const [filterEmpresa, setFilterEmpresa] = useState('');
@@ -759,25 +756,6 @@ export default function ContasPagarPage() {
         </div>
       </div>
 
-<<<<<<< HEAD
-          {/* Tabela de Contas com Parcelas expandidas */}
-          <div className="rounded-md border overflow-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-8">
-                    <CheckSquare className="h-4 w-4 text-muted-foreground" />
-                  </TableHead>
-                  <TableHead>Nº</TableHead>
-                  <TableHead>Empresa</TableHead>
-                  <TableHead>Fornecedor</TableHead>
-                  <TableHead>Valor Total</TableHead>
-                  <TableHead>Parcela</TableHead>
-                  <TableHead>Vencimento</TableHead>
-                  <TableHead>Status Parcela</TableHead>
-                  <TableHead>Observação</TableHead>
-                  <TableHead></TableHead>
-=======
       {/* Tabela de Contas com Parcelas expandidas */}
       <div className="rounded-md border overflow-auto">
         <Table>
@@ -796,7 +774,6 @@ export default function ContasPagarPage() {
               <TableHead onClick={() => handleSort('status')} className="cursor-pointer select-none hover:bg-muted/50"><div className="flex items-center">Status Parcela<SortIcon column="status" /></div></TableHead>
               <TableHead onClick={() => handleSort('observacao')} className="cursor-pointer select-none hover:bg-muted/50"><div className="flex items-center">Observação<SortIcon column="observacao" /></div></TableHead>
               <TableHead></TableHead>
->>>>>>> 21039db2dd71553b438863be1547ae029c3ef7ac
             </TableRow>
           </TableHeader>
           <TableBody>
