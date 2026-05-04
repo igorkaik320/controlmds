@@ -677,7 +677,7 @@ export default function ContasPagarPage() {
       <div className="rounded-xl border bg-card p-4">
         <div className="grid gap-4 lg:grid-cols-4">
           <div>
-            <Label className="text-xs">Empresa</Label>
+            <Label>Empresa</Label>
             <Select value={filterEmpresa || "_all"} onValueChange={(v) => setFilterEmpresa(v === "_all" ? "" : v)}>
               <SelectTrigger>
                 <SelectValue placeholder="Todas as empresas" />
