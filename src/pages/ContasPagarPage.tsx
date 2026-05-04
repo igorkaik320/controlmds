@@ -131,8 +131,40 @@ export default function ContasPagarPage() {
     return true;
   });
 
+  // Aplica ordenação clicável nos headers
+  const sortedFiltered = (() => {
+    if (!sortKey) return filtered;
+    const arr = [...filtered];
+    const dir = sortDir === 'asc' ? 1 : -1;
+    const collator = new Intl.Collator('pt-BR', { sensitivity: 'base', numeric: true });
+
+    const getVal = (c: ContaPagarComParcelas): string | number => {
+      const primeira = [...c.parcelas].sort((a, b) => a.numero_parcela - b.numero_parcela)[0];
+      switch (sortKey) {
+        case 'numero': return c.numero ?? 0;
+        case 'data_emissao': return c.data_emissao || '';
+        case 'empresa': return (c.empresa_nome || '').toLowerCase();
+        case 'fornecedor': return (c.fornecedor_nome || '').toLowerCase();
+        case 'valor_total': return Number(c.valor_total) || 0;
+        case 'parcela': return c.quantidade_parcelas || 0;
+        case 'vencimento': return primeira?.data_vencimento || '';
+        case 'status': return (primeira?.status || '').toLowerCase();
+        case 'observacao': return ((primeira?.observacao || c.observacao) || '').toLowerCase();
+        default: return '';
+      }
+    };
+
+    arr.sort((a, b) => {
+      const va = getVal(a);
+      const vb = getVal(b);
+      if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir;
+      return collator.compare(String(va), String(vb)) * dir;
+    });
+    return arr;
+  })();
+
   // Flatten all parcelas for inline display
-  const allParcelas = filtered.flatMap(conta => 
+  const allParcelas = sortedFiltered.flatMap(conta => 
     conta.parcelas.map(p => ({ ...p, conta }))
   );
 
