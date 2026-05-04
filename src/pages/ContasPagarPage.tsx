@@ -708,7 +708,7 @@ export default function ContasPagarPage() {
           </div>
 
           <div>
-            <Label>Período</Label>
+            <Label>Vencimento (de)</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
