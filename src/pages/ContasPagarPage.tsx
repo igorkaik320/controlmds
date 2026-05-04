@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,11 +7,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Pencil, Trash2, Eye, Calendar, Building, CheckSquare } from 'lucide-react';
+import { Plus, Pencil, Trash2, Eye, Calendar as CalendarIcon, Building, CheckSquare, FileText, Search } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useModulePermissions } from '@/hooks/useModulePermissions';
 import { toast } from 'sonner';
 import { formatCurrency, formatCurrencyInput, formatCurrencyReal, parseCurrencyInput } from '@/lib/formatters';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { 
   fetchContasPagar, 
   saveContaPagar, 
@@ -49,15 +53,23 @@ export default function ContasPagarPage() {
   const [contaParcelas, setContaParcelas] = useState<ContaPagarComParcelas | null>(null);
   const [selectedParcelas, setSelectedParcelas] = useState<Set<string>>(new Set());
   const [showBulkStatus, setShowBulkStatus] = useState(false);
+  const [showReport, setShowReport] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const reportRef = useRef<HTMLDivElement>(null);
+  const printRef = useRef<HTMLDivElement>(null);
   
   // Filtros
   const [filterEmpresa, setFilterEmpresa] = useState('');
   const [filterFornecedor, setFilterFornecedor] = useState('');
   const [filterDataEmissao, setFilterDataEmissao] = useState('');
+  const [startDate, setStartDate] = useState<Date | undefined>();
+  const [endDate, setEndDate] = useState<Date | undefined>();
+  const [showDateFilter, setShowDateFilter] = useState(false);
   const [filtrosAplicados, setFiltrosAplicados] = useState({
     empresa: '',
     fornecedor: '',
-    dataEmissao: '',
+    startDate: null as Date | undefined,
+    endDate: null as Date | undefined,
   });
 
   const [form, setForm] = useState({
@@ -99,10 +111,11 @@ export default function ContasPagarPage() {
   }, [form.empresa_id]);
 
   const filtered = items.filter((i) => {
-    if (!filtrosAplicados.empresa && !filtrosAplicados.fornecedor && !filtrosAplicados.dataEmissao) return true;
+    if (!filtrosAplicados.empresa && !filtrosAplicados.fornecedor && !filtrosAplicados.startDate && !filtrosAplicados.endDate) return true;
     if (filtrosAplicados.empresa && i.empresa_id !== filtrosAplicados.empresa) return false;
     if (filtrosAplicados.fornecedor && i.fornecedor_id !== filtrosAplicados.fornecedor) return false;
-    if (filtrosAplicados.dataEmissao && i.data_emissao !== filtrosAplicados.dataEmissao) return false;
+    if (filtrosAplicados.startDate && new Date(i.data_emissao) < filtrosAplicados.startDate) return false;
+    if (filtrosAplicados.endDate && new Date(i.data_emissao) > filtrosAplicados.endDate) return false;
     return true;
   });
 
@@ -115,7 +128,8 @@ export default function ContasPagarPage() {
     setFiltrosAplicados({
       empresa: filterEmpresa,
       fornecedor: filterFornecedor,
-      dataEmissao: filterDataEmissao,
+      startDate: startDate,
+      endDate: endDate,
     });
   }
 
@@ -164,7 +178,7 @@ export default function ContasPagarPage() {
 
   async function handleSubmit() {
     if (!user || !form.valor_total || !form.empresa_id || !form.fornecedor_id) {
-      toast.error('Preencha todos os campos obrigatórios');
+      toast.error('Preencha todos os campos obrigatÃ³rios');
       return;
     }
 
@@ -214,11 +228,12 @@ export default function ContasPagarPage() {
     }
   }
 
+ 
   async function handleDelete(id: string) {
     if (!confirm('Excluir esta conta e todas as parcelas?')) return;
     try {
       await deleteContaPagar(id, user?.id || '');
-      toast.success('Conta excluída');
+      toast.success('Conta excluÃ­da');
       load();
     } catch (e: any) {
       toast.error(e.message);
@@ -280,6 +295,275 @@ export default function ContasPagarPage() {
     return map[status] || 'default';
   }
 
+  // Agrupar parcelas por data para o relatÃ³rio
+  const reportGroups = useMemo(() => {
+    const groups: Record<string, { date: string; dateLabel: string; parcels: number; total: number; items: any[] }> = {};
+    
+    filtered.forEach(conta => {
+      conta.parcelas.forEach(parcela => {
+        const date = parcela.data_vencimento || '0000-00-00';
+        if (!groups[date]) {
+          const dateObj = new Date(date + 'T00:00:00');
+          const dateLabel = dateObj.toLocaleDateString('pt-BR', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+          });
+          
+          groups[date] = {
+            date,
+            dateLabel,
+            parcels: 0,
+            total: 0,
+            items: []
+          };
+        }
+        
+        groups[date].parcels++;
+        groups[date].total += parcela.valor_parcela;
+        groups[date].items.push({
+          ...parcela,
+          conta
+        });
+      });
+    });
+    
+    const result = Object.values(groups);
+    // Ordenar itens de cada dia em ordem crescente de valor (depois de adicionar todas as parcelas)
+    result.forEach(group => {
+      group.items.sort((a, b) => a.valor_parcela - b.valor_parcela);
+    });
+    // Retornar grupos ordenados por data (mesma lÃ³gica do FaturadosParcelasPage)
+    return result.sort((a, b) => (a.date > b.date ? -1 : a.date < b.date ? 1 : 0));
+  }, [filtered]);
+
+  const reportTotal = useMemo(() => {
+    return reportGroups.reduce((sum, group) => sum + group.total, 0);
+  }, [reportGroups]);
+
+  async function handleExportPdf() {
+    if (exportingPdf) return;
+    if (reportGroups.length === 0) {
+      toast.error("Nada para exportar.");
+      return;
+    }
+
+    setExportingPdf(true);
+    try {
+      const { default: jsPDF } = await import("jspdf");
+
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const marginLeft = 14;
+      const marginRight = pageWidth - 14;
+      const usableWidth = marginRight - marginLeft;
+      let y = 14;
+
+      const checkNewPage = (neededHeight: number) => {
+        if (y + neededHeight > pageHeight - 14) {
+          pdf.addPage();
+          y = 14;
+          return true;
+        }
+        return false;
+      };
+
+      // â”€â”€ CabeÃ§alho â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      pdf.setFontSize(8);
+      pdf.setTextColor(120, 120, 120);
+      pdf.text("RELATÃ“RIO", marginLeft, y);
+      y += 5;
+
+      pdf.setFontSize(14);
+      pdf.setTextColor(30, 30, 30);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Contas a Pagar", marginLeft, y);
+
+      pdf.setFontSize(8);
+      pdf.setTextColor(120, 120, 120);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(
+        `Gerado em: ${new Date().toLocaleDateString("pt-BR")}`,
+        marginRight,
+        y,
+        { align: "right" }
+      );
+      y += 3;
+
+      // Linha separadora do cabeÃ§alho
+      pdf.setDrawColor(200, 200, 200);
+      pdf.line(marginLeft, y, marginRight, y);
+      y += 5;
+
+      // â”€â”€ CabeÃ§alho da tabela â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      const cols = {
+        venc:      { x: marginLeft,      w: 22 },
+        empresa:   { x: marginLeft + 22, w: 28 },
+        fornec:    { x: marginLeft + 50, w: 52 },
+        conta:     { x: marginLeft + 102, w: 18 },
+        parcela:   { x: marginLeft + 120, w: 16 },
+        valor:     { x: marginLeft + 136, w: 28 },
+        status:    { x: marginLeft + 164, w: 22 },
+      };
+
+      const drawTableHeader = () => {
+        pdf.setFillColor(245, 245, 245);
+        pdf.rect(marginLeft, y - 4, usableWidth, 7, "F");
+
+        pdf.setFontSize(7.5);
+        pdf.setFont("helvetica", "bold");
+        pdf.setTextColor(80, 80, 80);
+
+        pdf.text("Vencimento", cols.venc.x, y);
+        pdf.text("Empresa", cols.empresa.x, y);
+        pdf.text("Fornecedor", cols.fornec.x, y);
+        pdf.text("Conta", cols.conta.x, y);
+        pdf.text("Parcela", cols.parcela.x, y, { align: "center" });
+        pdf.text("Valor", cols.valor.x + cols.valor.w, y, { align: "right" });
+        pdf.text("Status", cols.status.x, y);
+
+        pdf.setDrawColor(210, 210, 210);
+        pdf.line(marginLeft, y + 2, marginRight, y + 2);
+        y += 6;
+      };
+
+      drawTableHeader();
+
+      // â”€â”€ Grupos de datas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      reportGroups.forEach((group) => {
+        checkNewPage(14);
+
+        // Fundo do grupo
+        pdf.setFillColor(248, 249, 250);
+        pdf.rect(marginLeft, y - 3.5, usableWidth, 10, "F");
+
+        // Nome da data (sem dia da semana para economizar espaÃ§o)
+        const dateObj = new Date(group.date + "T00:00:00");
+        const dateLabel = dateObj.toLocaleDateString("pt-BR", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        });
+
+        pdf.setFontSize(8.5);
+        pdf.setFont("helvetica", "bold");
+        pdf.setTextColor(30, 30, 30);
+        pdf.text(dateLabel, marginLeft + 1, y + 2);
+
+        pdf.setFontSize(7);
+        pdf.setFont("helvetica", "normal");
+        pdf.setTextColor(100, 100, 100);
+        pdf.text(
+          `${group.parcels} parcela${group.parcels === 1 ? "" : "s"}`,
+          marginLeft + 1,
+          y + 6
+        );
+
+        // Total do grupo
+        pdf.setFontSize(9);
+        pdf.setFont("helvetica", "bold");
+        pdf.setTextColor(30, 30, 30);
+        pdf.text(formatCurrency(group.total), marginRight, y + 3, {
+          align: "right",
+        });
+
+        y += 13;
+
+        // Linhas de parcela
+        group.items.forEach((item: any, idx: number) => {
+          checkNewPage(7);
+
+          // Zebra
+          if (idx % 2 === 0) {
+            pdf.setFillColor(255, 255, 255);
+          } else {
+            pdf.setFillColor(252, 252, 252);
+          }
+          pdf.rect(marginLeft, y - 3.5, usableWidth, 6.5, "F");
+
+          pdf.setFontSize(7.5);
+          pdf.setFont("helvetica", "normal");
+          pdf.setTextColor(50, 50, 50);
+
+          const vencText = item.data_vencimento
+            ? new Date(item.data_vencimento + "T00:00:00").toLocaleDateString("pt-BR")
+            : "-";
+
+          const empresaNome: string = (item.conta.empresa_nome || "-").substring(0, 14);
+          const fornecNome: string = (item.conta.fornecedor_nome || "-").substring(0, 26);
+          const contaId = `#${item.conta.id.slice(-6).toUpperCase()}`;
+          const parcelaText = `${item.numero_parcela}/${item.conta.quantidade_parcelas}`;
+          const valorText = formatCurrency(item.valor_parcela);
+          const statusText: string = (item.status || "-");
+
+          pdf.text(vencText, cols.venc.x, y);
+          pdf.text(empresaNome, cols.empresa.x, y);
+          pdf.text(fornecNome, cols.fornec.x, y);
+          pdf.text(contaId, cols.conta.x, y);
+          pdf.text(parcelaText, cols.parcela.x + cols.parcela.w / 2, y, { align: "center" });
+          pdf.text(valorText, cols.valor.x + cols.valor.w, y, { align: "right" });
+
+          // Badge de status colorido
+          const statusColors: Record<string, [number, number, number]> = {
+            aberta:    [220, 237, 255],
+            paga:      [220, 250, 230],
+            vencida:   [255, 225, 225],
+            cancelada: [235, 235, 235],
+          };
+          const statusTextColors: Record<string, [number, number, number]> = {
+            aberta:    [30, 100, 200],
+            paga:      [30, 150, 60],
+            vencida:   [200, 50, 50],
+            cancelada: [100, 100, 100],
+          };
+          const [br, bg, bb] = statusColors[statusText] ?? [235, 235, 235];
+          const [tr, tg, tb] = statusTextColors[statusText] ?? [80, 80, 80];
+
+          const statusX = cols.status.x;
+          const badgeW = 18;
+          const badgeH = 4.5;
+          pdf.setFillColor(br, bg, bb);
+          pdf.roundedRect(statusX, y - 3.2, badgeW, badgeH, 1, 1, "F");
+          pdf.setTextColor(tr, tg, tb);
+          pdf.setFontSize(6.5);
+          pdf.text(statusText, statusX + badgeW / 2, y - 0.7, { align: "center" });
+
+          pdf.setDrawColor(240, 240, 240);
+          pdf.line(marginLeft, y + 2.5, marginRight, y + 2.5);
+
+          y += 7;
+        });
+
+        y += 2; // espaÃ§o entre grupos
+      });
+
+      // â”€â”€ Total Geral â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      checkNewPage(12);
+      y += 2;
+      pdf.setDrawColor(40, 40, 40);
+      pdf.setLineWidth(0.5);
+      pdf.line(marginLeft, y, marginRight, y);
+      y += 5;
+
+      pdf.setFontSize(10);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(30, 30, 30);
+      pdf.text("TOTAL GERAL", marginLeft, y);
+      pdf.text(formatCurrency(reportTotal), marginRight, y, { align: "right" });
+      pdf.setLineWidth(0.2);
+
+      const filename = `contas_pagar_${new Date().toISOString().split("T")[0]}.pdf`;
+      pdf.save(filename);
+      toast.success("PDF exportado com sucesso.");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao exportar PDF.");
+    } finally {
+      setExportingPdf(false);
+    }
+  }
+
   if (loading) {
     return <div className="flex min-h-screen items-center justify-center"><p>Carregando...</p></div>;
   }
@@ -288,10 +572,12 @@ export default function ContasPagarPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-2xl font-bold">Contas a Pagar</h2>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {selectedParcelas.size > 0 && (
             <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">{selectedParcelas.size} selecionada(s)</span>
+              <span className="text-sm text-muted-foreground">
+                {selectedParcelas.size} selecionada(s)
+              </span>
               <Select onValueChange={handleBulkStatusChange}>
                 <SelectTrigger className="w-[160px]">
                   <SelectValue placeholder="Alterar status" />
@@ -305,6 +591,15 @@ export default function ContasPagarPage() {
               </Select>
             </div>
           )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowReport(true)}
+            className="gap-2"
+          >
+            <FileText className="h-4 w-4" />
+            Gerar Relatório
+          </Button>
           {canCreate('contas_pagar') && (
             <Button size="sm" onClick={openNew}>
               <Plus className="h-4 w-4 mr-1" />
@@ -314,66 +609,113 @@ export default function ContasPagarPage() {
         </div>
       </div>
 
-      {/* Filtros */}
-      <div className="grid gap-4 md:grid-cols-4 items-end">
-        <div>
-          <Label className="text-xs">Empresa</Label>
-          <Select value={filterEmpresa || "_all"} onValueChange={(v) => setFilterEmpresa(v === "_all" ? "" : v)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Todas as empresas" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="_all">Todas as empresas</SelectItem>
-              {empresas.map((empresa) => (
-                <SelectItem key={empresa.id} value={empresa.id}>
-                  <div className="flex items-center gap-2">
-                    <Building className="h-4 w-4" />
-                    {empresa.nome}
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      <div className="rounded-xl border bg-card p-4">
+        <div className="grid gap-4 lg:grid-cols-4">
+          <div>
+            <Label className="text-xs">Empresa</Label>
+            <Select value={filterEmpresa || "_all"} onValueChange={(v) => setFilterEmpresa(v === "_all" ? "" : v)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Todas as empresas" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_all">Todas as empresas</SelectItem>
+                {empresas.map((empresa) => (
+                  <SelectItem key={empresa.id} value={empresa.id}>
+                    <div className="flex items-center gap-2">
+                      <Building className="h-4 w-4" />
+                      {empresa.nome}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <FornecedorSelect
+              value={filterFornecedor}
+              onChange={(v) => setFilterFornecedor(v)}
+              onFornecedorSelect={(f) => setFilterFornecedor(f.id)}
+              fornecedores={fornecedores}
+              valueMode="id"
+              label="Fornecedor"
+            />
+          </div>
+
+          <div>
+            <Label>Período</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start text-left font-normal"
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {startDate ? format(startDate, "dd/MM/yyyy", { locale: ptBR }) : "Selecione"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={startDate}
+                  onSelect={setStartDate}
+                  initialFocus
+                  locale={ptBR}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          <div>
+            <Label>Até</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start text-left font-normal"
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {endDate ? format(endDate, "dd/MM/yyyy", { locale: ptBR }) : "Selecione"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={endDate}
+                  onSelect={setEndDate}
+                  initialFocus
+                  locale={ptBR}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
         </div>
-        <div>
-          <FornecedorSelect
-            value={filterFornecedor}
-            onChange={(v) => setFilterFornecedor(v)}
-            onFornecedorSelect={(f) => setFilterFornecedor(f.id)}
-            fornecedores={fornecedores}
-            valueMode="id"
-            label="Fornecedor"
-            placeholder="Todos os fornecedores"
-          />
+
+        <div className="mt-4 flex justify-end">
+          <Button onClick={handleConsultar} className="min-w-[160px] gap-2">
+            <Search className="h-4 w-4" />
+            Consultar
+          </Button>
         </div>
-        <div>
-          <Label className="text-xs">Data de Emissão</Label>
-          <Input type="date" value={filterDataEmissao} onChange={(e) => setFilterDataEmissao(e.target.value)} />
-        </div>
-        <Button onClick={handleConsultar} className="w-full">
-          <Calendar className="h-4 w-4 mr-2" />
-          Consultar
-        </Button>
       </div>
 
-      {/* Tabela de Contas com Parcelas expandidas */}
-      <div className="rounded-md border overflow-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-8">
-                <CheckSquare className="h-4 w-4 text-muted-foreground" />
-              </TableHead>
-              <TableHead>Nº</TableHead>
-              <TableHead>Data Emissão</TableHead>
-              <TableHead>Empresa</TableHead>
-              <TableHead>Fornecedor</TableHead>
-              <TableHead>Valor Total</TableHead>
-              <TableHead>Parcela</TableHead>
-              <TableHead>Vencimento</TableHead>
-              <TableHead>Status Parcela</TableHead>
-              <TableHead>Observação</TableHead>
-              <TableHead></TableHead>
+          {/* Tabela de Contas com Parcelas expandidas */}
+          <div className="rounded-md border overflow-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-8">
+                    <CheckSquare className="h-4 w-4 text-muted-foreground" />
+                  </TableHead>
+                  <TableHead>Nº</TableHead>
+                  <TableHead>Empresa</TableHead>
+                  <TableHead>Fornecedor</TableHead>
+                  <TableHead>Valor Total</TableHead>
+                  <TableHead>Parcela</TableHead>
+                  <TableHead>Vencimento</TableHead>
+                  <TableHead>Status Parcela</TableHead>
+                  <TableHead>Observação</TableHead>
+                  <TableHead></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -497,7 +839,7 @@ export default function ContasPagarPage() {
         </Table>
       </div>
 
-      {/* Diálogo de Nova/Editar Conta */}
+      {/* DiÃ¡logo de Nova/Editar Conta */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
@@ -507,7 +849,7 @@ export default function ContasPagarPage() {
           <div className="grid gap-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Data de Emissão *</Label>
+                <Label>Data de EmissÃ£o *</Label>
                 <Input 
                   type="date"
                   value={form.data_emissao} 
@@ -515,7 +857,7 @@ export default function ContasPagarPage() {
                 />
               </div>
               <div>
-                <Label>1º Vencimento *</Label>
+                <Label>1Âº Vencimento *</Label>
                 <Input 
                   type="date"
                   value={form.data_primeiro_vencimento} 
@@ -570,7 +912,7 @@ export default function ContasPagarPage() {
                 />
                 {editingId && items.find(item => item.id === editingId)?.parcelas.length > 0 && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    Para alterar o valor, use a edição de parcelas
+                    Para alterar o valor, use a ediÃ§Ã£o de parcelas
                   </p>
                 )}
               </div>
@@ -594,7 +936,7 @@ export default function ContasPagarPage() {
                 </Select>
                 {editingId && items.find(item => item.id === editingId)?.parcelas.length > 0 && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    Para alterar as parcelas, use a edição de parcelas
+                    Para alterar as parcelas, use a ediÃ§Ã£o de parcelas
                   </p>
                 )}
               </div>
@@ -603,7 +945,7 @@ export default function ContasPagarPage() {
             {/* Preview das parcelas */}
             {!editingId && form.valor_total && parseInt(form.quantidade_parcelas) > 0 && (
               <div className="p-3 bg-muted rounded-lg text-sm space-y-1">
-                <p className="font-medium text-xs text-muted-foreground">Prévia das parcelas:</p>
+                <p className="font-medium text-xs text-muted-foreground">PrÃ©via das parcelas:</p>
                 {Array.from({ length: parseInt(form.quantidade_parcelas) }, (_, i) => {
                   const val = parseCurrencyInput(form.valor_total) / parseInt(form.quantidade_parcelas);
                   const dt = new Date(`${form.data_primeiro_vencimento || form.data_emissao}T00:00:00`);
@@ -619,11 +961,11 @@ export default function ContasPagarPage() {
             )}
 
             <div>
-              <Label>Observação</Label>
+              <Label>ObservaÃ§Ã£o</Label>
               <Input 
                 value={form.observacao} 
                 onChange={(e) => setForm((p) => ({ ...p, observacao: e.target.value }))} 
-                placeholder="Observações sobre a conta..."
+                placeholder="ObservaÃ§Ãµes sobre a conta..."
               />
             </div>
           </div>
@@ -635,7 +977,7 @@ export default function ContasPagarPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Diálogo de Edição de Parcelas */}
+      {/* DiÃ¡logo de EdiÃ§Ã£o de Parcelas */}
       <ContasPagarParcelasDialog
         open={showParcelasDialog}
         onClose={() => setShowParcelasDialog(false)}
@@ -644,6 +986,157 @@ export default function ContasPagarPage() {
         onSave={handleParcelasSave}
         userId={user?.id || ''}
       />
+
+      {/* DiÃ¡logo de RelatÃ³rio */}
+      <Dialog open={showReport} onOpenChange={setShowReport}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle>RelatÃ³rio de Contas a Pagar</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {/* Resumo dos Filtros */}
+            <div className="rounded-md border bg-muted/30 p-4">
+              <h4 className="font-semibold mb-2">Filtros Aplicados:</h4>
+              <div className="grid grid-cols-3 gap-4 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Empresa:</span>
+                  <p className="font-medium">
+                    {filtrosAplicados.empresa 
+                      ? empresas.find(e => e.id === filtrosAplicados.empresa)?.nome || 'NÃ£o encontrada'
+                      : 'Todas'}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Fornecedor:</span>
+                  <p className="font-medium">
+                    {filtrosAplicados.fornecedor
+                      ? fornecedores.find(f => f.id === filtrosAplicados.fornecedor)?.nome_fornecedor || 'NÃ£o encontrado'
+                      : 'Todos'}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">PerÃ­odo:</span>
+                  <p className="font-medium">
+                    {filtrosAplicados.startDate || filtrosAplicados.endDate
+                      ? `${filtrosAplicados.startDate ? format(filtrosAplicados.startDate, 'dd/MM/yyyy', { locale: ptBR }) : 'InÃ­cio'} a ${filtrosAplicados.endDate ? format(filtrosAplicados.endDate, 'dd/MM/yyyy', { locale: ptBR }) : 'Fim'}`
+                      : 'Todo o perÃ­odo'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Tabela do RelatÃ³rio */}
+            <div ref={reportRef}>
+              <div className="mb-3 rounded-md border bg-white px-4 py-3">
+                <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">RelatÃ³rio</p>
+                <div className="mt-1 flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
+                  <h3 className="text-base font-semibold leading-tight">Contas a Pagar</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Gerado em: {new Date().toLocaleDateString('pt-BR')}
+                  </p>
+                </div>
+              </div>
+
+              {reportGroups.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">
+                  Nenhuma parcela encontrada para os filtros selecionados.
+                </p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Vencimento</TableHead>
+                      <TableHead>Empresa</TableHead>
+                      <TableHead>Fornecedor</TableHead>
+                      <TableHead>Conta</TableHead>
+                      <TableHead>Parcela</TableHead>
+                      <TableHead className="text-right">Valor</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {reportGroups.map((group) => [
+                      // Header do grupo (data e total do dia)
+                      <TableRow key={group.date}>
+                          <TableCell colSpan={7} className="py-2">
+                            <div className="flex justify-between items-center">
+                              <div>
+                                <p className="font-semibold text-sm">{group.dateLabel}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {group.parcels} parcela{group.parcels === 1 ? '' : 's'}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-semibold text-base">
+                                  {formatCurrency(group.total)}
+                                </p>
+                              </div>
+                            </div>
+                          </TableCell>
+                      </TableRow>,
+                      // Parcelas do dia
+                        ...group.items.map((item) => (
+                          <TableRow key={`${item.conta.id}-${item.id}`}>
+                            <TableCell className="py-1 text-xs">
+                              {item.data_vencimento 
+                                ? new Date(item.data_vencimento + 'T00:00:00').toLocaleDateString('pt-BR')
+                                : '-'}
+                            </TableCell>
+                            <TableCell className="font-medium text-xs py-1">
+                              {item.conta.empresa_nome || '-'}
+                            </TableCell>
+                            <TableCell className="text-xs py-1">
+                              {item.conta.fornecedor_nome || '-'}
+                            </TableCell>
+                            <TableCell className="font-mono text-xs py-1">
+                              #{item.conta.id.slice(-6).toUpperCase()}
+                            </TableCell>
+                            <TableCell className="text-center text-xs py-1">
+                              {item.numero_parcela}/{item.conta.quantidade_parcelas}
+                            </TableCell>
+                            <TableCell className="text-right font-semibold text-xs py-1">
+                              {formatCurrency(item.valor_parcela)}
+                            </TableCell>
+                            <TableCell className="py-1">
+                              <span className="text-xs px-2 py-1 bg-gray-100 rounded">
+                                {item.status}
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                    ])}
+                    
+                    {/* Total Geral */}
+                      <TableRow>
+                        <TableCell colSpan={7} className="py-2">
+                          <div className="flex justify-between items-center border-t-2 border-black">
+                            <p className="font-bold text-sm">TOTAL GERAL</p>
+                            <p className="font-bold text-base">
+                              {formatCurrency(reportTotal)}
+                            </p>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                  </TableBody>
+                </Table>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowReport(false)}>
+              Fechar
+            </Button>
+            <Button 
+              onClick={handleExportPdf}
+              disabled={exportingPdf || reportGroups.length === 0}
+            >
+              {exportingPdf ? 'Exportando...' : 'Exportar PDF'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
