@@ -442,7 +442,7 @@ export default function ContasPagarPage() {
               </TableRow>
             )}
 
-            {filtered.map((conta) => {
+            {sortedFiltered.map((conta) => {
               const parcelas = conta.parcelas.sort((a, b) => a.numero_parcela - b.numero_parcela);
               const primeiraParcela = parcelas[0];
               const temMaisParcelas = parcelas.length > 1;
