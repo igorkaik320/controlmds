@@ -53,10 +53,38 @@ export default function ContasPagarPage() {
   const [contaParcelas, setContaParcelas] = useState<ContaPagarComParcelas | null>(null);
   const [selectedParcelas, setSelectedParcelas] = useState<Set<string>>(new Set());
   const [showBulkStatus, setShowBulkStatus] = useState(false);
+<<<<<<< HEAD
   const [showReport, setShowReport] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
   const printRef = useRef<HTMLDivElement>(null);
+=======
+
+  // Ordenação
+  type SortKey = 'numero' | 'data_emissao' | 'empresa' | 'fornecedor' | 'valor_total' | 'parcela' | 'vencimento' | 'status' | 'observacao';
+  type SortDir = 'asc' | 'desc';
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
+
+  function handleSort(key: SortKey) {
+    if (sortKey !== key) {
+      setSortKey(key);
+      setSortDir('asc');
+    } else if (sortDir === 'asc') {
+      setSortDir('desc');
+    } else {
+      setSortKey(null);
+      setSortDir('asc');
+    }
+  }
+
+  function SortIcon({ column }: { column: SortKey }) {
+    if (sortKey !== column) return <ArrowUpDown className="h-3 w-3 ml-1 opacity-40" />;
+    return sortDir === 'asc'
+      ? <ArrowUp className="h-3 w-3 ml-1" />
+      : <ArrowDown className="h-3 w-3 ml-1" />;
+  }
+>>>>>>> 21039db2dd71553b438863be1547ae029c3ef7ac
   
   // Filtros
   const [filterEmpresa, setFilterEmpresa] = useState('');
@@ -119,8 +147,40 @@ export default function ContasPagarPage() {
     return true;
   });
 
+  // Aplica ordenação clicável nos headers
+  const sortedFiltered = (() => {
+    if (!sortKey) return filtered;
+    const arr = [...filtered];
+    const dir = sortDir === 'asc' ? 1 : -1;
+    const collator = new Intl.Collator('pt-BR', { sensitivity: 'base', numeric: true });
+
+    const getVal = (c: ContaPagarComParcelas): string | number => {
+      const primeira = [...c.parcelas].sort((a, b) => a.numero_parcela - b.numero_parcela)[0];
+      switch (sortKey) {
+        case 'numero': return c.numero ?? 0;
+        case 'data_emissao': return c.data_emissao || '';
+        case 'empresa': return (c.empresa_nome || '').toLowerCase();
+        case 'fornecedor': return (c.fornecedor_nome || '').toLowerCase();
+        case 'valor_total': return Number(c.valor_total) || 0;
+        case 'parcela': return c.quantidade_parcelas || 0;
+        case 'vencimento': return primeira?.data_vencimento || '';
+        case 'status': return (primeira?.status || '').toLowerCase();
+        case 'observacao': return ((primeira?.observacao || c.observacao) || '').toLowerCase();
+        default: return '';
+      }
+    };
+
+    arr.sort((a, b) => {
+      const va = getVal(a);
+      const vb = getVal(b);
+      if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir;
+      return collator.compare(String(va), String(vb)) * dir;
+    });
+    return arr;
+  })();
+
   // Flatten all parcelas for inline display
-  const allParcelas = filtered.flatMap(conta => 
+  const allParcelas = sortedFiltered.flatMap(conta => 
     conta.parcelas.map(p => ({ ...p, conta }))
   );
 
@@ -699,6 +759,7 @@ export default function ContasPagarPage() {
         </div>
       </div>
 
+<<<<<<< HEAD
           {/* Tabela de Contas com Parcelas expandidas */}
           <div className="rounded-md border overflow-auto">
             <Table>
@@ -716,6 +777,26 @@ export default function ContasPagarPage() {
                   <TableHead>Status Parcela</TableHead>
                   <TableHead>Observação</TableHead>
                   <TableHead></TableHead>
+=======
+      {/* Tabela de Contas com Parcelas expandidas */}
+      <div className="rounded-md border overflow-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-8">
+                <CheckSquare className="h-4 w-4 text-muted-foreground" />
+              </TableHead>
+              <TableHead onClick={() => handleSort('numero')} className="cursor-pointer select-none hover:bg-muted/50"><div className="flex items-center">Nº<SortIcon column="numero" /></div></TableHead>
+              <TableHead onClick={() => handleSort('data_emissao')} className="cursor-pointer select-none hover:bg-muted/50"><div className="flex items-center">Data Emissão<SortIcon column="data_emissao" /></div></TableHead>
+              <TableHead onClick={() => handleSort('empresa')} className="cursor-pointer select-none hover:bg-muted/50"><div className="flex items-center">Empresa<SortIcon column="empresa" /></div></TableHead>
+              <TableHead onClick={() => handleSort('fornecedor')} className="cursor-pointer select-none hover:bg-muted/50"><div className="flex items-center">Fornecedor<SortIcon column="fornecedor" /></div></TableHead>
+              <TableHead onClick={() => handleSort('valor_total')} className="cursor-pointer select-none hover:bg-muted/50"><div className="flex items-center">Valor Total<SortIcon column="valor_total" /></div></TableHead>
+              <TableHead onClick={() => handleSort('parcela')} className="cursor-pointer select-none hover:bg-muted/50"><div className="flex items-center">Parcela<SortIcon column="parcela" /></div></TableHead>
+              <TableHead onClick={() => handleSort('vencimento')} className="cursor-pointer select-none hover:bg-muted/50"><div className="flex items-center">Vencimento<SortIcon column="vencimento" /></div></TableHead>
+              <TableHead onClick={() => handleSort('status')} className="cursor-pointer select-none hover:bg-muted/50"><div className="flex items-center">Status Parcela<SortIcon column="status" /></div></TableHead>
+              <TableHead onClick={() => handleSort('observacao')} className="cursor-pointer select-none hover:bg-muted/50"><div className="flex items-center">Observação<SortIcon column="observacao" /></div></TableHead>
+              <TableHead></TableHead>
+>>>>>>> 21039db2dd71553b438863be1547ae029c3ef7ac
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -727,7 +808,7 @@ export default function ContasPagarPage() {
               </TableRow>
             )}
 
-            {filtered.map((conta) => {
+            {sortedFiltered.map((conta) => {
               const parcelas = conta.parcelas.sort((a, b) => a.numero_parcela - b.numero_parcela);
               const primeiraParcela = parcelas[0];
               const temMaisParcelas = parcelas.length > 1;
