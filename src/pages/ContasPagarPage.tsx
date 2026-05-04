@@ -53,12 +53,10 @@ export default function ContasPagarPage() {
   const [contaParcelas, setContaParcelas] = useState<ContaPagarComParcelas | null>(null);
   const [selectedParcelas, setSelectedParcelas] = useState<Set<string>>(new Set());
   const [showBulkStatus, setShowBulkStatus] = useState(false);
-<<<<<<< HEAD
   const [showReport, setShowReport] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
   const printRef = useRef<HTMLDivElement>(null);
-=======
 
   // Ordenação
   type SortKey = 'numero' | 'data_emissao' | 'empresa' | 'fornecedor' | 'valor_total' | 'parcela' | 'vencimento' | 'status' | 'observacao';
@@ -84,7 +82,6 @@ export default function ContasPagarPage() {
       ? <ArrowUp className="h-3 w-3 ml-1" />
       : <ArrowDown className="h-3 w-3 ml-1" />;
   }
->>>>>>> 21039db2dd71553b438863be1547ae029c3ef7ac
   
   // Filtros
   const [filterEmpresa, setFilterEmpresa] = useState('');
