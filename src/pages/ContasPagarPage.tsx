@@ -697,13 +697,14 @@ export default function ContasPagarPage() {
           </div>
 
           <div>
+            <Label>Fornecedor</Label>
             <FornecedorSelect
               value={filterFornecedor}
               onChange={(v) => setFilterFornecedor(v)}
               onFornecedorSelect={(f) => setFilterFornecedor(f.id)}
               fornecedores={fornecedores}
               valueMode="id"
-              label="Fornecedor"
+              label=""
             />
           </div>
 
