@@ -139,8 +139,16 @@ export default function ContasPagarPage() {
     if (!filtrosAplicados.empresa && !filtrosAplicados.fornecedor && !filtrosAplicados.startDate && !filtrosAplicados.endDate) return true;
     if (filtrosAplicados.empresa && i.empresa_id !== filtrosAplicados.empresa) return false;
     if (filtrosAplicados.fornecedor && i.fornecedor_id !== filtrosAplicados.fornecedor) return false;
-    if (filtrosAplicados.startDate && new Date(i.data_emissao) < filtrosAplicados.startDate) return false;
-    if (filtrosAplicados.endDate && new Date(i.data_emissao) > filtrosAplicados.endDate) return false;
+    if (filtrosAplicados.startDate || filtrosAplicados.endDate) {
+      const venc = i.parcelas
+        .map((p) => p.data_vencimento)
+        .filter(Boolean)
+        .sort()[0];
+      if (!venc) return false;
+      const vencDate = new Date(venc + 'T00:00:00');
+      if (filtrosAplicados.startDate && vencDate < filtrosAplicados.startDate) return false;
+      if (filtrosAplicados.endDate && vencDate > filtrosAplicados.endDate) return false;
+    }
     return true;
   });
 
@@ -669,7 +677,7 @@ export default function ContasPagarPage() {
       <div className="rounded-xl border bg-card p-4">
         <div className="grid gap-4 lg:grid-cols-4">
           <div>
-            <Label className="text-xs">Empresa</Label>
+            <Label>Empresa</Label>
             <Select value={filterEmpresa || "_all"} onValueChange={(v) => setFilterEmpresa(v === "_all" ? "" : v)}>
               <SelectTrigger>
                 <SelectValue placeholder="Todas as empresas" />
@@ -700,7 +708,7 @@ export default function ContasPagarPage() {
           </div>
 
           <div>
-            <Label>Período</Label>
+            <Label>Vencimento (de)</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -724,7 +732,7 @@ export default function ContasPagarPage() {
           </div>
 
           <div>
-            <Label>Até</Label>
+            <Label>Vencimento (até)</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
