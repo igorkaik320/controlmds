@@ -421,15 +421,15 @@ export default function ContasPagarPage() {
               <TableHead className="w-8">
                 <CheckSquare className="h-4 w-4 text-muted-foreground" />
               </TableHead>
-              <TableHead>Nº</TableHead>
-              <TableHead>Data Emissão</TableHead>
-              <TableHead>Empresa</TableHead>
-              <TableHead>Fornecedor</TableHead>
-              <TableHead>Valor Total</TableHead>
-              <TableHead>Parcela</TableHead>
-              <TableHead>Vencimento</TableHead>
-              <TableHead>Status Parcela</TableHead>
-              <TableHead>Observação</TableHead>
+              <TableHead onClick={() => handleSort('numero')} className="cursor-pointer select-none hover:bg-muted/50"><div className="flex items-center">Nº<SortIcon column="numero" /></div></TableHead>
+              <TableHead onClick={() => handleSort('data_emissao')} className="cursor-pointer select-none hover:bg-muted/50"><div className="flex items-center">Data Emissão<SortIcon column="data_emissao" /></div></TableHead>
+              <TableHead onClick={() => handleSort('empresa')} className="cursor-pointer select-none hover:bg-muted/50"><div className="flex items-center">Empresa<SortIcon column="empresa" /></div></TableHead>
+              <TableHead onClick={() => handleSort('fornecedor')} className="cursor-pointer select-none hover:bg-muted/50"><div className="flex items-center">Fornecedor<SortIcon column="fornecedor" /></div></TableHead>
+              <TableHead onClick={() => handleSort('valor_total')} className="cursor-pointer select-none hover:bg-muted/50"><div className="flex items-center">Valor Total<SortIcon column="valor_total" /></div></TableHead>
+              <TableHead onClick={() => handleSort('parcela')} className="cursor-pointer select-none hover:bg-muted/50"><div className="flex items-center">Parcela<SortIcon column="parcela" /></div></TableHead>
+              <TableHead onClick={() => handleSort('vencimento')} className="cursor-pointer select-none hover:bg-muted/50"><div className="flex items-center">Vencimento<SortIcon column="vencimento" /></div></TableHead>
+              <TableHead onClick={() => handleSort('status')} className="cursor-pointer select-none hover:bg-muted/50"><div className="flex items-center">Status Parcela<SortIcon column="status" /></div></TableHead>
+              <TableHead onClick={() => handleSort('observacao')} className="cursor-pointer select-none hover:bg-muted/50"><div className="flex items-center">Observação<SortIcon column="observacao" /></div></TableHead>
               <TableHead></TableHead>
             </TableRow>
           </TableHeader>
