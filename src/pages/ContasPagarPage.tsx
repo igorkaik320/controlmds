@@ -756,25 +756,6 @@ export default function ContasPagarPage() {
         </div>
       </div>
 
-<<<<<<< HEAD
-          {/* Tabela de Contas com Parcelas expandidas */}
-          <div className="rounded-md border overflow-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-8">
-                    <CheckSquare className="h-4 w-4 text-muted-foreground" />
-                  </TableHead>
-                  <TableHead>Nº</TableHead>
-                  <TableHead>Empresa</TableHead>
-                  <TableHead>Fornecedor</TableHead>
-                  <TableHead>Valor Total</TableHead>
-                  <TableHead>Parcela</TableHead>
-                  <TableHead>Vencimento</TableHead>
-                  <TableHead>Status Parcela</TableHead>
-                  <TableHead>Observação</TableHead>
-                  <TableHead></TableHead>
-=======
       {/* Tabela de Contas com Parcelas expandidas */}
       <div className="rounded-md border overflow-auto">
         <Table>
@@ -793,7 +774,6 @@ export default function ContasPagarPage() {
               <TableHead onClick={() => handleSort('status')} className="cursor-pointer select-none hover:bg-muted/50"><div className="flex items-center">Status Parcela<SortIcon column="status" /></div></TableHead>
               <TableHead onClick={() => handleSort('observacao')} className="cursor-pointer select-none hover:bg-muted/50"><div className="flex items-center">Observação<SortIcon column="observacao" /></div></TableHead>
               <TableHead></TableHead>
->>>>>>> 21039db2dd71553b438863be1547ae029c3ef7ac
             </TableRow>
           </TableHeader>
           <TableBody>
