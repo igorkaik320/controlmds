@@ -49,6 +49,31 @@ export default function ContasPagarPage() {
   const [contaParcelas, setContaParcelas] = useState<ContaPagarComParcelas | null>(null);
   const [selectedParcelas, setSelectedParcelas] = useState<Set<string>>(new Set());
   const [showBulkStatus, setShowBulkStatus] = useState(false);
+
+  // Ordenação
+  type SortKey = 'numero' | 'data_emissao' | 'empresa' | 'fornecedor' | 'valor_total' | 'parcela' | 'vencimento' | 'status' | 'observacao';
+  type SortDir = 'asc' | 'desc';
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
+
+  function handleSort(key: SortKey) {
+    if (sortKey !== key) {
+      setSortKey(key);
+      setSortDir('asc');
+    } else if (sortDir === 'asc') {
+      setSortDir('desc');
+    } else {
+      setSortKey(null);
+      setSortDir('asc');
+    }
+  }
+
+  function SortIcon({ column }: { column: SortKey }) {
+    if (sortKey !== column) return <ArrowUpDown className="h-3 w-3 ml-1 opacity-40" />;
+    return sortDir === 'asc'
+      ? <ArrowUp className="h-3 w-3 ml-1" />
+      : <ArrowDown className="h-3 w-3 ml-1" />;
+  }
   
   // Filtros
   const [filterEmpresa, setFilterEmpresa] = useState('');
