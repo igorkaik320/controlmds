@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label';
 import { fetchFornecedores, type Fornecedor } from '@/lib/comprasService';
 import { toast } from 'sonner';
 
-/** `name` (default): value/onChange usam o nome — compras e relatórios. `id`: usam o UUID — FKs (ex.: revisões). */
+/** `name` (default): value/onChange usam o nome - compras e relatorios. `id`: usam o UUID - FKs (ex.: revisoes). */
 export type FornecedorSelectValueMode = 'name' | 'id';
 
 interface Props {
@@ -79,14 +79,16 @@ export default function FornecedorSelect({
 
   useEffect(() => {
     if (valueMode === 'id') {
-      const f = value ? fornecedores.find((x) => x.id === value) : null;
-      if (f) setQuery(f.nome_fornecedor);
+      const fornecedor = value ? fornecedores.find((item) => item.id === value) : null;
+      if (fornecedor) setQuery(fornecedor.nome_fornecedor);
       return;
     }
+
     if (selectedFornecedor) {
       setQuery(selectedFornecedor.nome_fornecedor);
       return;
     }
+
     setQuery(value || '');
   }, [valueMode, value, fornecedores, selectedFornecedor]);
 
@@ -114,7 +116,7 @@ export default function FornecedorSelect({
 
   return (
     <div className="space-y-2">
-      <Label>{label}</Label>
+      {label ? <Label>{label}</Label> : null}
 
       <div className="relative">
         <Input
@@ -146,7 +148,7 @@ export default function FornecedorSelect({
                 <div className="font-medium">{fornecedor.nome_fornecedor}</div>
                 <div className="text-xs text-muted-foreground">
                   {fornecedor.razao_social || 'Sem razao social'}
-                  {fornecedor.cnpj_cpf ? ` • ${fornecedor.cnpj_cpf}` : ''}
+                  {fornecedor.cnpj_cpf ? ` - ${fornecedor.cnpj_cpf}` : ''}
                 </div>
               </button>
             ))}

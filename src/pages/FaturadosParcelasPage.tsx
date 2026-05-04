@@ -4,6 +4,13 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CalendarIcon, X } from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { fetchComprasFaturadas, formatCurrencyBR } from "@/lib/comprasService";
 import { fetchEmpresas, Empresa } from "@/lib/empresasService";
 import { fetchObras, Obra } from "@/lib/obrasService";
@@ -67,6 +74,11 @@ export default function FaturadosParcelasPage() {
   const [alertas, setAlertas] = useState<AlertaSimples[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
   const tableRef = useRef<HTMLDivElement>(null);
+  
+  // Estados para filtro de período
+  const [startDate, setStartDate] = useState<Date | undefined>();
+  const [endDate, setEndDate] = useState<Date | undefined>();
+  const [showDateFilter, setShowDateFilter] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -201,24 +213,43 @@ export default function FaturadosParcelasPage() {
   }, [obras, selectedCompany]);
 
   const visibleInstallments = useMemo(() => {
-    if (!selectedCompany) return items;
+    let filteredItems = items;
 
-    const selectedCompanyName = companies.find((c) => c.id === selectedCompany)?.nome?.toLowerCase();
+    // Filtro por empresa
+    if (selectedCompany) {
+      const selectedCompanyName = companies.find((c) => c.id === selectedCompany)?.nome?.toLowerCase();
 
-    return items.filter((installment) => {
-      if (installment.companyId === selectedCompany) return true;
+      filteredItems = filteredItems.filter((installment) => {
+        if (installment.companyId === selectedCompany) return true;
 
-      if (installment.obra && allowedObrasForCompany?.has(installment.obra.toLowerCase())) {
+        if (installment.obra && allowedObrasForCompany?.has(installment.obra.toLowerCase())) {
+          return true;
+        }
+
+        if (selectedCompanyName && installment.companyName?.toLowerCase() === selectedCompanyName) {
+          return true;
+        }
+
+        return false;
+      });
+    }
+
+    // Filtro por período
+    if (startDate || endDate) {
+      filteredItems = filteredItems.filter((installment) => {
+        if (!installment.dueIso) return false;
+        
+        const installmentDate = new Date(installment.dueIso);
+        
+        if (startDate && installmentDate < startDate) return false;
+        if (endDate && installmentDate > endDate) return false;
+        
         return true;
-      }
+      });
+    }
 
-      if (selectedCompanyName && installment.companyName?.toLowerCase() === selectedCompanyName) {
-        return true;
-      }
-
-      return false;
-    });
-  }, [allowedObrasForCompany, companies, items, selectedCompany]);
+    return filteredItems;
+  }, [allowedObrasForCompany, companies, items, selectedCompany, startDate, endDate]);
 
   const months = useMemo<MonthSummary[]>(() => {
     const map = new Map<string, MonthSummary>();
@@ -417,6 +448,85 @@ export default function FaturadosParcelasPage() {
             ))}
           </div>
         )}
+
+        {/* Filtros */}
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center">
+            <Button
+              variant={showDateFilter ? "default" : "outline"}
+              onClick={() => setShowDateFilter(!showDateFilter)}
+              className="w-full md:w-auto"
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              Filtro de Período
+            </Button>
+            
+            {showDateFilter && (
+              <div className="flex flex-col gap-3 md:flex-row md:items-center">
+                <div className="flex flex-col gap-1">
+                  <Label className="text-xs">Data Inicial</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full md:w-40 justify-start text-left font-normal"
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {startDate ? format(startDate, "dd/MM/yyyy", { locale: ptBR }) : "Selecione"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={startDate}
+                        onSelect={setStartDate}
+                        initialFocus
+                        locale={ptBR}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <Label className="text-xs">Data Final</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full md:w-40 justify-start text-left font-normal"
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {endDate ? format(endDate, "dd/MM/yyyy", { locale: ptBR }) : "Selecione"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={endDate}
+                        onSelect={setEndDate}
+                        initialFocus
+                        locale={ptBR}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setStartDate(undefined);
+                    setEndDate(undefined);
+                  }}
+                  className="mt-5 md:mt-0"
+                >
+                  <X className="mr-1 h-4 w-4" />
+                  Limpar
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
         
         <div className="grid gap-4 md:grid-cols-3">
           {months.map((month) => {

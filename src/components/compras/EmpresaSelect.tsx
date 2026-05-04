@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fetchEmpresas, Empresa } from "@/lib/empresasService";
@@ -19,10 +19,12 @@ export default function EmpresaSelect({ value, onChange, label = "Empresa", allo
       .catch(() => {});
   }, []);
 
+  const selectValue = allowAll ? (value || "_all") : (value || undefined);
+
   return (
     <div>
       {label && <Label className="text-xs">{label}</Label>}
-      <Select value={value || "_all"} onValueChange={(v) => onChange(v === "_all" ? "" : v)}>
+      <Select value={selectValue} onValueChange={(v) => onChange(v === "_all" ? "" : v)}>
         <SelectTrigger className="w-full">
           <SelectValue placeholder="Selecione..." />
         </SelectTrigger>
@@ -38,3 +40,4 @@ export default function EmpresaSelect({ value, onChange, label = "Empresa", allo
     </div>
   );
 }
+
