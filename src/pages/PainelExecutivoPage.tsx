@@ -153,6 +153,8 @@ export default function PainelExecutivoPage() {
     []
   );
   const [semPedidoItems, setSemPedidoItems] = useState<CompraSemPedido[]>([]);
+  const [comparativo, setComparativo] = useState<Array<{ name: string; atual: number; anterior: number; variacao: number }>>([]);
+  const [periodoAnteriorLabel, setPeriodoAnteriorLabel] = useState('');
 
   const consultFlashPendingRef = useRef(false);
   const load = useCallback(async () => {
@@ -338,6 +340,58 @@ if (matchingValue > 0 && matchesEmpresaFilter(item.obra)) {
       );
 
       setSemPedidoItems(semPedidoList);
+
+      // ===== Comparativo com período anterior =====
+      const today = new Date();
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const fmt = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+      let curFrom = dateFrom;
+      let curTo = dateTo;
+      if (!curFrom || !curTo) {
+        const first = new Date(today.getFullYear(), today.getMonth(), 1);
+        curFrom = curFrom || fmt(first);
+        curTo = curTo || fmt(today);
+      }
+      const shiftMonth = (iso: string) => {
+        const [y, m, d] = iso.split('-').map(Number);
+        const dt = new Date(y, m - 2, d);
+        return fmt(dt);
+      };
+      const prevFrom = shiftMonth(curFrom);
+      const prevTo = shiftMonth(curTo);
+      const inPrev = (iso: string) => iso >= prevFrom && iso <= prevTo;
+
+      const prevAvista = comprasAvista
+        .filter((i) => inPrev(i.data) && matchesEmpresaFilter(i.obra))
+        .reduce((s, i) => s + i.valor, 0);
+      let prevFaturadas = 0;
+      comprasFaturadas.forEach((item) => {
+        if (!matchesEmpresaFilter(item.obra)) return;
+        const installments = buildInstallmentsFromItem(item);
+        installments.forEach((inst) => {
+          const iso = toIsoDateString(inst.due);
+          if (iso && inPrev(iso)) prevFaturadas += inst.value;
+        });
+      });
+      const prevProgramacao = programacao
+        .filter((i) => inPrev(i.data) && matchesEmpresaFilter(i.obra))
+        .reduce((s, i) => s + i.valor, 0);
+      const prevCombustivel = abastecimentos
+        .filter((i) => inPrev(i.data) && matchesEmpresaFilter(i.obra?.nome, i.obra?.empresa_id))
+        .reduce((s, i) => s + i.valor_total, 0);
+
+      const calcVar = (atual: number, anterior: number) => {
+        if (anterior === 0) return atual > 0 ? 100 : 0;
+        return ((atual - anterior) / anterior) * 100;
+      };
+
+      setComparativo([
+        { name: 'Compras à Vista', atual: totalAvista, anterior: prevAvista, variacao: calcVar(totalAvista, prevAvista) },
+        { name: 'Faturadas', atual: totalFaturadas, anterior: prevFaturadas, variacao: calcVar(totalFaturadas, prevFaturadas) },
+        { name: 'Programação', atual: totalProgramacao, anterior: prevProgramacao, variacao: calcVar(totalProgramacao, prevProgramacao) },
+        { name: 'Combustível', atual: totalCombustivel, anterior: prevCombustivel, variacao: calcVar(totalCombustivel, prevCombustivel) },
+      ]);
+      setPeriodoAnteriorLabel(`${formatDateBR(prevFrom)} a ${formatDateBR(prevTo)}`);
     } catch (e: any) {
       toast.error(e.message || 'Nao foi possivel carregar o painel executivo.');
     } finally {
@@ -711,6 +765,47 @@ if (matchingValue > 0 && matchesEmpresaFilter(item.obra)) {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <CardTitle className="text-base">Comparativo com Período Anterior</CardTitle>
+            <span className="text-xs text-muted-foreground">
+              vs. {periodoAnteriorLabel}
+            </span>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={comparativo} margin={{ left: 30, right: 10, top: 10, bottom: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis tickFormatter={(v) => `R$ ${Number(v).toLocaleString('pt-BR')}`} />
+                <Tooltip formatter={(value: number) => formatCurrencyBR(value)} />
+                <Legend />
+                <Bar dataKey="anterior" name="Período anterior" fill="#94a3b8" />
+                <Bar dataKey="atual" name="Período atual" fill="#2563eb" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {comparativo.map((c) => {
+              const positiva = c.variacao >= 0;
+              return (
+                <div key={c.name} className="rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground">{c.name}</p>
+                  <p className="mt-1 text-lg font-bold">{formatCurrencyBR(c.atual)}</p>
+                  <p className="text-xs text-muted-foreground">Anterior: {formatCurrencyBR(c.anterior)}</p>
+                  <p className={`mt-1 text-sm font-semibold ${positiva ? 'text-emerald-600' : 'text-rose-600'}`}>
+                    {positiva ? '▲' : '▼'} {Math.abs(c.variacao).toFixed(1)}%
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 xl:grid-cols-2">
         <Card>
