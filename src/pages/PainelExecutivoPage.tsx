@@ -766,10 +766,48 @@ if (matchingValue > 0 && matchesEmpresaFilter(item.obra)) {
         </Card>
       </div>
 
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <CardTitle className="text-base">Comparativo com Período Anterior</CardTitle>
+            <span className="text-xs text-muted-foreground">
+              vs. {periodoAnteriorLabel}
+            </span>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={comparativo} margin={{ left: 30, right: 10, top: 10, bottom: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis tickFormatter={(v) => `R$ ${Number(v).toLocaleString('pt-BR')}`} />
+                <Tooltip formatter={(value: number) => formatCurrencyBR(value)} />
+                <Legend />
+                <Bar dataKey="anterior" name="Período anterior" fill="#94a3b8" />
+                <Bar dataKey="atual" name="Período atual" fill="#2563eb" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {comparativo.map((c) => {
+              const positiva = c.variacao >= 0;
+              return (
+                <div key={c.name} className="rounded-lg border p-3">
+                  <p className="text-xs text-muted-foreground">{c.name}</p>
+                  <p className="mt-1 text-lg font-bold">{formatCurrencyBR(c.atual)}</p>
+                  <p className="text-xs text-muted-foreground">Anterior: {formatCurrencyBR(c.anterior)}</p>
+                  <p className={`mt-1 text-sm font-semibold ${positiva ? 'text-emerald-600' : 'text-rose-600'}`}>
+                    {positiva ? '▲' : '▼'} {Math.abs(c.variacao).toFixed(1)}%
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="grid gap-4 xl:grid-cols-2">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Top Obras por Volume</CardTitle>
           </CardHeader>
           <CardContent className="h-72">
             <ResponsiveContainer width="100%" height="100%">
