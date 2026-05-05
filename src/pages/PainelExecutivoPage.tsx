@@ -808,6 +808,9 @@ if (matchingValue > 0 && matchesEmpresaFilter(item.obra)) {
       </Card>
 
       <div className="grid gap-4 xl:grid-cols-2">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Top Obras por Volume</CardTitle>
           </CardHeader>
           <CardContent className="h-72">
             <ResponsiveContainer width="100%" height="100%">
