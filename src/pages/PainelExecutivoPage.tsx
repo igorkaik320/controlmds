@@ -340,6 +340,58 @@ if (matchingValue > 0 && matchesEmpresaFilter(item.obra)) {
       );
 
       setSemPedidoItems(semPedidoList);
+
+      // ===== Comparativo com período anterior =====
+      const today = new Date();
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const fmt = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+      let curFrom = dateFrom;
+      let curTo = dateTo;
+      if (!curFrom || !curTo) {
+        const first = new Date(today.getFullYear(), today.getMonth(), 1);
+        curFrom = curFrom || fmt(first);
+        curTo = curTo || fmt(today);
+      }
+      const shiftMonth = (iso: string) => {
+        const [y, m, d] = iso.split('-').map(Number);
+        const dt = new Date(y, m - 2, d);
+        return fmt(dt);
+      };
+      const prevFrom = shiftMonth(curFrom);
+      const prevTo = shiftMonth(curTo);
+      const inPrev = (iso: string) => iso >= prevFrom && iso <= prevTo;
+
+      const prevAvista = comprasAvista
+        .filter((i) => inPrev(i.data) && matchesEmpresaFilter(i.obra))
+        .reduce((s, i) => s + i.valor, 0);
+      let prevFaturadas = 0;
+      comprasFaturadas.forEach((item) => {
+        if (!matchesEmpresaFilter(item.obra)) return;
+        const installments = buildInstallmentsFromItem(item);
+        installments.forEach((inst) => {
+          const iso = toIsoDateString(inst.due);
+          if (iso && inPrev(iso)) prevFaturadas += inst.value;
+        });
+      });
+      const prevProgramacao = programacao
+        .filter((i) => inPrev(i.data) && matchesEmpresaFilter(i.obra))
+        .reduce((s, i) => s + i.valor, 0);
+      const prevCombustivel = abastecimentos
+        .filter((i) => inPrev(i.data) && matchesEmpresaFilter(i.obra?.nome, i.obra?.empresa_id))
+        .reduce((s, i) => s + i.valor_total, 0);
+
+      const calcVar = (atual: number, anterior: number) => {
+        if (anterior === 0) return atual > 0 ? 100 : 0;
+        return ((atual - anterior) / anterior) * 100;
+      };
+
+      setComparativo([
+        { name: 'Compras à Vista', atual: totalAvista, anterior: prevAvista, variacao: calcVar(totalAvista, prevAvista) },
+        { name: 'Faturadas', atual: totalFaturadas, anterior: prevFaturadas, variacao: calcVar(totalFaturadas, prevFaturadas) },
+        { name: 'Programação', atual: totalProgramacao, anterior: prevProgramacao, variacao: calcVar(totalProgramacao, prevProgramacao) },
+        { name: 'Combustível', atual: totalCombustivel, anterior: prevCombustivel, variacao: calcVar(totalCombustivel, prevCombustivel) },
+      ]);
+      setPeriodoAnteriorLabel(`${formatDateBR(prevFrom)} a ${formatDateBR(prevTo)}`);
     } catch (e: any) {
       toast.error(e.message || 'Nao foi possivel carregar o painel executivo.');
     } finally {
