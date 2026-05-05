@@ -154,6 +154,13 @@ export function getCurrentBalance(transactions: Transaction[]): number {
   return transactions[transactions.length - 1].balance_after;
 }
 
+export function getBalanceAtDate(transactions: Transaction[], date: string, fallback = 0): number {
+  if (!date || transactions.length === 0) return fallback;
+  const upTo = transactions.filter((t) => (t.date ?? '') <= date);
+  if (upTo.length === 0) return 0;
+  return upTo[upTo.length - 1].balance_after;
+}
+
 export function filterByDateRange<T extends { date: string }>(items: T[], dateFrom?: string, dateTo?: string): T[] {
   let filtered = items;
   if (dateFrom) filtered = filtered.filter((i) => (i.date ?? '') >= dateFrom);
