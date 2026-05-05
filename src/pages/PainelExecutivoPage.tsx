@@ -153,6 +153,8 @@ export default function PainelExecutivoPage() {
     []
   );
   const [semPedidoItems, setSemPedidoItems] = useState<CompraSemPedido[]>([]);
+  const [comparativo, setComparativo] = useState<Array<{ name: string; atual: number; anterior: number; variacao: number }>>([]);
+  const [periodoAnteriorLabel, setPeriodoAnteriorLabel] = useState('');
 
   const consultFlashPendingRef = useRef(false);
   const load = useCallback(async () => {
