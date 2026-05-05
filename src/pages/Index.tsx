@@ -418,6 +418,7 @@ export default function Index() {
         onClose={() => setShowVerify(false)}
         onSubmit={handleVerification}
         currentBalance={currentBalance}
+        allTransactions={allTransactions}
       />
 
       <LogoSettings open={showLogo} onClose={() => setShowLogo(false)} />
