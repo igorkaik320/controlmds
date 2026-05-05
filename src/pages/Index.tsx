@@ -222,11 +222,12 @@ export default function Index() {
   );
 
   const handleVerification = useCallback(
-    async (data: { date: string; gaveta_value: number; observation: string }) => {
+    async (data: { date: string; gaveta_value: number; observation: string; system_balance?: number }) => {
       if (!user || !canCreateCash) return;
 
       try {
-        await saveVerification(data, currentBalance, user.id);
+        const balanceForDate = data.system_balance ?? currentBalance;
+        await saveVerification(data, balanceForDate, user.id);
 
         const updatedVerifications = await fetchVerifications();
         setAllVerifications(updatedVerifications);
