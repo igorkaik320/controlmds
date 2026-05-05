@@ -52,8 +52,8 @@ export default function VerificationDialog({ open, onClose, onSubmit, currentBal
           </div>
 
           <div className="p-3 rounded-lg bg-muted">
-            <p className="text-sm text-muted-foreground">Saldo do Sistema</p>
-            <p className="text-lg font-bold font-mono">{formatCurrency(currentBalance)}</p>
+            <p className="text-sm text-muted-foreground">Saldo do Sistema na data</p>
+            <p className="text-lg font-bold font-mono">{formatCurrency(systemBalance)}</p>
           </div>
 
           <div>
