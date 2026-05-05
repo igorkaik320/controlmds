@@ -61,6 +61,7 @@ const situacaoVariant = (v?: string | null): 'default' | 'secondary' | 'destruct
     case 'estoque': return 'default';
     case 'em_uso': return 'secondary';
     case 'com_defeito': return 'outline';
+    case 'assistencia': return 'outline';
     case 'incinerado': return 'destructive';
     default: return 'outline';
   }
