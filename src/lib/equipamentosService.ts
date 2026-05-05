@@ -5,12 +5,14 @@ export type SituacaoEquipamento =
   | 'estoque'
   | 'em_uso'
   | 'com_defeito'
-  | 'incinerado';
+  | 'incinerado'
+  | 'assistencia';
 
 export const SITUACOES_EQUIPAMENTO: { value: SituacaoEquipamento; label: string }[] = [
   { value: 'estoque', label: 'Estoque' },
   { value: 'em_uso', label: 'Em Uso' },
   { value: 'com_defeito', label: 'Com Defeito' },
+  { value: 'assistencia', label: 'Assistência' },
   { value: 'incinerado', label: 'Incinerado' },
 ];
 
