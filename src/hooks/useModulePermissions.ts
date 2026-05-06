@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/lib/auth';
 import {
   fetchUserActionPermissions,
@@ -30,31 +31,24 @@ export type {
 
 export function useModulePermissions() {
   const { user, userRole } = useAuth();
-  const [permissions, setPermissions] = useState<Record<string, boolean>>({});
-  const [actionPermissions, setActionPermissions] = useState<UserActionPermission[]>([]);
-  const [loading, setLoading] = useState(true);
   const userId = user?.id ?? null;
 
-  useEffect(() => {
-    if (!userId) {
-      setPermissions({});
-      setActionPermissions([]);
-      setLoading(false);
-      return;
-    }
+  const { data: actionPermissions = [], isLoading } = useQuery({
+    queryKey: ['user-action-permissions', userId],
+    queryFn: () => fetchUserActionPermissions(userId!),
+    enabled: !!userId,
+    staleTime: 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
 
-    fetchUserActionPermissions(userId)
-      .then((perms) => {
-        const map: Record<string, boolean> = {};
-        for (const p of perms) {
-          map[p.module] = p.can_view;
-        }
-        setPermissions(map);
-        setActionPermissions(perms);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [userId]);
+  const permissions = useMemo(() => {
+    const map: Record<string, boolean> = {};
+    for (const p of actionPermissions) map[p.module] = p.can_view;
+    return map;
+  }, [actionPermissions]);
+
+  const loading = !!userId && isLoading;
 
   const canAccess = useCallback(
     (module: ModuleKey) => hasModuleAccess(permissions, module, userRole || ''),
