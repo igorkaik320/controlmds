@@ -33,12 +33,6 @@ export default function DashboardCards({ summary }: Props) {
       </Card>
       <Card>
         <CardContent className="p-4">
-          <div className="flex items-center gap-2 text-muted-foreground text-sm"><ArrowRightLeft className="h-4 w-4" /> Diferença do Período</div>
-          <p className={`text-2xl font-bold mt-1 ${diffColor}`}>{formatCurrency(summary.diferencaPeriodo)}</p>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardContent className="p-4">
           <div className="flex items-center gap-2 text-muted-foreground text-sm"><Wallet className="h-4 w-4" /> Saldo Final</div>
           <p className="text-2xl font-bold mt-1">{formatCurrency(summary.saldoFinalPeriodo)}</p>
         </CardContent>
