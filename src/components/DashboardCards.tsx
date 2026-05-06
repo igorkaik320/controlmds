@@ -1,18 +1,12 @@
-import { TrendingUp, TrendingDown, Wallet, AlertTriangle, History, ArrowRightLeft } from 'lucide-react';
+import { TrendingUp, TrendingDown, Wallet, AlertTriangle, History } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { PeriodSummary, formatCurrency } from '@/lib/cashRegister';
 
 interface Props { summary: PeriodSummary; }
 
 export default function DashboardCards({ summary }: Props) {
-  const diffColor = summary.diferencaPeriodo < 0
-    ? 'text-destructive'
-    : summary.diferencaPeriodo > 0
-      ? 'text-success'
-      : 'text-foreground';
-
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-6">
       <Card>
         <CardContent className="p-4">
           <div className="flex items-center gap-2 text-muted-foreground text-sm"><History className="h-4 w-4" /> Saldo Anterior</div>
