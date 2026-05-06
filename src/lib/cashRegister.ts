@@ -109,10 +109,16 @@ export function getInitialBalanceForPeriod(transactions: Transaction[], dateFrom
   return previousTransactions[previousTransactions.length - 1].balance_after;
 }
 
-export function getSummaryWithInitialBalance(transactions: Transaction[], verifications: Verification[] = [], dateFrom?: string): PeriodSummary {
+export function getSummaryWithInitialBalance(
+  transactions: Transaction[],
+  verifications: Verification[] = [],
+  dateFrom?: string,
+  allTransactions?: Transaction[],
+): PeriodSummary {
   let totalEntradas = 0;
   let totalSaidas = 0;
-  const initialBalance = getInitialBalanceForPeriod(transactions, dateFrom);
+  const source = allTransactions ?? transactions;
+  const saldoAnterior = getInitialBalanceForPeriod(source, dateFrom);
 
   for (const t of transactions) {
     if (t.type === 'entrada') totalEntradas += t.value;
@@ -120,7 +126,11 @@ export function getSummaryWithInitialBalance(transactions: Transaction[], verifi
   }
 
   const latestDifference = verifications.length > 0 ? verifications[verifications.length - 1].difference : 0;
-  const currentBalance = transactions.length > 0 ? transactions[transactions.length - 1].balance_after : initialBalance;
+  const saldoFinalPeriodo = transactions.length > 0
+    ? transactions[transactions.length - 1].balance_after
+    : saldoAnterior;
+  const currentBalance = saldoFinalPeriodo;
+  const diferencaPeriodo = saldoFinalPeriodo - saldoAnterior;
 
   return {
     totalEntradas,
@@ -128,6 +138,9 @@ export function getSummaryWithInitialBalance(transactions: Transaction[], verifi
     totalDifferences: latestDifference,
     hasDivergence: Math.abs(latestDifference) > 0.01,
     currentBalance,
+    saldoAnterior,
+    saldoFinalPeriodo,
+    diferencaPeriodo,
   };
 }
 
@@ -149,6 +162,9 @@ export function getSummary(transactions: Transaction[], verifications: Verificat
     totalDifferences: latestDifference,
     hasDivergence: Math.abs(latestDifference) > 0.01,
     currentBalance,
+    saldoAnterior: 0,
+    saldoFinalPeriodo: currentBalance,
+    diferencaPeriodo: currentBalance,
   };
 }
 
