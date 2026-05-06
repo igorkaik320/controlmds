@@ -320,6 +320,10 @@ export default function AbastecimentosPage() {
             </SelectContent>
           </Select>
         </div>
+
+        <Button size="sm" onClick={aplicarFiltros}>
+          <Search className="h-4 w-4 mr-1" />Consultar
+        </Button>
       </div>
 
       <div className="rounded-md border overflow-auto">
