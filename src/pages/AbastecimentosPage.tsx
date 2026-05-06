@@ -61,6 +61,14 @@ export default function AbastecimentosPage() {
   const [filterObra, setFilterObra] = useState('all');
   const [filterPosto, setFilterPosto] = useState('all');
   const [filterResponsavel, setFilterResponsavel] = useState('all');
+  const [appliedFilters, setAppliedFilters] = useState({
+    dateFrom: '',
+    dateTo: '',
+    veiculo: 'all',
+    obra: 'all',
+    posto: 'all',
+    responsavel: 'all',
+  });
   const [form, setForm] = useState(emptyForm);
   const [responsaveis, setResponsaveis] = useState<Responsavel[]>([]);
   const [profileMap, setProfileMap] = useState<Record<string, string>>({});
