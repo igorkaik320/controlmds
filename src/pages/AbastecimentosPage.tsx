@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Pencil, Trash2, FileDown, FileSpreadsheet } from 'lucide-react';
+import { Plus, Pencil, Trash2, FileDown, FileSpreadsheet, Search } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useModulePermissions } from '@/hooks/useModulePermissions';
 import {
@@ -61,6 +61,14 @@ export default function AbastecimentosPage() {
   const [filterObra, setFilterObra] = useState('all');
   const [filterPosto, setFilterPosto] = useState('all');
   const [filterResponsavel, setFilterResponsavel] = useState('all');
+  const [appliedFilters, setAppliedFilters] = useState({
+    dateFrom: '',
+    dateTo: '',
+    veiculo: 'all',
+    obra: 'all',
+    posto: 'all',
+    responsavel: 'all',
+  });
   const [form, setForm] = useState(emptyForm);
   const [responsaveis, setResponsaveis] = useState<Responsavel[]>([]);
   const [profileMap, setProfileMap] = useState<Record<string, string>>({});
@@ -99,14 +107,26 @@ export default function AbastecimentosPage() {
   }, [load]);
 
   const filtered = items.filter((item) => {
-    if (dateFrom && item.data < dateFrom) return false;
-    if (dateTo && item.data > dateTo) return false;
-    if (filterVeiculo !== 'all' && item.veiculo_id !== filterVeiculo) return false;
-    if (filterObra !== 'all' && (item.obra_id || '') !== filterObra) return false;
-  if (filterPosto !== 'all' && (item.posto_id || '') !== filterPosto) return false;
-  if (filterResponsavel !== 'all' && (item.responsavel_id || '') !== filterResponsavel) return false;
+    if (appliedFilters.dateFrom && item.data < appliedFilters.dateFrom) return false;
+    if (appliedFilters.dateTo && item.data > appliedFilters.dateTo) return false;
+    if (appliedFilters.veiculo !== 'all' && item.veiculo_id !== appliedFilters.veiculo) return false;
+    if (appliedFilters.obra !== 'all' && (item.obra_id || '') !== appliedFilters.obra) return false;
+    if (appliedFilters.posto !== 'all' && (item.posto_id || '') !== appliedFilters.posto) return false;
+    if (appliedFilters.responsavel !== 'all' && (item.responsavel_id || '') !== appliedFilters.responsavel) return false;
     return true;
   });
+
+  function aplicarFiltros() {
+    setAppliedFilters({
+      dateFrom,
+      dateTo,
+      veiculo: filterVeiculo,
+      obra: filterObra,
+      posto: filterPosto,
+      responsavel: filterResponsavel,
+    });
+    load();
+  }
 
   const totalGeral = filtered.reduce((sum, item) => sum + item.valor_total, 0);
   const totalLitros = filtered.reduce((sum, item) => sum + item.quantidade_litros, 0);
@@ -300,6 +320,10 @@ export default function AbastecimentosPage() {
             </SelectContent>
           </Select>
         </div>
+
+        <Button size="sm" onClick={aplicarFiltros}>
+          <Search className="h-4 w-4 mr-1" />Consultar
+        </Button>
       </div>
 
       <div className="rounded-md border overflow-auto">
