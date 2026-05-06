@@ -107,14 +107,26 @@ export default function AbastecimentosPage() {
   }, [load]);
 
   const filtered = items.filter((item) => {
-    if (dateFrom && item.data < dateFrom) return false;
-    if (dateTo && item.data > dateTo) return false;
-    if (filterVeiculo !== 'all' && item.veiculo_id !== filterVeiculo) return false;
-    if (filterObra !== 'all' && (item.obra_id || '') !== filterObra) return false;
-  if (filterPosto !== 'all' && (item.posto_id || '') !== filterPosto) return false;
-  if (filterResponsavel !== 'all' && (item.responsavel_id || '') !== filterResponsavel) return false;
+    if (appliedFilters.dateFrom && item.data < appliedFilters.dateFrom) return false;
+    if (appliedFilters.dateTo && item.data > appliedFilters.dateTo) return false;
+    if (appliedFilters.veiculo !== 'all' && item.veiculo_id !== appliedFilters.veiculo) return false;
+    if (appliedFilters.obra !== 'all' && (item.obra_id || '') !== appliedFilters.obra) return false;
+    if (appliedFilters.posto !== 'all' && (item.posto_id || '') !== appliedFilters.posto) return false;
+    if (appliedFilters.responsavel !== 'all' && (item.responsavel_id || '') !== appliedFilters.responsavel) return false;
     return true;
   });
+
+  function aplicarFiltros() {
+    setAppliedFilters({
+      dateFrom,
+      dateTo,
+      veiculo: filterVeiculo,
+      obra: filterObra,
+      posto: filterPosto,
+      responsavel: filterResponsavel,
+    });
+    load();
+  }
 
   const totalGeral = filtered.reduce((sum, item) => sum + item.valor_total, 0);
   const totalLitros = filtered.reduce((sum, item) => sum + item.quantidade_litros, 0);
