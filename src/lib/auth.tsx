@@ -125,8 +125,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       else if (roles.includes("conferente")) setUserRole("conferente");
       else setUserRole("operador");
     } else {
-      // Usuários sem roles definidos são tratados como operadores e não ficam pendentes
-      setIsPending(false);
+      // Usuários sem role atribuído ficam pendentes até aprovação do admin
+      setIsPending(true);
       setUserRole("operador");
     }
   }
