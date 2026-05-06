@@ -90,7 +90,7 @@ export default function Index() {
       return sortOrder === "asc" ? -diff : diff;
     });
   const verifications = filterByDateRange(allVerifications, dateFrom, dateTo);
-  const summary = getSummaryWithInitialBalance(transactions, verifications, dateFrom);
+  const summary = getSummaryWithInitialBalance(transactions, verifications, dateFrom, allTransactions);
   const currentBalance = getCurrentBalance(allTransactions);
 
   const handleInit = useCallback(
