@@ -50,6 +50,9 @@ export interface PeriodSummary {
   totalDifferences: number;
   hasDivergence: boolean;
   currentBalance: number;
+  saldoAnterior: number;
+  saldoFinalPeriodo: number;
+  diferencaPeriodo: number;
 }
 
 export function formatCurrency(value: number): string {
