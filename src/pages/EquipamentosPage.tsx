@@ -90,6 +90,8 @@ export default function EquipamentosPage() {
   const [search, setSearch] = useState('');
   const [searchPatrimonio, setSearchPatrimonio] = useState('');
   const [filtroObraId, setFiltroObraId] = useState<string>('all');
+  const [filtroResponsavel, setFiltroResponsavel] = useState<string>('all');
+  const [filtroSituacao, setFiltroSituacao] = useState<string>('all');
   const [form, setForm] = useState(emptyForm);
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
