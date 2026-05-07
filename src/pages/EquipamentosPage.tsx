@@ -556,28 +556,19 @@ export default function EquipamentosPage() {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-2xl font-bold">Cadastro de Equipamentos</h2>
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant="outline" onClick={downloadModelo}>
-            <Download className="h-4 w-4 mr-1" />
-            Baixar Modelo
+          <Button size="sm" variant="outline" onClick={async () => {
+            try {
+              const config = await fetchConfigRelatorio();
+              await exportEquipamentosPDF(filtered, config);
+            } catch (e: any) {
+              toast.error('Erro ao gerar relatório: ' + e.message);
+            }
+          }}>
+            <FileText className="h-4 w-4 mr-1" />
+            Relatório
           </Button>
           {canCreate('equipamentos') && (
             <>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={importing}
-              >
-                <Upload className="h-4 w-4 mr-1" />
-                {importing ? 'Importando...' : 'Importar Excel'}
-              </Button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".xlsx,.xls"
-                className="hidden"
-                onChange={handleImport}
-              />
               <Button size="sm" variant="outline" onClick={() => {
                 if (items.length === 0) {
                   toast.error('Cadastre um equipamento antes de registrar movimentos');
@@ -605,7 +596,7 @@ export default function EquipamentosPage() {
         </div>
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-3">
+      <div className="grid gap-2 sm:grid-cols-5">
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -625,7 +616,26 @@ export default function EquipamentosPage() {
             ))}
           </SelectContent>
         </Select>
+        <Select value={filtroResponsavel} onValueChange={setFiltroResponsavel}>
+          <SelectTrigger><SelectValue placeholder="Filtrar por responsável..." /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os responsáveis</SelectItem>
+            {responsaveis.map((r) => (
+              <SelectItem key={r.id} value={r.nome}>{r.nome}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={filtroSituacao} onValueChange={setFiltroSituacao}>
+          <SelectTrigger><SelectValue placeholder="Filtrar por situação..." /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas as situações</SelectItem>
+            {SITUACOES_EQUIPAMENTO.map((s) => (
+              <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
+
 
       <div className="rounded-md border overflow-auto">
         <Table>
