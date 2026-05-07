@@ -670,7 +670,7 @@ export default function EquipamentosPage() {
                 <TableCell>{i.localizacao_obra_nome || '-'}</TableCell>
                 <TableCell>{(i as any).responsavel || '-'}</TableCell>
                 <TableCell>
-                  <Badge variant={situacaoVariant(i.situacao)}>{situacaoLabel(i.situacao)}</Badge>
+                  <Badge variant={situacaoVariant(i.situacao)} className={situacaoClassName(i.situacao)}>{situacaoLabel(i.situacao)}</Badge>
                 </TableCell>
                 <TableCell>
                   <AuditInfo
