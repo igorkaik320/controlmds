@@ -164,8 +164,10 @@ export default function EquipamentosPage() {
     const matchPatrimonio = !sp || (i.n_patrimonio?.toLowerCase().includes(sp) ?? false);
 
     const matchObra = filtroObraId === 'all' || i.localizacao_obra_id === filtroObraId;
+    const matchResp = filtroResponsavel === 'all' || (i as any).responsavel === filtroResponsavel;
+    const matchSit = filtroSituacao === 'all' || i.situacao === filtroSituacao;
 
-    return matchNome && matchPatrimonio && matchObra;
+    return matchNome && matchPatrimonio && matchObra && matchResp && matchSit;
   });
 
   function openMovimento(equip: Equipamento) {
