@@ -69,6 +69,13 @@ const situacaoVariant = (v?: string | null): 'default' | 'secondary' | 'destruct
   }
 };
 
+const situacaoClassName = (v?: string | null): string => {
+  if (v === 'assistencia') {
+    return 'bg-yellow-400 text-yellow-950 border-yellow-500 hover:bg-yellow-400';
+  }
+  return '';
+};
+
 export default function EquipamentosPage() {
   const { user } = useAuth();
   const { canCreate, canEdit, canDelete } = useModulePermissions();
