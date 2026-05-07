@@ -367,6 +367,15 @@ export default function ContasPagarPage() {
     filtered.forEach(conta => {
       conta.parcelas.forEach(parcela => {
         const date = parcela.data_vencimento || '0000-00-00';
+
+        // Respeita o filtro de vencimento também nas parcelas
+        if (filtrosAplicados.startDate || filtrosAplicados.endDate) {
+          if (!parcela.data_vencimento) return;
+          const vencDate = new Date(parcela.data_vencimento + 'T00:00:00');
+          if (filtrosAplicados.startDate && vencDate < filtrosAplicados.startDate) return;
+          if (filtrosAplicados.endDate && vencDate > filtrosAplicados.endDate) return;
+        }
+
         if (!groups[date]) {
           const dateObj = new Date(date + 'T00:00:00');
           const dateLabel = dateObj.toLocaleDateString('pt-BR', { 
