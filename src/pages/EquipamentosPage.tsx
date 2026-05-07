@@ -6,7 +6,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Pencil, Trash2, Upload, Download, Eye, Wrench, ArrowRightLeft, WrenchIcon } from 'lucide-react';
+import { Plus, Pencil, Trash2, Eye, Wrench, ArrowRightLeft, WrenchIcon, FileText } from 'lucide-react';
+import { fetchConfigRelatorio } from '@/lib/comprasService';
+import { exportEquipamentosPDF } from '@/lib/equipamentosExport';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/lib/auth';
 import { useModulePermissions } from '@/hooks/useModulePermissions';
