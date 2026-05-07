@@ -6,7 +6,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Pencil, Trash2, Upload, Download, Eye, Wrench, ArrowRightLeft, WrenchIcon } from 'lucide-react';
+import { Plus, Pencil, Trash2, Eye, Wrench, ArrowRightLeft, WrenchIcon, FileText } from 'lucide-react';
+import { fetchConfigRelatorio } from '@/lib/comprasService';
+import { exportEquipamentosPDF } from '@/lib/equipamentosExport';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/lib/auth';
 import { useModulePermissions } from '@/hooks/useModulePermissions';
@@ -67,6 +69,13 @@ const situacaoVariant = (v?: string | null): 'default' | 'secondary' | 'destruct
   }
 };
 
+const situacaoClassName = (v?: string | null): string => {
+  if (v === 'assistencia') {
+    return 'bg-yellow-400 text-yellow-950 border-yellow-500 hover:bg-yellow-400';
+  }
+  return '';
+};
+
 export default function EquipamentosPage() {
   const { user } = useAuth();
   const { canCreate, canEdit, canDelete } = useModulePermissions();
@@ -81,6 +90,8 @@ export default function EquipamentosPage() {
   const [search, setSearch] = useState('');
   const [searchPatrimonio, setSearchPatrimonio] = useState('');
   const [filtroObraId, setFiltroObraId] = useState<string>('all');
+  const [filtroResponsavel, setFiltroResponsavel] = useState<string>('all');
+  const [filtroSituacao, setFiltroSituacao] = useState<string>('all');
   const [form, setForm] = useState(emptyForm);
   const [importing, setImporting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -153,8 +164,10 @@ export default function EquipamentosPage() {
     const matchPatrimonio = !sp || (i.n_patrimonio?.toLowerCase().includes(sp) ?? false);
 
     const matchObra = filtroObraId === 'all' || i.localizacao_obra_id === filtroObraId;
+    const matchResp = filtroResponsavel === 'all' || (i as any).responsavel === filtroResponsavel;
+    const matchSit = filtroSituacao === 'all' || i.situacao === filtroSituacao;
 
-    return matchNome && matchPatrimonio && matchObra;
+    return matchNome && matchPatrimonio && matchObra && matchResp && matchSit;
   });
 
   function openMovimento(equip: Equipamento) {
@@ -543,28 +556,19 @@ export default function EquipamentosPage() {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-2xl font-bold">Cadastro de Equipamentos</h2>
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant="outline" onClick={downloadModelo}>
-            <Download className="h-4 w-4 mr-1" />
-            Baixar Modelo
+          <Button size="sm" variant="outline" onClick={async () => {
+            try {
+              const config = await fetchConfigRelatorio();
+              await exportEquipamentosPDF(filtered, config);
+            } catch (e: any) {
+              toast.error('Erro ao gerar relatório: ' + e.message);
+            }
+          }}>
+            <FileText className="h-4 w-4 mr-1" />
+            Relatório
           </Button>
           {canCreate('equipamentos') && (
             <>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={importing}
-              >
-                <Upload className="h-4 w-4 mr-1" />
-                {importing ? 'Importando...' : 'Importar Excel'}
-              </Button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".xlsx,.xls"
-                className="hidden"
-                onChange={handleImport}
-              />
               <Button size="sm" variant="outline" onClick={() => {
                 if (items.length === 0) {
                   toast.error('Cadastre um equipamento antes de registrar movimentos');
@@ -592,7 +596,7 @@ export default function EquipamentosPage() {
         </div>
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-3">
+      <div className="grid gap-2 sm:grid-cols-5">
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -612,7 +616,26 @@ export default function EquipamentosPage() {
             ))}
           </SelectContent>
         </Select>
+        <Select value={filtroResponsavel} onValueChange={setFiltroResponsavel}>
+          <SelectTrigger><SelectValue placeholder="Filtrar por responsável..." /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os responsáveis</SelectItem>
+            {responsaveis.map((r) => (
+              <SelectItem key={r.id} value={r.nome}>{r.nome}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={filtroSituacao} onValueChange={setFiltroSituacao}>
+          <SelectTrigger><SelectValue placeholder="Filtrar por situação..." /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas as situações</SelectItem>
+            {SITUACOES_EQUIPAMENTO.map((s) => (
+              <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
+
 
       <div className="rounded-md border overflow-auto">
         <Table>
@@ -647,7 +670,7 @@ export default function EquipamentosPage() {
                 <TableCell>{i.localizacao_obra_nome || '-'}</TableCell>
                 <TableCell>{(i as any).responsavel || '-'}</TableCell>
                 <TableCell>
-                  <Badge variant={situacaoVariant(i.situacao)}>{situacaoLabel(i.situacao)}</Badge>
+                  <Badge variant={situacaoVariant(i.situacao)} className={situacaoClassName(i.situacao)}>{situacaoLabel(i.situacao)}</Badge>
                 </TableCell>
                 <TableCell>
                   <AuditInfo
