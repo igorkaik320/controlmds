@@ -457,13 +457,14 @@ export default function RevisoesCombustivelPage() {
 
               <div>
                 <Label>Tipo medição *</Label>
-                <Select value={form.tipo_medicao} onValueChange={(v: 'km' | 'horas') => setForm((prev) => ({ ...prev, tipo_medicao: v }))}>
+                <Select value={form.tipo_medicao} onValueChange={(v: 'km' | 'horas' | 'meses') => setForm((prev) => ({ ...prev, tipo_medicao: v }))}>
                   <SelectTrigger className="h-10 w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="km">Quilometragem (KM)</SelectItem>
                     <SelectItem value="horas">Horímetro (Horas)</SelectItem>
+                    <SelectItem value="meses">Meses</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
