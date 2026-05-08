@@ -32,7 +32,7 @@ const emptyForm = {
   fornecedor_id: '',
   data: '',
   valor: '',
-  tipo_medicao: 'km' as 'km' | 'horas',
+  tipo_medicao: 'km' as 'km' | 'horas' | 'meses',
   quilometragem_atual: '',
   quilometragem_proxima: '',
   observacao: '',
@@ -334,7 +334,8 @@ export default function RevisoesCombustivelPage() {
 
               {filtered.map((item) => {
                 const intervalo = item.quilometragem_proxima - item.quilometragem_atual;
-                const unidade = item.tipo_medicao === 'horas' ? 'h' : 'km';
+                const tipoMed = item.tipo_medicao as string;
+                const unidade = tipoMed === 'horas' ? 'h' : tipoMed === 'meses' ? 'meses' : 'km';
 
                 return (
                   <TableRow key={item.id} className="h-12">
@@ -456,19 +457,20 @@ export default function RevisoesCombustivelPage() {
 
               <div>
                 <Label>Tipo medição *</Label>
-                <Select value={form.tipo_medicao} onValueChange={(v: 'km' | 'horas') => setForm((prev) => ({ ...prev, tipo_medicao: v }))}>
+                <Select value={form.tipo_medicao} onValueChange={(v: 'km' | 'horas' | 'meses') => setForm((prev) => ({ ...prev, tipo_medicao: v }))}>
                   <SelectTrigger className="h-10 w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="km">Quilometragem (KM)</SelectItem>
                     <SelectItem value="horas">Horímetro (Horas)</SelectItem>
+                    <SelectItem value="meses">Meses</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div>
-                <Label>{form.tipo_medicao === 'horas' ? 'Horas atuais' : 'KM Atual'} *</Label>
+                <Label>{form.tipo_medicao === 'horas' ? 'Horas atuais' : form.tipo_medicao === 'meses' ? 'Meses atuais' : 'KM Atual'} *</Label>
                 <Input
                   type="number"
                   min="0"
@@ -480,7 +482,7 @@ export default function RevisoesCombustivelPage() {
 
             <div className="grid gap-3 md:grid-cols-2">
               <div>
-                <Label>{form.tipo_medicao === 'horas' ? 'Horas próxima revisão' : 'KM próxima revisão'} *</Label>
+                <Label>{form.tipo_medicao === 'horas' ? 'Horas próxima revisão' : form.tipo_medicao === 'meses' ? 'Meses até próxima revisão' : 'KM próxima revisão'} *</Label>
                 <Input
                   type="number"
                   min="0"
