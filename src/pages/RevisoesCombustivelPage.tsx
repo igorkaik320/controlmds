@@ -32,7 +32,7 @@ const emptyForm = {
   fornecedor_id: '',
   data: '',
   valor: '',
-  tipo_medicao: 'km' as 'km' | 'horas',
+  tipo_medicao: 'km' as 'km' | 'horas' | 'meses',
   quilometragem_atual: '',
   quilometragem_proxima: '',
   observacao: '',
