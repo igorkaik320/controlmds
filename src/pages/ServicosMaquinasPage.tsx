@@ -177,7 +177,7 @@ export default function ServicosMaquinasPage() {
                   </div>
                 </TableCell>
                 <TableCell>{(s as any).obra?.nome || '—'}</TableCell>
-                <TableCell>{s.horimetro != null ? `${s.horimetro} ${s.tipo_medicao === 'km' ? 'km' : 'h'}` : '—'}</TableCell>
+                <TableCell>{s.horimetro != null ? `${s.horimetro} ${s.tipo_medicao === 'km' ? 'km' : s.tipo_medicao === 'meses' ? 'meses' : 'h'}` : '—'}</TableCell>
                 <TableCell>{TIPO_SERVICO_LABEL[s.tipo_servico]}</TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-1 max-w-[260px]">
