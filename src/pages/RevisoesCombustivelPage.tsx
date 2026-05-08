@@ -482,7 +482,7 @@ export default function RevisoesCombustivelPage() {
 
             <div className="grid gap-3 md:grid-cols-2">
               <div>
-                <Label>{form.tipo_medicao === 'horas' ? 'Horas próxima revisão' : 'KM próxima revisão'} *</Label>
+                <Label>{form.tipo_medicao === 'horas' ? 'Horas próxima revisão' : form.tipo_medicao === 'meses' ? 'Meses até próxima revisão' : 'KM próxima revisão'} *</Label>
                 <Input
                   type="number"
                   min="0"
