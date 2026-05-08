@@ -334,7 +334,8 @@ export default function RevisoesCombustivelPage() {
 
               {filtered.map((item) => {
                 const intervalo = item.quilometragem_proxima - item.quilometragem_atual;
-                const unidade = item.tipo_medicao === 'horas' ? 'h' : item.tipo_medicao === 'meses' ? 'meses' : 'km';
+                const tipoMed = item.tipo_medicao as string;
+                const unidade = tipoMed === 'horas' ? 'h' : tipoMed === 'meses' ? 'meses' : 'km';
 
                 return (
                   <TableRow key={item.id} className="h-12">
