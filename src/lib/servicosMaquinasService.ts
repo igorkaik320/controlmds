@@ -4,7 +4,7 @@ import { recordAuditEntry } from '@/lib/audit';
 // ---- Types ----
 export type TipoServico = 'conserto' | 'troca_pecas' | 'conserto_troca_pecas';
 export type StatusPeca = 'trocada' | 'defeito';
-export type TipoMedicao = 'horimetro' | 'km';
+export type TipoMedicao = 'horimetro' | 'km' | 'meses';
 
 export interface ComponenteMaquina {
   id: string;

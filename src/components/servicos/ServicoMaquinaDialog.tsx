@@ -316,19 +316,24 @@ export default function ServicoMaquinaDialog({
                   <SelectContent>
                     <SelectItem value="horimetro">Horímetro (h)</SelectItem>
                     <SelectItem value="km">Quilometragem (km)</SelectItem>
+                    <SelectItem value="meses">Meses</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div>
                 <Label>
-                  {form.tipo_medicao === 'km' ? 'Quilometragem atual (km)' : 'Horímetro atual (h)'}
+                  {form.tipo_medicao === 'km'
+                    ? 'Quilometragem atual (km)'
+                    : form.tipo_medicao === 'meses'
+                    ? 'Meses desde último serviço'
+                    : 'Horímetro atual (h)'}
                 </Label>
                 <Input
                   inputMode="decimal"
                   value={form.horimetro}
                   onChange={(e) => setForm((p) => ({ ...p, horimetro: e.target.value }))}
-                  placeholder={form.tipo_medicao === 'km' ? 'Ex.: 12500' : 'Ex.: 250'}
+                  placeholder={form.tipo_medicao === 'km' ? 'Ex.: 12500' : form.tipo_medicao === 'meses' ? 'Ex.: 6' : 'Ex.: 250'}
                 />
               </div>
 
