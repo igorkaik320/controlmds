@@ -470,7 +470,7 @@ export default function RevisoesCombustivelPage() {
               </div>
 
               <div>
-                <Label>{form.tipo_medicao === 'horas' ? 'Horas atuais' : 'KM Atual'} *</Label>
+                <Label>{form.tipo_medicao === 'horas' ? 'Horas atuais' : form.tipo_medicao === 'meses' ? 'Meses atuais' : 'KM Atual'} *</Label>
                 <Input
                   type="number"
                   min="0"
