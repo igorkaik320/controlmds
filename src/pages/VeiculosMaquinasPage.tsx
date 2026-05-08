@@ -25,7 +25,7 @@ const emptyForm = {
   tipo: 'veiculo' as 'veiculo' | 'maquina',
   placa: '',
   responsavel_id: '_none',
-  tipo_medicao: 'km' as 'km' | 'horimetro',
+  tipo_medicao: 'km' as 'km' | 'horimetro' | 'meses',
   ultima_quilometragem: '',
 };
 
@@ -85,7 +85,7 @@ function openNew() {
       tipo: item.tipo,
       placa: item.placa,
       responsavel_id: item.responsavel_id || '_none',
-      tipo_medicao: (item.tipo_medicao as 'km' | 'horimetro') || 'km',
+      tipo_medicao: (item.tipo_medicao as 'km' | 'horimetro' | 'meses') || 'km',
       ultima_quilometragem: item.ultima_quilometragem != null ? String(item.ultima_quilometragem) : '',
     });
     setShowDialog(true);
@@ -191,7 +191,7 @@ function openNew() {
               <TableRow key={item.id}>
                 <TableCell>{item.tipo === 'veiculo' ? 'Veiculo' : 'Maquina'}</TableCell>
                 <TableCell>{item.placa}</TableCell>
-                <TableCell>{item.tipo_medicao === 'horimetro' ? 'Horímetro' : 'KM'}</TableCell>
+                <TableCell>{(item.tipo_medicao as string) === 'horimetro' ? 'Horímetro' : (item.tipo_medicao as string) === 'meses' ? 'Meses' : 'KM'}</TableCell>
                 <TableCell>{item.ultima_quilometragem || '-'}</TableCell>
                 <TableCell>{(item as any).responsavel?.nome || '—'}</TableCell>
                 <TableCell>
@@ -275,7 +275,7 @@ function openNew() {
               <Label>Tipo de Medição *</Label>
               <Select
                 value={form.tipo_medicao}
-                onValueChange={(value) => setForm((prev) => ({ ...prev, tipo_medicao: value as 'km' | 'horimetro' }))}
+                onValueChange={(value) => setForm((prev) => ({ ...prev, tipo_medicao: value as 'km' | 'horimetro' | 'meses' }))}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -283,17 +283,18 @@ function openNew() {
                 <SelectContent>
                   <SelectItem value="km">Quilometragem (KM)</SelectItem>
                   <SelectItem value="horimetro">Horímetro (Horas)</SelectItem>
+                  <SelectItem value="meses">Meses</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             
             <div>
-              <Label>Última {form.tipo_medicao === 'km' ? 'Quilometragem' : 'Horimetragem'} *</Label>
+              <Label>Última {form.tipo_medicao === 'km' ? 'Quilometragem' : form.tipo_medicao === 'meses' ? 'Medição (meses)' : 'Horimetragem'} *</Label>
               <Input
                 type="number"
                 value={form.ultima_quilometragem}
                 onChange={(e) => setForm((prev) => ({ ...prev, ultima_quilometragem: e.target.value }))}
-                placeholder={form.tipo_medicao === 'km' ? 'Ex: 15000' : 'Ex: 2500'}
+                placeholder={form.tipo_medicao === 'km' ? 'Ex: 15000' : form.tipo_medicao === 'meses' ? 'Ex: 6' : 'Ex: 2500'}
               />
             </div>
             
