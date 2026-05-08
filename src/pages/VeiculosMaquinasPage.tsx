@@ -191,7 +191,7 @@ function openNew() {
               <TableRow key={item.id}>
                 <TableCell>{item.tipo === 'veiculo' ? 'Veiculo' : 'Maquina'}</TableCell>
                 <TableCell>{item.placa}</TableCell>
-                <TableCell>{item.tipo_medicao === 'horimetro' ? 'Horímetro' : item.tipo_medicao === 'meses' ? 'Meses' : 'KM'}</TableCell>
+                <TableCell>{(item.tipo_medicao as string) === 'horimetro' ? 'Horímetro' : (item.tipo_medicao as string) === 'meses' ? 'Meses' : 'KM'}</TableCell>
                 <TableCell>{item.ultima_quilometragem || '-'}</TableCell>
                 <TableCell>{(item as any).responsavel?.nome || '—'}</TableCell>
                 <TableCell>
