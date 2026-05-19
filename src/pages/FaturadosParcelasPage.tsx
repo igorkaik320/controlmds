@@ -441,6 +441,7 @@ export default function FaturadosParcelasPage() {
                 value={selectedCompany}
                 onChange={setSelectedCompany}
                 label="Empresa"
+                className="space-y-1.5"
                 allowAll
               />
             </div>

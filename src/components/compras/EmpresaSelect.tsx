@@ -2,15 +2,25 @@
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fetchEmpresas, Empresa } from "@/lib/empresasService";
+import { cn } from "@/lib/utils";
 
 interface Props {
   value: string;
   onChange: (value: string) => void;
   label?: string;
+  className?: string;
+  labelClassName?: string;
   allowAll?: boolean;
 }
 
-export default function EmpresaSelect({ value, onChange, label = "Empresa", allowAll = false }: Props) {
+export default function EmpresaSelect({
+  value,
+  onChange,
+  label = "Empresa",
+  className,
+  labelClassName,
+  allowAll = false,
+}: Props) {
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
 
   useEffect(() => {
@@ -22,8 +32,8 @@ export default function EmpresaSelect({ value, onChange, label = "Empresa", allo
   const selectValue = allowAll ? (value || "_all") : (value || undefined);
 
   return (
-    <div>
-      {label && <Label className="text-xs">{label}</Label>}
+    <div className={cn(className)}>
+      {label && <Label className={cn("text-xs", labelClassName)}>{label}</Label>}
       <Select value={selectValue} onValueChange={(v) => onChange(v === "_all" ? "" : v)}>
         <SelectTrigger className="w-full">
           <SelectValue placeholder="Selecione..." />
