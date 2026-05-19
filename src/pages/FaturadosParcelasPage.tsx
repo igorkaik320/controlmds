@@ -417,17 +417,17 @@ export default function FaturadosParcelasPage() {
       <section className="space-y-4">
         {/* Filtros */}
         <div className="rounded-xl border bg-card p-4 space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-12">
             <FornecedorSelect
               value={selectedSupplier}
               onChange={setSelectedSupplier}
               label="Fornecedor"
-              className="space-y-0"
+              className="space-y-1.5 xl:col-span-3"
               labelClassName="text-xs"
               placeholder="Digite para buscar fornecedor..."
             />
 
-            <div>
+            <div className="space-y-1.5 xl:col-span-3">
               <Label className="text-xs">Obra</Label>
               <ObraSelect
                 value={selectedObra}
@@ -436,16 +436,18 @@ export default function FaturadosParcelasPage() {
               />
             </div>
 
-            <EmpresaSelect
-              value={selectedCompany}
-              onChange={setSelectedCompany}
-              label="Empresa"
-              allowAll
-            />
+            <div className="xl:col-span-2">
+              <EmpresaSelect
+                value={selectedCompany}
+                onChange={setSelectedCompany}
+                label="Empresa"
+                allowAll
+              />
+            </div>
 
-            <div>
+            <div className="space-y-1.5 md:col-span-2 xl:col-span-4">
               <Label className="text-xs">Período</Label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid gap-2 sm:grid-cols-2">
                 <Input
                   type="date"
                   value={formatInputDate(startDate)}
