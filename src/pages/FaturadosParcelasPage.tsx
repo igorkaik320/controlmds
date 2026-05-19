@@ -6,24 +6,32 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, X } from "lucide-react";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { X } from "lucide-react";
 import { fetchComprasFaturadas, formatCurrencyBR } from "@/lib/comprasService";
 import { fetchEmpresas, Empresa } from "@/lib/empresasService";
 import { fetchObras, Obra } from "@/lib/obrasService";
 import { buildInstallmentsFromItem, toIsoDateString } from "@/lib/parcelas";
 import { fetchContasPagar, ContaPagarComParcelas } from "@/lib/contasPagarService";
-import { verificarLimiteGlobal, AlertaSimples } from "@/lib/limitesSimples";
 import EmpresaSelect from "@/components/compras/EmpresaSelect";
-import { AlertaSimplesCard } from "@/components/limites/AlertaSimplesCard";
+import FornecedorSelect from "@/components/compras/FornecedorSelect";
+import ObraSelect from "@/components/compras/ObraSelect";
 import { ConfigurarLimiteModal } from "@/components/limites/ConfigurarLimiteModal";
 import { Settings } from "lucide-react";
 
 const monthFormatter = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric" });
 const dayFormatter = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "long" });
+
+function formatInputDate(date: Date | undefined) {
+  if (!date) return "";
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function parseInputDate(value: string) {
+  return value ? new Date(`${value}T00:00:00`) : undefined;
+}
 
 type InstallmentView = {
   id: string;
@@ -48,13 +56,6 @@ type InstallmentView = {
   status?: string;
 };
 
-type MonthSummary = {
-  key: string;
-  label: string;
-  total: number;
-  parcels: number;
-};
-
 type DayGroup = {
   key: string;
   label: string;
@@ -66,19 +67,17 @@ type DayGroup = {
 export default function FaturadosParcelasPage() {
   const [items, setItems] = useState<InstallmentView[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
   const [selectedCompany, setSelectedCompany] = useState("");
+  const [selectedSupplier, setSelectedSupplier] = useState("");
+  const [selectedObra, setSelectedObra] = useState("");
   const [companies, setCompanies] = useState<Empresa[]>([]);
   const [obras, setObras] = useState<Obra[]>([]);
   const [exportingPdf, setExportingPdf] = useState(false);
-  const [alertas, setAlertas] = useState<AlertaSimples[]>([]);
-  const [refreshKey, setRefreshKey] = useState(0);
   const tableRef = useRef<HTMLDivElement>(null);
   
   // Estados para filtro de período
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
-  const [showDateFilter, setShowDateFilter] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -235,6 +234,20 @@ export default function FaturadosParcelasPage() {
     }
 
     // Filtro por período
+    const supplierFilter = selectedSupplier.trim().toLowerCase();
+    if (supplierFilter) {
+      filteredItems = filteredItems.filter((installment) =>
+        installment.supplier.toLowerCase().includes(supplierFilter)
+      );
+    }
+
+    const obraFilter = selectedObra.trim().toLowerCase();
+    if (obraFilter) {
+      filteredItems = filteredItems.filter((installment) =>
+        (installment.obra || "").toLowerCase().includes(obraFilter)
+      );
+    }
+
     if (startDate || endDate) {
       filteredItems = filteredItems.filter((installment) => {
         if (!installment.dueIso) return false;
@@ -249,62 +262,24 @@ export default function FaturadosParcelasPage() {
     }
 
     return filteredItems;
-  }, [allowedObrasForCompany, companies, items, selectedCompany, startDate, endDate]);
+  }, [allowedObrasForCompany, companies, items, selectedCompany, selectedObra, selectedSupplier, startDate, endDate]);
 
-  const months = useMemo<MonthSummary[]>(() => {
-    const map = new Map<string, MonthSummary>();
-    for (const installment of visibleInstallments) {
-      const key = installment.monthKey || "sem-mes";
-      const current = map.get(key);
-      if (current) {
-        current.total += installment.value;
-        current.parcels += 1;
-      } else {
-        map.set(key, {
-          key,
-          label: installment.monthLabel || "Sem mês",
-          total: installment.value,
-          parcels: 1,
-        });
-      }
-    }
-    return Array.from(map.values()).sort((a, b) => (a.key > b.key ? -1 : a.key < b.key ? 1 : 0));
-  }, [visibleInstallments]);
-
-  // Verificar limites simples
-  useEffect(() => {
-    if (!selectedMonth || months.length === 0) return;
-
-    const selectedMonthData = months.find(m => m.key === selectedMonth);
-    if (!selectedMonthData) return;
-
-    const alerta = verificarLimiteGlobal(selectedMonth, selectedMonthData.total);
-    setAlertas(alerta && alerta.tipo !== 'normal' ? [alerta] : []);
-  }, [selectedMonth, months, refreshKey]);
-
-  useEffect(() => {
-    if (!selectedMonth && months.length > 0) {
-      setSelectedMonth(months[0].key);
-      return;
-    }
-    if (selectedMonth && !months.some((month) => month.key === selectedMonth)) {
-      setSelectedMonth(months[0]?.key || null);
-    }
-  }, [months, selectedMonth]);
-
-  const monthDetails = months.find((month) => month.key === selectedMonth);
+  const totalFiltrado = useMemo(
+    () => visibleInstallments.reduce((sum, installment) => sum + installment.value, 0),
+    [visibleInstallments]
+  );
   const selectedCompanyLabel =
     selectedCompany && companies.length > 0 ? companies.find((c) => c.id === selectedCompany)?.nome : undefined;
+  const selectedSupplierLabel = selectedSupplier.trim();
+  const selectedObraLabel = selectedObra.trim();
   const monthlyInstallments = useMemo(() => {
-    if (!selectedMonth) return [];
     return visibleInstallments
-      .filter((installment) => installment.monthKey === selectedMonth)
       .sort((a, b) => {
         const aKey = a.dueIso ?? a.due;
         const bKey = b.dueIso ?? b.due;
         return aKey.localeCompare(bKey);
       });
-  }, [visibleInstallments, selectedMonth]);
+  }, [visibleInstallments]);
 
   const dailyGroups = useMemo<DayGroup[]>(() => {
     const map = new Map<string, DayGroup>();
@@ -408,9 +383,9 @@ export default function FaturadosParcelasPage() {
       }
 
       const companyNome = selectedCompanyLabel;
-      const monthKeySafe = (selectedMonth || "sem-mes").replace(/[^\w-]/g, "");
+      const periodSafe = `${formatInputDate(startDate) || "inicio"}_${formatInputDate(endDate) || "fim"}`.replace(/[^\w-]/g, "");
       const companySafe = (companyNome || selectedCompany || "todas").replace(/[^\w-]/g, "");
-      const filename = `parcelas_faturadas_${monthKeySafe}_${companySafe}.pdf`;
+      const filename = `parcelas_faturadas_${periodSafe}_${companySafe}.pdf`;
 
       pdf.save(filename);
       toast.success("PDF exportado com sucesso.");
@@ -440,149 +415,70 @@ export default function FaturadosParcelasPage() {
       </header>
 
       <section className="space-y-4">
-        {/* Alertas de Limites */}
-        {alertas.length > 0 && (
-          <div className="space-y-3">
-            {alertas.map((alerta, index) => (
-              <AlertaSimplesCard key={index} alerta={alerta} />
-            ))}
-          </div>
-        )}
-
         {/* Filtros */}
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center">
+        <div className="rounded-xl border bg-card p-4 space-y-4">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <FornecedorSelect
+              value={selectedSupplier}
+              onChange={setSelectedSupplier}
+              label="Fornecedor"
+              className="space-y-0"
+              labelClassName="text-xs"
+              placeholder="Digite para buscar fornecedor..."
+            />
+
+            <div>
+              <Label className="text-xs">Obra</Label>
+              <ObraSelect
+                value={selectedObra}
+                onChange={setSelectedObra}
+                placeholder="Digite para buscar obra..."
+              />
+            </div>
+
+            <EmpresaSelect
+              value={selectedCompany}
+              onChange={setSelectedCompany}
+              label="Empresa"
+              allowAll
+            />
+
+            <div>
+              <Label className="text-xs">Período</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <Input
+                  type="date"
+                  value={formatInputDate(startDate)}
+                  onChange={(e) => setStartDate(parseInputDate(e.target.value))}
+                  aria-label="Data inicial"
+                />
+                <Input
+                  type="date"
+                  value={formatInputDate(endDate)}
+                  onChange={(e) => setEndDate(parseInputDate(e.target.value))}
+                  aria-label="Data final"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end">
             <Button
-              variant={showDateFilter ? "default" : "outline"}
-              onClick={() => setShowDateFilter(!showDateFilter)}
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSelectedSupplier("");
+                setSelectedObra("");
+                setSelectedCompany("");
+                setStartDate(undefined);
+                setEndDate(undefined);
+              }}
               className="w-full md:w-auto"
             >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              Filtro de Período
+              <X className="mr-1 h-4 w-4" />
+              Limpar filtros
             </Button>
-            
-            {showDateFilter && (
-              <div className="flex flex-col gap-3 md:flex-row md:items-center">
-                <div className="flex flex-col gap-1">
-                  <Label className="text-xs">Data Inicial</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="w-full md:w-40 justify-start text-left font-normal"
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {startDate ? format(startDate, "dd/MM/yyyy", { locale: ptBR }) : "Selecione"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={startDate}
-                        onSelect={setStartDate}
-                        initialFocus
-                        locale={ptBR}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
-                <div className="flex flex-col gap-1">
-                  <Label className="text-xs">Data Final</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="w-full md:w-40 justify-start text-left font-normal"
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {endDate ? format(endDate, "dd/MM/yyyy", { locale: ptBR }) : "Selecione"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={endDate}
-                        onSelect={setEndDate}
-                        initialFocus
-                        locale={ptBR}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setStartDate(undefined);
-                    setEndDate(undefined);
-                  }}
-                  className="mt-5 md:mt-0"
-                >
-                  <X className="mr-1 h-4 w-4" />
-                  Limpar
-                </Button>
-              </div>
-            )}
           </div>
-        </div>
-        
-        <div className="grid gap-4 md:grid-cols-3">
-          {months.map((month) => {
-            const isSelected = month.key === selectedMonth;
-            const alerta = verificarLimiteGlobal(month.key, month.total);
-            const hasAlerta = alerta && alerta.tipo !== 'normal';
-            
-            return (
-              <Card
-                key={month.key}
-                onClick={() => setSelectedMonth(month.key)}
-                className={`cursor-pointer border transition ${
-                  isSelected 
-                    ? "border-blue-500 bg-blue-500/10 shadow-sm" 
-                    : alerta?.tipo === 'perigo'
-                    ? "border-red-200 bg-red-50 hover:border-red-400"
-                    : alerta?.tipo === 'alerta'
-                    ? "border-yellow-200 bg-yellow-50 hover:border-yellow-400"
-                    : "border-slate-200 hover:border-slate-400"
-                }`}
-              >
-                <CardHeader className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-base">{month.label}</CardTitle>
-                    {hasAlerta && (
-                      <div className={`h-2 w-2 rounded-full ${
-                        alerta.tipo === 'perigo' ? 'bg-red-500' :
-                        alerta.tipo === 'alerta' ? 'bg-yellow-500' :
-                        'bg-green-500'
-                      }`} />
-                    )}
-                  </div>
-                  <CardDescription className="text-sm text-muted-foreground">
-                    {month.parcels} parcela{month.parcels === 1 ? "" : "s"}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-semibold">{formatCurrencyBR(month.total)}</p>
-                  {alerta && (
-                    <div className="mt-2 space-y-1">
-                      <p className="text-xs text-muted-foreground">
-                        {alerta.percentual.toFixed(1)}% do limite
-                      </p>
-                      <p className={`text-xs font-medium ${
-                        alerta.valorDisponivel < 0 ? 'text-red-600' :
-                        alerta.valorDisponivel < (alerta.valorLimite * 0.2) ? 'text-yellow-600' :
-                        'text-green-600'
-                      }`}>
-                        Disponível: {formatCurrencyBR(alerta.valorDisponivel)}
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
         </div>
       </section>
 
@@ -590,30 +486,17 @@ export default function FaturadosParcelasPage() {
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="flex-1">
             <h2 className="text-lg font-semibold">
-              {monthDetails ? monthDetails.label : "Nenhum mês encontrado"}
+              Parcelas filtradas
             </h2>
             <p className="text-sm text-muted-foreground">
-              {monthDetails ? `${monthDetails.parcels} parcelas previstas` : "Registros vazios"}
+              {visibleInstallments.length ? `${visibleInstallments.length} parcelas previstas` : "Registros vazios"}
             </p>
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="w-full sm:w-64">
-              <EmpresaSelect
-                value={selectedCompany}
-                onChange={setSelectedCompany}
-                label="Empresa"
-                allowAll
-              />
-            </div>
+            <p className="text-sm font-semibold text-blue-600 sm:order-0">{formatCurrencyBR(totalFiltrado)}</p>
 
-            {monthDetails && (
-              <p className="text-sm font-semibold text-blue-600 sm:order-0">{formatCurrencyBR(monthDetails.total)}</p>
-            )}
-
-            <ConfigurarLimiteModal 
-              onLimiteCriado={() => setRefreshKey(prev => prev + 1)}
-            >
+            <ConfigurarLimiteModal>
               <Button variant="outline" size="sm" className="w-full sm:w-auto">
                 <Settings className="h-4 w-4 mr-2" />
                 Configurar Limite
@@ -635,7 +518,7 @@ export default function FaturadosParcelasPage() {
           <CardHeader>
             <CardTitle>Parcelas por dia</CardTitle>
             <CardDescription>
-              Mostra cada vencimento e o total consolidado do dia, mantendo os cartões de totais no topo.
+              Mostra cada vencimento e o total consolidado do dia.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -645,8 +528,12 @@ export default function FaturadosParcelasPage() {
                 <div className="mt-1 flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
                   <h3 className="text-base font-semibold leading-tight">Compras faturadas</h3>
                   <p className="text-sm text-muted-foreground">
-                    {monthDetails?.label ? `Mês: ${monthDetails.label}` : "Mês: —"}
+                    {startDate || endDate
+                      ? `Período: ${formatInputDate(startDate) || "Início"} a ${formatInputDate(endDate) || "Fim"}`
+                      : "Período: Todos"}
                     {selectedCompanyLabel ? ` • Empresa: ${selectedCompanyLabel}` : ""}
+                    {selectedSupplierLabel ? ` • Fornecedor: ${selectedSupplierLabel}` : ""}
+                    {selectedObraLabel ? ` • Obra: ${selectedObraLabel}` : ""}
                   </p>
                 </div>
               </div>

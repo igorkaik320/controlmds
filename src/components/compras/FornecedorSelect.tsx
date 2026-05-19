@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { fetchFornecedores, type Fornecedor } from '@/lib/comprasService';
+import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 /** `name` (default): value/onChange usam o nome - compras e relatorios. `id`: usam o UUID - FKs (ex.: revisoes). */
@@ -13,6 +14,8 @@ interface Props {
   fornecedores?: Fornecedor[];
   label?: string;
   placeholder?: string;
+  className?: string;
+  labelClassName?: string;
   onFornecedorSelect?: (fornecedor: Fornecedor) => void;
   valueMode?: FornecedorSelectValueMode;
 }
@@ -31,6 +34,8 @@ export default function FornecedorSelect({
   fornecedores: fornecedoresProp,
   label = 'Fornecedor *',
   placeholder = 'Digite nome, razao social ou CNPJ/CPF',
+  className,
+  labelClassName,
   onFornecedorSelect,
   valueMode = 'name',
 }: Props) {
@@ -115,8 +120,8 @@ export default function FornecedorSelect({
   }
 
   return (
-    <div className="space-y-2">
-      {label ? <Label>{label}</Label> : null}
+    <div className={cn('space-y-2', className)}>
+      {label ? <Label className={labelClassName}>{label}</Label> : null}
 
       <div className="relative">
         <Input
