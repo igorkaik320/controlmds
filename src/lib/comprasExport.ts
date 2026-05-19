@@ -136,7 +136,7 @@ function buildGroupedEspelhoRows(items: EspelhoItem[]) {
   return rows;
 }
 
-function buildEspelhoXlsxData(title1: string, title2: string, items: EspelhoItem[], dateStr: string, observation?: string) {
+function buildEspelhoXlsxData(title1: string, title2: string, items: EspelhoItem[], dateStr: string, observation?: string, obraLabel?: string) {
   const sorted = [...items].sort((a, b) => {
     const f = a.fornecedor.localeCompare(b.fornecedor);
     if (f !== 0) return f;
@@ -149,6 +149,7 @@ function buildEspelhoXlsxData(title1: string, title2: string, items: EspelhoItem
     [title1],
     [title2],
     [`DATA: ${dateStr || new Date().toLocaleDateString('pt-BR')}`],
+    [`OBRA: ${obraLabel || 'Todas as obras'}`],
     [],
     ['ITEM', 'FORNECEDOR', 'RAZÃO SOCIAL', 'BANCO', 'AGÊNCIA', 'CONTA', 'OBRA', 'Nº PEDIDO', 'VALOR POR OBRA', 'TOTAL FORNECEDOR'],
   ];
@@ -414,7 +415,13 @@ export async function exportAvistaXLSX(items: CompraAvista[], observation?: stri
 }
 
 // ---- Espelho Geral PDF ----
-export async function exportEspelhoPDF(items: EspelhoItem[], dateStr: string, config?: ConfigRelatorio | null, observation?: string) {
+export async function exportEspelhoPDF(
+  items: EspelhoItem[],
+  dateStr: string,
+  config?: ConfigRelatorio | null,
+  observation?: string,
+  obraLabel?: string
+) {
   const { default: jsPDF } = await import('jspdf');
   const { default: autoTable } = await import('jspdf-autotable');
   const doc = new jsPDF({ orientation: 'landscape' });
@@ -430,6 +437,7 @@ export async function exportEspelhoPDF(items: EspelhoItem[], dateStr: string, co
   doc.text('PLANILHA GERAL PREVISÃO DE COMPRAS', pageWidth / 2, 20, { align: 'center' });
   doc.setFontSize(10);
   doc.text(`DATA: ${dateStr || new Date().toLocaleDateString('pt-BR')}`, 14, 30);
+  doc.text(`OBRA: ${obraLabel || 'Todas as obras'}`, 14, 36);
 
   const rows = buildGroupedEspelhoRows(items);
   const totalGeral = items.reduce((s, i) => s + i.valor_por_obra, 0);
@@ -437,7 +445,7 @@ export async function exportEspelhoPDF(items: EspelhoItem[], dateStr: string, co
   rows.push(['', '', '', '', '', '', '', 'TOTAL GERAL', formatCurrencyBR(totalGeral), '']);
 
   autoTable(doc, {
-    startY: 36,
+    startY: 42,
     head: [[
       'ITEM',
       'FORNECEDOR',
@@ -487,7 +495,7 @@ export async function exportEspelhoPDF(items: EspelhoItem[], dateStr: string, co
 }
 
 // ---- Espelho Geral XLSX ----
-export async function exportEspelhoXLSX(items: EspelhoItem[], dateStr: string, observation?: string) {
+export async function exportEspelhoXLSX(items: EspelhoItem[], dateStr: string, observation?: string, obraLabel?: string) {
   const XLSX = await import('xlsx');
   const wb = XLSX.utils.book_new();
 
@@ -496,7 +504,8 @@ export async function exportEspelhoXLSX(items: EspelhoItem[], dateStr: string, o
     'PLANILHA RESUMO PREVISÃO DE COMPRAS',
     items,
     dateStr,
-    observation
+    observation,
+    obraLabel
   );
 
   const ws = XLSX.utils.aoa_to_sheet(data);

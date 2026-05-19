@@ -69,6 +69,7 @@ export interface ConfigRelatorio {
 }
 
 export interface EspelhoItem {
+  source_id?: string;
   item: number;
   fornecedor: string;
   razao_social: string;
@@ -491,6 +492,7 @@ export function buildEspelho(compras: CompraAvista[], fornecedores: Fornecedor[]
       lastForn = key;
     }
     items.push({
+      source_id: c.id,
       item: itemNum,
       fornecedor: c.fornecedor,
       razao_social: forn?.razao_social || '',
@@ -536,6 +538,7 @@ export function buildEspelhoSemanal(compras: ProgramacaoSemanal[], fornecedores:
       lastForn = key;
     }
     items.push({
+      source_id: c.id,
       item: itemNum,
       fornecedor: c.fornecedor,
       razao_social: forn?.razao_social || '',

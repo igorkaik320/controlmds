@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { FileDown, FileSpreadsheet, Search, RotateCcw } from 'lucide-react';
 import {
   fetchComprasAvista,
@@ -21,6 +22,7 @@ import { exportEspelhoPDF, exportEspelhoXLSX } from '@/lib/comprasExport';
 import { fetchObras } from '@/lib/obrasService';
 import { fetchEmpresas } from '@/lib/empresasService';
 import EmpresaSelect from '@/components/compras/EmpresaSelect';
+import ObraSelect from '@/components/compras/ObraSelect';
 import DateRangeFilter from '@/components/DateRangeFilter';
 import { useFormDraft } from '@/hooks/useFormDraft';
 import { useModulePermissions } from '@/hooks/useModulePermissions';
@@ -34,6 +36,7 @@ type Filtros = {
   dateTo: string;
   fonte: FonteDados;
   empresa: string;
+  obra: string;
   semPedidoOnly: boolean;
 };
 
@@ -54,30 +57,36 @@ export default function EspelhoGeralPage() {
   const searchDateTo = searchParams.get('dateTo') ?? '';
   const searchFonteValue = parseFonteParam(searchParams.get('fonte'));
   const searchEmpresa = searchParams.get('empresa') ?? '';
+  const searchObra = searchParams.get('obra') ?? '';
   const searchSemPedido = searchParams.get('semPedido') === '1';
 
   const [draftDateFrom, setDraftDateFrom] = useFormDraft('espelho-dateFrom', '');
   const [draftDateTo, setDraftDateTo] = useFormDraft('espelho-dateTo', '');
   const [draftFonte, setDraftFonte] = useFormDraft<FonteDados>('espelho-fonte', 'ambos');
   const [draftEmpresa, setDraftEmpresa] = useFormDraft('espelho-empresa', '');
+  const [draftObra, setDraftObra] = useFormDraft('espelho-obra', '');
   const [observation, setObservation] = useFormDraft('espelho-obs', '');
 
   const initialDateFrom = searchDateFrom || draftDateFrom;
   const initialDateTo = searchDateTo || draftDateTo;
   const initialFonte = searchFonteValue ?? draftFonte;
   const initialEmpresa = searchEmpresa || draftEmpresa;
+  const initialObra = searchObra || draftObra;
 
   const [dateFrom, setDateFrom] = useState(initialDateFrom);
   const [dateTo, setDateTo] = useState(initialDateTo);
   const [fonte, setFonte] = useState<FonteDados>(initialFonte);
   const [empresa, setEmpresa] = useState(initialEmpresa);
+  const [obra, setObra] = useState(initialObra);
   const [semPedidoOnly, setSemPedidoOnly] = useState(searchSemPedido);
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
 
   const [appliedFilters, setAppliedFilters] = useState<Filtros>({
     dateFrom: initialDateFrom,
     dateTo: initialDateTo,
     fonte: initialFonte,
     empresa: initialEmpresa,
+    obra: initialObra,
     semPedidoOnly: searchSemPedido,
   });
 
@@ -108,6 +117,13 @@ export default function EspelhoGeralPage() {
       setEmpresa(searchEmpresa);
     }
   }, [searchEmpresa, empresa, setDraftEmpresa]);
+
+  useEffect(() => {
+    if (searchObra && searchObra !== obra) {
+      setDraftObra(searchObra);
+      setObra(searchObra);
+    }
+  }, [searchObra, obra, setDraftObra]);
 
   useEffect(() => {
     if (searchSemPedido !== semPedidoOnly) {
@@ -165,14 +181,20 @@ export default function EspelhoGeralPage() {
       const filterByEmpresa = (c: any) =>
         !allowedObras || (c.obra && allowedObras.has(c.obra.toLowerCase()));
 
+      const filterByObra = (c: any) => {
+        const selectedObra = appliedFilters.obra.trim().toLowerCase();
+        if (!selectedObra) return true;
+        return (c.obra || '').toLowerCase().includes(selectedObra);
+      };
+
       const filterByPeriodo = (c: any) => {
         if (appliedFilters.dateFrom && c.data < appliedFilters.dateFrom) return false;
         if (appliedFilters.dateTo && c.data > appliedFilters.dateTo) return false;
         return true;
       };
 
-      const avFiltered = comprasAv.filter(filterByPeriodo).filter(filterByEmpresa);
-      const fatFiltered = comprasFat.filter(filterByPeriodo).filter(filterByEmpresa);
+      const avFiltered = comprasAv.filter(filterByPeriodo).filter(filterByEmpresa).filter(filterByObra);
+      const fatFiltered = comprasFat.filter(filterByPeriodo).filter(filterByEmpresa).filter(filterByObra);
 
       let comprasParaEspelho: any[] = [];
       if (appliedFilters.fonte === 'avista' || appliedFilters.fonte === 'ambos') {
@@ -212,7 +234,65 @@ export default function EspelhoGeralPage() {
     load();
   }, [load]);
 
+  const getItemKey = useCallback((item: EspelhoItem) => {
+    return item.source_id || [
+      item.fornecedor,
+      item.obra,
+      item.pedido,
+      item.valor_por_obra,
+      item.item,
+    ].join('|');
+  }, []);
+
+  const getGroupKeys = useCallback((item: EspelhoItem) => {
+    return items
+      .filter((current) => current.fornecedor === item.fornecedor)
+      .map(getItemKey);
+  }, [getItemKey, items]);
+
+  const isGroupSelected = useCallback((item: EspelhoItem) => {
+    const groupKeys = getGroupKeys(item);
+    return groupKeys.length > 0 && groupKeys.every((key) => selectedItems.has(key));
+  }, [getGroupKeys, selectedItems]);
+
+  const toggleGroupSelection = useCallback((item: EspelhoItem, checked: boolean) => {
+    const groupKeys = getGroupKeys(item);
+    setSelectedItems((current) => {
+      const next = new Set(current);
+      groupKeys.forEach((key) => {
+        if (checked) {
+          next.add(key);
+        } else {
+          next.delete(key);
+        }
+      });
+      return next;
+    });
+  }, [getGroupKeys]);
+
+  const recalculateFornecedorTotals = useCallback((selected: EspelhoItem[]) => {
+    const totals = new Map<string, number>();
+    selected.forEach((item) => {
+      const key = item.fornecedor.toLowerCase();
+      totals.set(key, (totals.get(key) || 0) + item.valor_por_obra);
+    });
+
+    return selected.map((item) => ({
+      ...item,
+      total_fornecedor: totals.get(item.fornecedor.toLowerCase()) || 0,
+    }));
+  }, []);
+
   const totalGeral = useMemo(() => items.reduce((s, i) => s + i.valor_por_obra, 0), [items]);
+
+  const selectedReportItems = useMemo(() => {
+    if (selectedItems.size === 0) return items;
+    return recalculateFornecedorTotals(items.filter((item) => selectedItems.has(getItemKey(item))));
+  }, [getItemKey, items, recalculateFornecedorTotals, selectedItems]);
+
+  const selectedVisibleCount = useMemo(() => {
+    return items.filter((item) => selectedItems.has(getItemKey(item))).length;
+  }, [getItemKey, items, selectedItems]);
 
   const groupedRows = useMemo(() => {
     const rows: { item: EspelhoItem; isFirst: boolean; groupSize: number }[] = [];
@@ -251,33 +331,43 @@ export default function EspelhoGeralPage() {
     return 'Todos os períodos';
   }
 
+  function formatObraLabel() {
+    return appliedFilters.obra.trim() || 'Todas as obras';
+  }
+
   function handleConsultar() {
     consultFlashPendingRef.current = true;
+    setSelectedItems(new Set());
     setDraftDateFrom(dateFrom);
     setDraftDateTo(dateTo);
     setDraftFonte(fonte);
     setDraftEmpresa(empresa);
+    setDraftObra(obra);
 
     setAppliedFilters({
       dateFrom,
       dateTo,
       fonte,
       empresa,
+      obra,
       semPedidoOnly,
     });
   }
 
   function handleLimpar() {
     consultFlashPendingRef.current = true;
+    setSelectedItems(new Set());
     setDateFrom('');
     setDateTo('');
     setFonte('ambos');
     setEmpresa('');
+    setObra('');
 
     setDraftDateFrom('');
     setDraftDateTo('');
     setDraftFonte('ambos');
     setDraftEmpresa('');
+    setDraftObra('');
     setSemPedidoOnly(false);
 
     setAppliedFilters({
@@ -285,11 +375,17 @@ export default function EspelhoGeralPage() {
       dateTo: '',
       fonte: 'ambos',
       empresa: '',
+      obra: '',
       semPedidoOnly: false,
     });
   }
 
   async function handleExportPDF() {
+    if (selectedReportItems.length === 0) {
+      toast.error('Nenhum lançamento selecionado para exportar.');
+      return;
+    }
+
     let config = await fetchConfigRelatorio();
 
     if (appliedFilters.empresa && config) {
@@ -306,7 +402,16 @@ export default function EspelhoGeralPage() {
       }
     }
 
-    exportEspelhoPDF(items, formatPeriodoLabel(), config, observation);
+    exportEspelhoPDF(selectedReportItems, formatPeriodoLabel(), config, observation, formatObraLabel());
+  }
+
+  async function handleExportXLSX() {
+    if (selectedReportItems.length === 0) {
+      toast.error('Nenhum lançamento selecionado para exportar.');
+      return;
+    }
+
+    exportEspelhoXLSX(selectedReportItems, formatPeriodoLabel(), observation, formatObraLabel());
   }
 
   if (loading) {
@@ -338,7 +443,7 @@ export default function EspelhoGeralPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => exportEspelhoXLSX(items, formatPeriodoLabel(), observation)}
+                onClick={handleExportXLSX}
               >
                 <FileSpreadsheet className="mr-1 h-4 w-4" />
                 Excel
@@ -349,7 +454,7 @@ export default function EspelhoGeralPage() {
       </div>
 
       <div className="rounded-xl border bg-card p-4 space-y-4">
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
           <div>
             <Label className="text-xs">De</Label>
             <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
@@ -377,6 +482,11 @@ export default function EspelhoGeralPage() {
           <div>
             <EmpresaSelect value={empresa} onChange={setEmpresa} label="Empresa" allowAll />
           </div>
+
+          <div>
+            <Label className="text-xs">Obra</Label>
+            <ObraSelect value={obra} onChange={setObra} placeholder="Todas as obras" />
+          </div>
         </div>
 
         <div>
@@ -392,6 +502,16 @@ export default function EspelhoGeralPage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="text-sm text-muted-foreground">
             Período consultado: <span className="font-medium">{formatPeriodoLabel()}</span>
+          </div>
+
+          <div className="text-sm text-muted-foreground">
+            Obra: <span className="font-medium">{formatObraLabel()}</span>
+          </div>
+
+          <div className="text-sm text-muted-foreground">
+            Relatório: <span className="font-medium">
+              {selectedItems.size > 0 ? `${selectedVisibleCount} selecionado(s)` : 'Todos os itens filtrados'}
+            </span>
           </div>
 
           <div className="flex gap-2">
@@ -443,6 +563,18 @@ export default function EspelhoGeralPage() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[40px]">
+                <Checkbox
+                  checked={selectedVisibleCount === items.length && items.length > 0}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      setSelectedItems(new Set(items.map(getItemKey)));
+                    } else {
+                      setSelectedItems(new Set());
+                    }
+                  }}
+                />
+              </TableHead>
               <TableHead>Item</TableHead>
               <TableHead>Fornecedor</TableHead>
               <TableHead>Razão Social</TableHead>
@@ -459,7 +591,7 @@ export default function EspelhoGeralPage() {
           <TableBody>
             {groupedRows.length === 0 && (
               <TableRow>
-                <TableCell colSpan={10} className="text-center text-muted-foreground">
+                <TableCell colSpan={11} className="text-center text-muted-foreground">
                   Nenhum dado para o período consultado
                 </TableCell>
               </TableRow>
@@ -469,6 +601,12 @@ export default function EspelhoGeralPage() {
               <TableRow key={rIdx}>
                 {row.isFirst && (
                   <>
+                    <TableCell rowSpan={row.groupSize} className="align-middle">
+                      <Checkbox
+                        checked={isGroupSelected(row.item)}
+                        onCheckedChange={(checked) => toggleGroupSelection(row.item, checked === true)}
+                      />
+                    </TableCell>
                     <TableCell rowSpan={row.groupSize} className="align-middle text-center">
                       {row.item.item}
                     </TableCell>
@@ -504,7 +642,7 @@ export default function EspelhoGeralPage() {
 
             {items.length > 0 && (
               <TableRow className="bg-muted/50 font-bold">
-                <TableCell colSpan={8} className="text-right">
+                <TableCell colSpan={9} className="text-right">
                   TOTAL GERAL
                 </TableCell>
                 <TableCell className="text-right">{formatCurrencyBR(totalGeral)}</TableCell>

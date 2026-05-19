@@ -5,9 +5,10 @@ import { fetchObras, Obra } from '@/lib/obrasService';
 interface Props {
   value: string;
   onChange: (value: string) => void;
+  placeholder?: string;
 }
 
-export default function ObraSelect({ value, onChange }: Props) {
+export default function ObraSelect({ value, onChange, placeholder = 'Selecione ou digite...' }: Props) {
   const [obras, setObras] = useState<Obra[]>([]);
   const [open, setOpen] = useState(false);
 
@@ -26,7 +27,7 @@ export default function ObraSelect({ value, onChange }: Props) {
         onChange={e => { onChange(e.target.value); setOpen(true); }}
         onFocus={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 200)}
-        placeholder="Selecione ou digite..."
+        placeholder={placeholder}
       />
       {open && filtered.length > 0 && (
         <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-40 overflow-auto">
