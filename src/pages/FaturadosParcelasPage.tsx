@@ -624,6 +624,15 @@ export default function FaturadosParcelasPage() {
                         </TableRow>
                       )),
                     ])}
+                    <TableRow className="bg-muted/60">
+                      <TableCell colSpan={5} className="text-right font-bold text-sm">
+                        Total Geral ({visibleInstallments.length} parcela{visibleInstallments.length === 1 ? '' : 's'})
+                      </TableCell>
+                      <TableCell className="text-right font-bold text-sm text-blue-700">
+                        {formatCurrencyBR(totalFiltrado)}
+                      </TableCell>
+                      <TableCell />
+                    </TableRow>
                   </TableBody>
                 </Table>
               )}
