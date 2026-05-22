@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { X } from "lucide-react";
+import { FileSpreadsheet, FileText, X } from "lucide-react";
 import { fetchComprasFaturadas, formatCurrencyBR } from "@/lib/comprasService";
 import { fetchEmpresas, Empresa } from "@/lib/empresasService";
 import { fetchObras, Obra } from "@/lib/obrasService";
@@ -31,6 +31,27 @@ function formatInputDate(date: Date | undefined) {
 
 function parseInputDate(value: string) {
   return value ? new Date(`${value}T00:00:00`) : undefined;
+}
+
+function sanitizeFilePart(value: string) {
+  return value.replace(/[^\w-]/g, "");
+}
+
+function escapeCsvValue(value: string | number | null | undefined) {
+  const text = String(value ?? "");
+  return `"${text.replace(/"/g, '""')}"`;
+}
+
+function downloadTextFile(filename: string, content: string, type: string) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }
 
 type InstallmentView = {
@@ -73,6 +94,7 @@ export default function FaturadosParcelasPage() {
   const [companies, setCompanies] = useState<Empresa[]>([]);
   const [obras, setObras] = useState<Obra[]>([]);
   const [exportingPdf, setExportingPdf] = useState(false);
+  const [exportingSpreadsheet, setExportingSpreadsheet] = useState(false);
   const tableRef = useRef<HTMLDivElement>(null);
   
   // Estados para filtro de período
@@ -272,6 +294,11 @@ export default function FaturadosParcelasPage() {
     selectedCompany && companies.length > 0 ? companies.find((c) => c.id === selectedCompany)?.nome : undefined;
   const selectedSupplierLabel = selectedSupplier.trim();
   const selectedObraLabel = selectedObra.trim();
+  const periodLabel =
+    startDate || endDate
+      ? `${formatInputDate(startDate) || "Início"} a ${formatInputDate(endDate) || "Fim"}`
+      : "Todos";
+  const exportFileBase = `parcelas_faturadas_${sanitizeFilePart(formatInputDate(startDate) || "inicio")}_${sanitizeFilePart(formatInputDate(endDate) || "fim")}_${sanitizeFilePart(selectedCompanyLabel || selectedCompany || "todas")}`;
   const monthlyInstallments = useMemo(() => {
     return visibleInstallments
       .sort((a, b) => {
@@ -304,6 +331,74 @@ export default function FaturadosParcelasPage() {
     }
     return Array.from(map.values()).sort((a, b) => (a.key > b.key ? -1 : a.key < b.key ? 1 : 0));
   }, [monthlyInstallments]);
+
+  function buildSpreadsheetData(): Array<Array<string | number>> {
+    return [
+      ["Relatório", "Compras faturadas"],
+      ["Período", periodLabel],
+      ["Empresa", selectedCompanyLabel || "Todas"],
+      ["Fornecedor", selectedSupplierLabel || "Todos"],
+      ["Obra", selectedObraLabel || "Todas"],
+      ["Total", totalFiltrado],
+      [],
+      ["Vencimento", "Tipo", "Fornecedor", "CNPJ/CPF", "Obra", "Pedido", "Valor", "Observação"],
+      ...monthlyInstallments.map((installment) => [
+        installment.dueIso || installment.due,
+        installment.tipo === "conta_pagar" ? "Conta a Pagar" : "Compra Faturada",
+        installment.supplier,
+        installment.cnpj || "",
+        installment.obra || "",
+        installment.pedido || "",
+        installment.value,
+        installment.observation || "",
+      ]),
+    ];
+  }
+
+  async function handleExportExcel() {
+    if (exportingSpreadsheet) return;
+    if (monthlyInstallments.length === 0) {
+      toast.error("Nada para exportar.");
+      return;
+    }
+
+    setExportingSpreadsheet(true);
+    try {
+      const XLSX = await import("xlsx");
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(buildSpreadsheetData());
+      ws["!cols"] = [
+        { wch: 14 },
+        { wch: 18 },
+        { wch: 32 },
+        { wch: 20 },
+        { wch: 28 },
+        { wch: 16 },
+        { wch: 14 },
+        { wch: 36 },
+      ];
+      XLSX.utils.book_append_sheet(wb, ws, "Parcelas Faturadas");
+      XLSX.writeFile(wb, `${exportFileBase}.xlsx`);
+      toast.success("Excel exportado com sucesso.");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Erro ao exportar Excel.");
+    } finally {
+      setExportingSpreadsheet(false);
+    }
+  }
+
+  function handleExportCsv() {
+    if (monthlyInstallments.length === 0) {
+      toast.error("Nada para exportar.");
+      return;
+    }
+
+    const csv = buildSpreadsheetData()
+      .map((row) => row.map(escapeCsvValue).join(";"))
+      .join("\r\n");
+    downloadTextFile(`${exportFileBase}.csv`, `\uFEFF${csv}`, "text/csv;charset=utf-8;");
+    toast.success("CSV exportado com sucesso.");
+  }
 
   async function handleExportPdf() {
     if (exportingPdf) return;
@@ -382,12 +477,7 @@ export default function FaturadosParcelasPage() {
         pageIndex += 1;
       }
 
-      const companyNome = selectedCompanyLabel;
-      const periodSafe = `${formatInputDate(startDate) || "inicio"}_${formatInputDate(endDate) || "fim"}`.replace(/[^\w-]/g, "");
-      const companySafe = (companyNome || selectedCompany || "todas").replace(/[^\w-]/g, "");
-      const filename = `parcelas_faturadas_${periodSafe}_${companySafe}.pdf`;
-
-      pdf.save(filename);
+      pdf.save(`${exportFileBase}.pdf`);
       toast.success("PDF exportado com sucesso.");
     } catch (e: any) {
       toast.error(e?.message ?? "Erro ao exportar PDF.");
@@ -514,6 +604,28 @@ export default function FaturadosParcelasPage() {
               variant="outline"
             >
               {exportingPdf ? "Exportando..." : "Exportar PDF"}
+            </Button>
+
+            <Button
+              type="button"
+              onClick={handleExportExcel}
+              disabled={exportingSpreadsheet || monthlyInstallments.length === 0}
+              className="w-full sm:w-auto"
+              variant="outline"
+            >
+              <FileSpreadsheet className="mr-2 h-4 w-4" />
+              {exportingSpreadsheet ? "Exportando..." : "Excel"}
+            </Button>
+
+            <Button
+              type="button"
+              onClick={handleExportCsv}
+              disabled={monthlyInstallments.length === 0}
+              className="w-full sm:w-auto"
+              variant="outline"
+            >
+              <FileText className="mr-2 h-4 w-4" />
+              CSV
             </Button>
           </div>
         </div>
