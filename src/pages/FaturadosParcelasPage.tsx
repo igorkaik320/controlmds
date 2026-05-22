@@ -355,6 +355,29 @@ export default function FaturadosParcelasPage() {
     ];
   }
 
+  function buildCsvData(): Array<Array<string | number>> {
+    return [
+      ["Relatório", "Compras faturadas"],
+      ["Período", periodLabel],
+      ["Empresa", selectedCompanyLabel || "Todas"],
+      ["Fornecedor", selectedSupplierLabel || "Todos"],
+      ["Obra", selectedObraLabel || "Todas"],
+      ["Total", formatCurrencyBR(totalFiltrado)],
+      [],
+      ["Vencimento", "Tipo", "Fornecedor", "CNPJ/CPF", "Obra", "Pedido", "Valor", "Observação"],
+      ...monthlyInstallments.map((installment) => [
+        installment.dueIso || installment.due,
+        installment.tipo === "conta_pagar" ? "Conta a Pagar" : "Compra Faturada",
+        installment.supplier,
+        installment.cnpj || "",
+        installment.obra || "",
+        installment.pedido || "",
+        formatCurrencyBR(installment.value),
+        installment.observation || "",
+      ]),
+    ];
+  }
+
   async function handleExportExcel() {
     if (exportingSpreadsheet) return;
     if (monthlyInstallments.length === 0) {
@@ -367,6 +390,12 @@ export default function FaturadosParcelasPage() {
       const XLSX = await import("xlsx");
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.aoa_to_sheet(buildSpreadsheetData());
+      const currencyFormat = '"R$" #,##0.00';
+      if (ws.B6) ws.B6.z = currencyFormat;
+      for (let row = 9; row < 9 + monthlyInstallments.length; row += 1) {
+        const cell = ws[`G${row}`];
+        if (cell) cell.z = currencyFormat;
+      }
       ws["!cols"] = [
         { wch: 14 },
         { wch: 18 },
@@ -393,7 +422,7 @@ export default function FaturadosParcelasPage() {
       return;
     }
 
-    const csv = buildSpreadsheetData()
+    const csv = buildCsvData()
       .map((row) => row.map(escapeCsvValue).join(";"))
       .join("\r\n");
     downloadTextFile(`${exportFileBase}.csv`, `\uFEFF${csv}`, "text/csv;charset=utf-8;");
