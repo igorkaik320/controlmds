@@ -38,6 +38,10 @@ function sanitizeFilePart(value: string) {
 }
 
 function escapeCsvValue(value: string | number | null | undefined) {
+  if (typeof value === "number") {
+    return value.toFixed(2).replace(".", ",");
+  }
+
   const text = String(value ?? "");
   return `"${text.replace(/"/g, '""')}"`;
 }
@@ -339,7 +343,7 @@ export default function FaturadosParcelasPage() {
       ["Empresa", selectedCompanyLabel || "Todas"],
       ["Fornecedor", selectedSupplierLabel || "Todos"],
       ["Obra", selectedObraLabel || "Todas"],
-      ["Total", totalFiltrado],
+      ["Total", Number(totalFiltrado)],
       [],
       ["Vencimento", "Tipo", "Fornecedor", "CNPJ/CPF", "Obra", "Pedido", "Valor", "Observação"],
       ...monthlyInstallments.map((installment) => [
@@ -349,7 +353,7 @@ export default function FaturadosParcelasPage() {
         installment.cnpj || "",
         installment.obra || "",
         installment.pedido || "",
-        installment.value,
+        Number(installment.value),
         installment.observation || "",
       ]),
     ];
@@ -362,7 +366,7 @@ export default function FaturadosParcelasPage() {
       ["Empresa", selectedCompanyLabel || "Todas"],
       ["Fornecedor", selectedSupplierLabel || "Todos"],
       ["Obra", selectedObraLabel || "Todas"],
-      ["Total", formatCurrencyBR(totalFiltrado)],
+      ["Total", Number(totalFiltrado)],
       [],
       ["Vencimento", "Tipo", "Fornecedor", "CNPJ/CPF", "Obra", "Pedido", "Valor", "Observação"],
       ...monthlyInstallments.map((installment) => [
@@ -372,7 +376,7 @@ export default function FaturadosParcelasPage() {
         installment.cnpj || "",
         installment.obra || "",
         installment.pedido || "",
-        formatCurrencyBR(installment.value),
+        Number(installment.value),
         installment.observation || "",
       ]),
     ];
@@ -390,11 +394,19 @@ export default function FaturadosParcelasPage() {
       const XLSX = await import("xlsx");
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.aoa_to_sheet(buildSpreadsheetData());
-      const currencyFormat = '"R$" #,##0.00';
-      if (ws.B6) ws.B6.z = currencyFormat;
+      const currencyFormat = 'R$ #,##0.00';
+      if (ws.B6) {
+        ws.B6.t = "n";
+        ws.B6.v = Number(totalFiltrado);
+        ws.B6.z = currencyFormat;
+      }
       for (let row = 9; row < 9 + monthlyInstallments.length; row += 1) {
         const cell = ws[`G${row}`];
-        if (cell) cell.z = currencyFormat;
+        if (cell) {
+          cell.t = "n";
+          cell.v = Number(monthlyInstallments[row - 9].value);
+          cell.z = currencyFormat;
+        }
       }
       ws["!cols"] = [
         { wch: 14 },
