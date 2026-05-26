@@ -12,36 +12,38 @@ import AppLayout from "@/components/AppLayout";
 import type { ModuleKey } from "@/lib/modulePermissions";
 import { Lock } from "lucide-react";
 import { MaintenanceNotificationProvider } from "@/lib/maintenanceNotifications";
+import { routeLoaders } from "@/lib/routePrefetch";
 
-// Lazy-loaded pages — reduces initial bundle dramatically
-const Index = lazy(() => import("./pages/Index"));
-const Auth = lazy(() => import("./pages/Auth"));
-const AuditLog = lazy(() => import("./pages/AuditLog"));
-const UserManagement = lazy(() => import("./pages/UserManagement"));
-const ComprasAvistaPage = lazy(() => import("./pages/ComprasAvistaPage"));
-const ComprasFaturadasPage = lazy(() => import("./pages/ComprasFaturadasPage"));
-const EspelhoGeralPage = lazy(() => import("./pages/EspelhoGeralPage"));
-const ProgramacaoSemanalPage = lazy(() => import("./pages/ProgramacaoSemanalPage"));
-const EspelhoSemanalPage = lazy(() => import("./pages/EspelhoSemanalPage"));
-const ConfigRelatorioPage = lazy(() => import("./pages/ConfigRelatorioPage"));
-const FornecedoresPage = lazy(() => import("./pages/FornecedoresPage"));
-const ObrasPage = lazy(() => import("./pages/ObrasPage"));
-const ResponsaveisPage = lazy(() => import("./pages/ResponsaveisPage"));
-const VeiculosMaquinasPage = lazy(() => import("./pages/VeiculosMaquinasPage"));
-const EquipamentosPage = lazy(() => import("./pages/EquipamentosPage"));
-const SetoresPage = lazy(() => import("./pages/SetoresPage"));
-const PostosCombustivelPage = lazy(() => import("./pages/PostosCombustivelPage"));
-const TiposCombustivelPage = lazy(() => import("./pages/TiposCombustivelPage"));
-const AbastecimentosPage = lazy(() => import("./pages/AbastecimentosPage"));
-const DashboardCombustivelPage = lazy(() => import("./pages/DashboardCombustivelPage"));
-const RevisoesCombustivelPage = lazy(() => import("./pages/RevisoesCombustivelPage"));
-const EmpresasPage = lazy(() => import("./pages/EmpresasPage"));
-const PainelExecutivoPage = lazy(() => import("./pages/PainelExecutivoPage"));
-const FaturadosParcelasPage = lazy(() => import("./pages/FaturadosParcelasPage"));
-const ContasPagarPage = lazy(() => import("@/pages/ContasPagarPage"));
-const ServicosMaquinasPage = lazy(() => import("./pages/ServicosMaquinasPage"));
-const ComponentesMaquinasPage = lazy(() => import("./pages/ComponentesMaquinasPage"));
+// Lazy-loaded pages — usam o MESMO loader do prefetch para reaproveitar o chunk em cache
+const Index = lazy(routeLoaders["/"] as any);
+const Auth = lazy(routeLoaders["/auth"] as any);
+const AuditLog = lazy(routeLoaders["/auditoria"] as any);
+const UserManagement = lazy(routeLoaders["/usuarios"] as any);
+const ComprasAvistaPage = lazy(routeLoaders["/compras/avista"] as any);
+const ComprasFaturadasPage = lazy(routeLoaders["/compras/faturadas"] as any);
+const EspelhoGeralPage = lazy(routeLoaders["/compras/espelho"] as any);
+const ProgramacaoSemanalPage = lazy(routeLoaders["/compras/programacao-semanal"] as any);
+const EspelhoSemanalPage = lazy(routeLoaders["/compras/espelho-semanal"] as any);
+const ConfigRelatorioPage = lazy(routeLoaders["/config-relatorio"] as any);
+const FornecedoresPage = lazy(routeLoaders["/fornecedores"] as any);
+const ObrasPage = lazy(routeLoaders["/obras"] as any);
+const ResponsaveisPage = lazy(routeLoaders["/responsaveis"] as any);
+const VeiculosMaquinasPage = lazy(routeLoaders["/veiculos"] as any);
+const EquipamentosPage = lazy(routeLoaders["/equipamentos"] as any);
+const SetoresPage = lazy(routeLoaders["/setores"] as any);
+const PostosCombustivelPage = lazy(routeLoaders["/postos-combustivel"] as any);
+const TiposCombustivelPage = lazy(routeLoaders["/tipos-combustivel"] as any);
+const AbastecimentosPage = lazy(routeLoaders["/combustivel/abastecimentos"] as any);
+const DashboardCombustivelPage = lazy(routeLoaders["/combustivel/dashboard"] as any);
+const RevisoesCombustivelPage = lazy(routeLoaders["/combustivel/revisoes"] as any);
+const EmpresasPage = lazy(routeLoaders["/empresas"] as any);
+const PainelExecutivoPage = lazy(routeLoaders["/painel-executivo"] as any);
+const FaturadosParcelasPage = lazy(routeLoaders["/financeiro/parcelas-faturadas"] as any);
+const ContasPagarPage = lazy(routeLoaders["/contas-pagar"] as any);
+const ServicosMaquinasPage = lazy(routeLoaders["/servicos-maquinas"] as any);
+const ComponentesMaquinasPage = lazy(routeLoaders["/componentes-maquinas"] as any);
 const NotFound = lazy(() => import("./pages/NotFound"));
+
 
 const queryClient = new QueryClient({
   defaultOptions: {
