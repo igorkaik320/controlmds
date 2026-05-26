@@ -1,7 +1,12 @@
+import { Suspense } from 'react';
 import { AppSidebar } from '@/components/AppSidebar';
 import { NotificationMenu } from '@/components/notifications/NotificationMenu';
+import { PageSkeleton } from '@/components/PageSkeleton';
+import { useInactivityLogout } from '@/hooks/useInactivityLogout';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
+  useInactivityLogout();
+
   return (
     <div className="flex min-h-screen w-full">
       <AppSidebar />
@@ -15,9 +20,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </header>
         <main className="flex-1 min-w-0 overflow-auto p-4 md:p-6">
-          {children}
+          <Suspense fallback={<PageSkeleton />}>
+            {children}
+          </Suspense>
         </main>
       </div>
     </div>
   );
 }
+
