@@ -2,8 +2,11 @@ import { Suspense } from 'react';
 import { AppSidebar } from '@/components/AppSidebar';
 import { NotificationMenu } from '@/components/notifications/NotificationMenu';
 import { PageSkeleton } from '@/components/PageSkeleton';
+import { useInactivityLogout } from '@/hooks/useInactivityLogout';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
+  useInactivityLogout();
+
   return (
     <div className="flex min-h-screen w-full">
       <AppSidebar />
