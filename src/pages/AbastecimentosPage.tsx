@@ -30,6 +30,8 @@ import { toast } from 'sonner';
 import { fetchProfiles } from '@/lib/cashRegister';
 import AuditInfo from '@/components/AuditInfo';
 import ResponsavelSelect from '@/components/compras/ResponsavelSelect';
+import { useRealtimeTable } from '@/hooks/useRealtimeTable';
+
 
 const emptyForm = {
   veiculo_id: '',
@@ -105,6 +107,11 @@ export default function AbastecimentosPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // Atualização em tempo real: qualquer INSERT/UPDATE/DELETE em abastecimentos
+  // recarrega a lista automaticamente — inclusive feito por outro usuário.
+  useRealtimeTable('abastecimentos', load);
+
 
   const filtered = items.filter((item) => {
     if (appliedFilters.dateFrom && item.data < appliedFilters.dateFrom) return false;
