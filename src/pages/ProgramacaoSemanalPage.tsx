@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Plus, Pencil, Trash2, FileDown, FileSpreadsheet, Search, RotateCcw } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useModulePermissions } from '@/hooks/useModulePermissions';
@@ -51,6 +52,7 @@ export default function ProgramacaoSemanalPage() {
   const { user } = useAuth();
   const { canCreate, canEdit, canDelete, canExport } = useModulePermissions();
   const [items, setItems] = useState<ProgramacaoSemanal[]>([]);
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [obras, setObras] = useState<Obra[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
@@ -134,6 +136,13 @@ export default function ProgramacaoSemanalPage() {
     return true;
   });
 
+  const selectedVisibleCount = filtered.filter((item) => selectedItems.has(item.id)).length;
+  const allVisibleSelected = filtered.length > 0 && selectedVisibleCount === filtered.length;
+
+  function getReportItems() {
+    return selectedItems.size > 0 ? filtered.filter((item) => selectedItems.has(item.id)) : filtered;
+  }
+
   function handleConsultar() {
     setDraftDateFrom(dateFrom);
     setDraftDateTo(dateTo);
@@ -142,6 +151,32 @@ export default function ProgramacaoSemanalPage() {
     setDraftFilterResp(filterResp);
     setDraftFilterEmpresa(filterEmpresa);
     flashAfterUpdate();
+  }
+
+  function handleSelectAll(checked: boolean) {
+    setSelectedItems((current) => {
+      const next = new Set(current);
+      filtered.forEach((item) => {
+        if (checked) {
+          next.add(item.id);
+        } else {
+          next.delete(item.id);
+        }
+      });
+      return next;
+    });
+  }
+
+  function handleSelectItem(id: string, checked: boolean) {
+    setSelectedItems((current) => {
+      const next = new Set(current);
+      if (checked) {
+        next.add(id);
+      } else {
+        next.delete(id);
+      }
+      return next;
+    });
   }
 
   function handleLimpar() {
@@ -158,6 +193,7 @@ export default function ProgramacaoSemanalPage() {
     setDraftFilterObra('');
     setDraftFilterResp('');
     setDraftFilterEmpresa('');
+    setSelectedItems(new Set());
     flashAfterUpdate();
   }
 
@@ -233,6 +269,11 @@ export default function ProgramacaoSemanalPage() {
     try {
       if (!user) throw new Error('Usuário não encontrado');
       await deleteProgramacaoSemanal(id, user.id);
+      setSelectedItems((current) => {
+        const next = new Set(current);
+        next.delete(id);
+        return next;
+      });
       load();
       toast.success('Excluído');
     } catch (e: any) {
@@ -241,6 +282,13 @@ export default function ProgramacaoSemanalPage() {
   }
 
   async function handleExportPDF() {
+    const reportItems = getReportItems();
+
+    if (reportItems.length === 0) {
+      toast.error('Nenhum lançamento selecionado para exportar.');
+      return;
+    }
+
     let config = await fetchConfigRelatorio();
 
     if (draftFilterEmpresa && config) {
@@ -262,7 +310,18 @@ export default function ProgramacaoSemanalPage() {
       };
     }
 
-    exportProgramacaoSemanalPDF(filtered, config, observation);
+    exportProgramacaoSemanalPDF(reportItems, config, observation);
+  }
+
+  function handleExportXLSX() {
+    const reportItems = getReportItems();
+
+    if (reportItems.length === 0) {
+      toast.error('Nenhum lançamento selecionado para exportar.');
+      return;
+    }
+
+    exportProgramacaoSemanalXLSX(reportItems, observation);
   }
 
   function handleFornecedorSelect(f: Fornecedor) {
@@ -290,6 +349,7 @@ export default function ProgramacaoSemanalPage() {
           <h2 className="text-2xl font-bold">Programação Semanal</h2>
           <p className="text-sm text-muted-foreground">
             Controle e acompanhamento da programação semanal
+            {selectedItems.size > 0 ? ` • ${selectedVisibleCount} selecionado(s)` : ''}
           </p>
         </div>
 
@@ -304,7 +364,7 @@ export default function ProgramacaoSemanalPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => exportProgramacaoSemanalXLSX(filtered, observation)}
+                onClick={handleExportXLSX}
               >
                 <FileSpreadsheet className="mr-1 h-4 w-4" />
                 Excel
@@ -392,6 +452,12 @@ export default function ProgramacaoSemanalPage() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[40px]">
+                <Checkbox
+                  checked={allVisibleSelected}
+                  onCheckedChange={(checked) => handleSelectAll(Boolean(checked))}
+                />
+              </TableHead>
               <TableHead>Data</TableHead>
               <TableHead>Fornecedor</TableHead>
               <TableHead>Pedido</TableHead>
@@ -410,7 +476,7 @@ export default function ProgramacaoSemanalPage() {
           <TableBody>
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={12} className="text-center text-muted-foreground">
+                <TableCell colSpan={13} className="text-center text-muted-foreground">
                   Nenhum registro
                 </TableCell>
               </TableRow>
@@ -418,6 +484,12 @@ export default function ProgramacaoSemanalPage() {
 
             {filtered.map((i) => (
               <TableRow key={i.id}>
+                <TableCell>
+                  <Checkbox
+                    checked={selectedItems.has(i.id)}
+                    onCheckedChange={(checked) => handleSelectItem(i.id, Boolean(checked))}
+                  />
+                </TableCell>
                 <TableCell>{formatDateBR(i.data)}</TableCell>
                 <TableCell className="max-w-[240px]">
                   <div className="truncate" title={i.fornecedor}>
