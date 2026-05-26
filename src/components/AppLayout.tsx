@@ -1,11 +1,19 @@
-import { Suspense } from 'react';
+import { Suspense, useEffect } from 'react';
 import { AppSidebar } from '@/components/AppSidebar';
 import { NotificationMenu } from '@/components/notifications/NotificationMenu';
 import { PageSkeleton } from '@/components/PageSkeleton';
 import { useInactivityLogout } from '@/hooks/useInactivityLogout';
+import { prefetchAllRoutesOnIdle } from '@/lib/routePrefetch';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   useInactivityLogout();
+
+  // Pré-carrega todas as páginas em segundo plano após o app abrir.
+  // Na 2ª navegação em diante, abre instantâneo (sem "Carregando módulo...").
+  useEffect(() => {
+    prefetchAllRoutesOnIdle();
+  }, []);
+
 
   return (
     <div className="flex min-h-screen w-full">
