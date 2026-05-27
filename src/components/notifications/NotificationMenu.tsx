@@ -5,7 +5,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useMaintenanceNotifications } from "@/lib/maintenanceNotifications";
 
 const formatLocalDate = (value: string | null | undefined) => {
-  if (!value || typeof value !== 'string') return new Date().toLocaleDateString("pt-BR");
+  if (!value || typeof value !== "string") return new Date().toLocaleDateString("pt-BR");
   try {
     const onlyDate = value.split("T")[0];
     return new Date(`${onlyDate}T00:00:00`).toLocaleDateString("pt-BR");
@@ -14,7 +14,11 @@ const formatLocalDate = (value: string | null | undefined) => {
   }
 };
 
-export function NotificationMenu() {
+interface NotificationMenuProps {
+  compact?: boolean;
+}
+
+export function NotificationMenu({ compact = false }: NotificationMenuProps) {
   const {
     visibleNotifications,
     hasVisibleNotifications,
@@ -27,12 +31,24 @@ export function NotificationMenu() {
   return (
     <Popover open={miniPanelOpen} onOpenChange={setMiniPanelOpen}>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="relative px-3">
+        <Button
+          variant={compact ? "ghost" : "outline"}
+          size={compact ? "icon" : "sm"}
+          className={compact ? "relative h-9 w-9 rounded-full" : "relative px-3"}
+          aria-label="Notificações"
+        >
           <Bell className="h-4 w-4" />
-          <span className="ml-2 text-sm font-medium">Notificações</span>
+          {!compact && <span className="ml-2 text-sm font-medium">Notificações</span>}
           {hasVisibleNotifications && (
-            <Badge variant="secondary" className="absolute -top-1 -right-1 text-[10px]">
-              {visibleNotifications.length}
+            <Badge
+              variant="secondary"
+              className={
+                compact
+                  ? "absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-destructive p-0"
+                  : "absolute -right-1 -top-1 text-[10px]"
+              }
+            >
+              {!compact ? visibleNotifications.length : null}
             </Badge>
           )}
         </Button>
@@ -43,7 +59,7 @@ export function NotificationMenu() {
             Nenhuma manutenção próxima encontrada.
           </div>
         ) : (
-          <div className="space-y-3 max-h-64 overflow-y-auto">
+          <div className="max-h-64 space-y-3 overflow-y-auto">
             {visibleNotifications.map((notification) => (
               <div key={notification.id} className="rounded-lg border border-muted/50 bg-background p-3 shadow-sm">
                 <div className="flex items-start justify-between gap-3">

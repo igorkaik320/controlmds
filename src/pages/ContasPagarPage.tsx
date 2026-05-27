@@ -668,52 +668,6 @@ export default function ContasPagarPage() {
   return (
     <div className="space-y-5">
       <Card className="border-border/70 p-4 shadow-sm">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="space-y-1">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-              Financeiro
-            </p>
-            <h2 className="text-2xl font-bold tracking-tight">Contas a Pagar</h2>
-            <p className="text-sm text-muted-foreground">
-              {visiveis.length} conta(s) encontradas
-              {selectedParcelas.size > 0 ? ` • ${selectedParcelas.size} parcela(s) selecionada(s)` : ''}
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            {selectedParcelas.size > 0 && (
-              <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/35 px-3 py-2">
-                <span className="text-sm font-medium text-muted-foreground">
-                  {selectedParcelas.size} selecionada(s)
-                </span>
-                <Select onValueChange={handleBulkStatusChange}>
-                  <SelectTrigger className="h-9 w-[160px] bg-background">
-                    <SelectValue placeholder="Alterar status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="aberta">Aberta</SelectItem>
-                    <SelectItem value="paga">Paga</SelectItem>
-                    <SelectItem value="vencida">Vencida</SelectItem>
-                    <SelectItem value="cancelada">Cancelada</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-            <Button variant="outline" size="sm" onClick={() => setShowReport(true)} className="gap-2">
-              <FileText className="h-4 w-4" />
-              Relatório
-            </Button>
-            {canCreate('contas_pagar') && (
-              <Button size="sm" onClick={openNew} className="gap-1">
-                <Plus className="h-4 w-4" />
-                Novo
-              </Button>
-            )}
-          </div>
-        </div>
-      </Card>
-
-      <Card className="border-border/70 p-4 shadow-sm">
         <div className="mb-4">
           <h3 className="text-sm font-semibold">Filtros</h3>
           <p className="text-sm text-muted-foreground">
@@ -744,16 +698,44 @@ export default function ContasPagarPage() {
 
       {/* Card da tabela */}
       <Card className="overflow-hidden border-border/70 shadow-sm">
-        <div className="flex flex-col gap-1 border-b border-border/70 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 border-b border-border/70 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h3 className="text-sm font-semibold">Lançamentos</h3>
+            <h3 className="text-sm font-semibold">Contas a Pagar</h3>
             <p className="text-sm text-muted-foreground">
-              Acompanhe fornecedores, parcelas, valores e vencimentos.
+              {visiveis.length} item(ns) encontrados
+              {selectedParcelas.size > 0 ? ` • ${selectedParcelas.size} parcela(s) selecionada(s)` : ''}
             </p>
           </div>
-          <Badge variant="secondary" className="w-fit">
-            {visiveis.length} item(ns)
-          </Badge>
+          <div className="flex flex-wrap items-center gap-2">
+            {selectedParcelas.size > 0 && (
+              <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/35 px-3 py-2">
+                <span className="text-sm font-medium text-muted-foreground">
+                  {selectedParcelas.size} selecionada(s)
+                </span>
+                <Select onValueChange={handleBulkStatusChange}>
+                  <SelectTrigger className="h-9 w-[160px] bg-background">
+                    <SelectValue placeholder="Alterar status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="aberta">Aberta</SelectItem>
+                    <SelectItem value="paga">Paga</SelectItem>
+                    <SelectItem value="vencida">Vencida</SelectItem>
+                    <SelectItem value="cancelada">Cancelada</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <Button variant="outline" size="sm" onClick={() => setShowReport(true)} className="gap-2">
+              <FileText className="h-4 w-4" />
+              Relatório
+            </Button>
+            {canCreate('contas_pagar') && (
+              <Button size="sm" onClick={openNew} className="gap-1">
+                <Plus className="h-4 w-4" />
+                Novo
+              </Button>
+            )}
+          </div>
         </div>
 
         <div className="overflow-auto">
