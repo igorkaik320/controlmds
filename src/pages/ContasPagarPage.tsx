@@ -642,277 +642,190 @@ export default function ContasPagarPage() {
     return <div className="flex min-h-screen items-center justify-center"><p>Carregando...</p></div>;
   }
 
+  // Busca textual por fornecedor (filtro live)
+  const [searchFornecedor, setSearchFornecedor] = useState('');
+  const [dateFromStr, setDateFromStr] = useState('');
+  const [dateToStr, setDateToStr] = useState('');
+
+  const visiveis = useMemo(() => {
+    const term = searchFornecedor.trim().toLowerCase();
+    const from = dateFromStr ? new Date(dateFromStr + 'T00:00:00') : null;
+    const to = dateToStr ? new Date(dateToStr + 'T23:59:59') : null;
+    return sortedFiltered.filter((c) => {
+      if (term && !(c.fornecedor_nome || '').toLowerCase().includes(term)) return false;
+      if (from || to) {
+        const parcelas = [...c.parcelas].sort((a, b) => a.numero_parcela - b.numero_parcela);
+        const proxima = parcelas.find((p) => p.status !== 'paga') || parcelas[0];
+        if (!proxima?.data_vencimento) return false;
+        const dt = new Date(proxima.data_vencimento + 'T00:00:00');
+        if (from && dt < from) return false;
+        if (to && dt > to) return false;
+      }
+      return true;
+    });
+  }, [sortedFiltered, searchFornecedor, dateFromStr, dateToStr]);
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <h2 className="text-2xl font-bold">Contas a Pagar</h2>
-        <div className="flex flex-wrap items-center gap-2">
-          {selectedParcelas.size > 0 && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">
-                {selectedParcelas.size} selecionada(s)
-              </span>
-              <Select onValueChange={handleBulkStatusChange}>
-                <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="Alterar status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="aberta">Aberta</SelectItem>
-                  <SelectItem value="paga">Paga</SelectItem>
-                  <SelectItem value="vencida">Vencida</SelectItem>
-                  <SelectItem value="cancelada">Cancelada</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowReport(true)}
-            className="gap-2"
-          >
-            <FileText className="h-4 w-4" />
-            Gerar Relatório
-          </Button>
-          {canCreate('contas_pagar') && (
-            <Button size="sm" onClick={openNew}>
-              <Plus className="h-4 w-4 mr-1" />
-              Nova Conta
-            </Button>
-          )}
-        </div>
-      </div>
-
+      {/* Filtros superiores */}
       <div className="rounded-xl border bg-card p-4">
-        <div className="grid gap-4 lg:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-[1fr,180px,180px]">
           <div>
-            <Label>Empresa</Label>
-            <Select value={filterEmpresa || "_all"} onValueChange={(v) => setFilterEmpresa(v === "_all" ? "" : v)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Todas as empresas" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="_all">Todas as empresas</SelectItem>
-                {empresas.map((empresa) => (
-                  <SelectItem key={empresa.id} value={empresa.id}>
-                    <div className="flex items-center gap-2">
-                      <Building className="h-4 w-4" />
-                      {empresa.nome}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label>Fornecedor</Label>
-            <FornecedorSelect
-              value={filterFornecedor}
-              onChange={(v) => setFilterFornecedor(v)}
-              onFornecedorSelect={(f) => setFilterFornecedor(f.id)}
-              fornecedores={fornecedores}
-              valueMode="id"
-              label=""
+            <Label className="text-sm">Pesquisar fornecedor</Label>
+            <Input
+              placeholder="Digite para pesquisar"
+              value={searchFornecedor}
+              onChange={(e) => setSearchFornecedor(e.target.value)}
             />
           </div>
-
           <div>
-            <Label>Vencimento (de)</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start text-left font-normal"
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {startDate ? format(startDate, "dd/MM/yyyy", { locale: ptBR }) : "Selecione"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={startDate}
-                  onSelect={setStartDate}
-                  initialFocus
-                  locale={ptBR}
-                />
-              </PopoverContent>
-            </Popover>
+            <Label className="text-sm">Data inicial</Label>
+            <Input type="date" value={dateFromStr} onChange={(e) => setDateFromStr(e.target.value)} />
           </div>
-
           <div>
-            <Label>Vencimento (até)</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start text-left font-normal"
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {endDate ? format(endDate, "dd/MM/yyyy", { locale: ptBR }) : "Selecione"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={endDate}
-                  onSelect={setEndDate}
-                  initialFocus
-                  locale={ptBR}
-                />
-              </PopoverContent>
-            </Popover>
+            <Label className="text-sm">Data final</Label>
+            <Input type="date" value={dateToStr} onChange={(e) => setDateToStr(e.target.value)} />
           </div>
-        </div>
-
-        <div className="mt-4 flex justify-end">
-          <Button onClick={handleConsultar} className="min-w-[160px] gap-2">
-            <Search className="h-4 w-4" />
-            Consultar
-          </Button>
         </div>
       </div>
 
-      {/* Tabela de Contas com Parcelas expandidas */}
-      <div className="rounded-md border overflow-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-8">
-                <CheckSquare className="h-4 w-4 text-muted-foreground" />
-              </TableHead>
-              <TableHead onClick={() => handleSort('numero')} className="cursor-pointer select-none hover:bg-muted/50"><div className="flex items-center">Nº<SortIcon column="numero" /></div></TableHead>
-              <TableHead onClick={() => handleSort('data_emissao')} className="cursor-pointer select-none hover:bg-muted/50"><div className="flex items-center">Data Emissão<SortIcon column="data_emissao" /></div></TableHead>
-              <TableHead onClick={() => handleSort('empresa')} className="cursor-pointer select-none hover:bg-muted/50"><div className="flex items-center">Empresa<SortIcon column="empresa" /></div></TableHead>
-              <TableHead onClick={() => handleSort('fornecedor')} className="cursor-pointer select-none hover:bg-muted/50"><div className="flex items-center">Fornecedor<SortIcon column="fornecedor" /></div></TableHead>
-              <TableHead onClick={() => handleSort('valor_total')} className="cursor-pointer select-none hover:bg-muted/50"><div className="flex items-center">Valor Total<SortIcon column="valor_total" /></div></TableHead>
-              <TableHead onClick={() => handleSort('parcela')} className="cursor-pointer select-none hover:bg-muted/50"><div className="flex items-center">Parcela<SortIcon column="parcela" /></div></TableHead>
-              <TableHead onClick={() => handleSort('vencimento')} className="cursor-pointer select-none hover:bg-muted/50"><div className="flex items-center">Vencimento<SortIcon column="vencimento" /></div></TableHead>
-              <TableHead onClick={() => handleSort('status')} className="cursor-pointer select-none hover:bg-muted/50"><div className="flex items-center">Status Parcela<SortIcon column="status" /></div></TableHead>
-              <TableHead onClick={() => handleSort('observacao')} className="cursor-pointer select-none hover:bg-muted/50"><div className="flex items-center">Observação<SortIcon column="observacao" /></div></TableHead>
-              <TableHead></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={11} className="text-center text-muted-foreground">
-                  Nenhuma conta encontrada
-                </TableCell>
-              </TableRow>
+      {/* Card da tabela */}
+      <div className="rounded-xl border bg-card">
+        <div className="flex items-center justify-between p-4 border-b">
+          <h2 className="text-base font-semibold">Contas a Pagar</h2>
+          <div className="flex items-center gap-2">
+            {selectedParcelas.size > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">
+                  {selectedParcelas.size} selecionada(s)
+                </span>
+                <Select onValueChange={handleBulkStatusChange}>
+                  <SelectTrigger className="w-[160px] h-9">
+                    <SelectValue placeholder="Alterar status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="aberta">Aberta</SelectItem>
+                    <SelectItem value="paga">Paga</SelectItem>
+                    <SelectItem value="vencida">Vencida</SelectItem>
+                    <SelectItem value="cancelada">Cancelada</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             )}
+            <Button variant="outline" size="sm" onClick={() => setShowReport(true)} className="gap-2">
+              <FileText className="h-4 w-4" />
+              Relatório
+            </Button>
+            {canCreate('contas_pagar') && (
+              <Button size="sm" onClick={openNew} className="gap-1">
+                <Plus className="h-4 w-4" />
+                Novo
+              </Button>
+            )}
+          </div>
+        </div>
 
-            {sortedFiltered.map((conta) => {
-              const parcelas = conta.parcelas.sort((a, b) => a.numero_parcela - b.numero_parcela);
-              const primeiraParcela = parcelas[0];
-              const temMaisParcelas = parcelas.length > 1;
+        <div className="overflow-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead onClick={() => handleSort('fornecedor')} className="cursor-pointer select-none hover:bg-muted/50">
+                  <div className="flex items-center">Fornecedor<SortIcon column="fornecedor" /></div>
+                </TableHead>
+                <TableHead>
+                  <div className="flex items-center">Descrição</div>
+                </TableHead>
+                <TableHead onClick={() => handleSort('parcela')} className="cursor-pointer select-none hover:bg-muted/50">
+                  <div className="flex items-center">Parcelas<SortIcon column="parcela" /></div>
+                </TableHead>
+                <TableHead onClick={() => handleSort('valor_total')} className="cursor-pointer select-none hover:bg-muted/50 text-right">
+                  <div className="flex items-center justify-end">Valor<SortIcon column="valor_total" /></div>
+                </TableHead>
+                <TableHead onClick={() => handleSort('vencimento')} className="cursor-pointer select-none hover:bg-muted/50">
+                  <div className="flex items-center">Próximo vencimento<SortIcon column="vencimento" /></div>
+                </TableHead>
+                <TableHead onClick={() => handleSort('status')} className="cursor-pointer select-none hover:bg-muted/50">
+                  <div className="flex items-center">Status<SortIcon column="status" /></div>
+                </TableHead>
+                <TableHead className="text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {visiveis.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                    Nenhuma conta encontrada
+                  </TableCell>
+                </TableRow>
+              )}
 
-              return parcelas.length > 0 ? (
-                <TableRow key={conta.id}>
-                  <TableCell>
-                    <Checkbox
-                      checked={selectedParcelas.has(primeiraParcela.id)}
-                      onCheckedChange={() => toggleParcela(primeiraParcela.id)}
-                    />
-                  </TableCell>
-                  <TableCell className="font-bold text-primary">
-                    #{conta.id.slice(-6).toUpperCase()}
-                  </TableCell>
-                  <TableCell>
-                    {new Date(conta.data_emissao + 'T00:00:00').toLocaleDateString('pt-BR')}
-                  </TableCell>
-                  <TableCell className="font-medium">{conta.empresa_nome || '-'}</TableCell>
-                  <TableCell>{conta.fornecedor_nome || '-'}</TableCell>
-                  <TableCell className="font-mono">{formatCurrency(conta.valor_total)}</TableCell>
-                  <TableCell className="text-center">
-                    {temMaisParcelas ? (
-                      <div className="flex items-center gap-1">
-                        <span>1/{conta.quantidade_parcelas}</span>
-                        <Badge variant="secondary" className="text-xs">
-                          +{conta.quantidade_parcelas - 1}
-                        </Badge>
+              {visiveis.map((conta) => {
+                const parcelas = [...conta.parcelas].sort((a, b) => a.numero_parcela - b.numero_parcela);
+                const proxima = parcelas.find((p) => p.status !== 'paga') || parcelas[0];
+                const pagas = parcelas.filter((p) => p.status === 'paga').length;
+                const total = conta.quantidade_parcelas || parcelas.length;
+                const descricao = conta.observacao || proxima?.observacao || conta.obra_nome || '-';
+
+                return (
+                  <TableRow key={conta.id}>
+                    <TableCell className="font-medium">{conta.fornecedor_nome || '-'}</TableCell>
+                    <TableCell className="text-muted-foreground uppercase text-sm">
+                      {descricao}
+                    </TableCell>
+                    <TableCell>{pagas}/{total}</TableCell>
+                    <TableCell className="text-right font-mono font-semibold">
+                      {formatCurrency(conta.valor_total)}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {proxima?.data_vencimento
+                        ? new Date(proxima.data_vencimento + 'T00:00:00').toLocaleDateString('pt-BR')
+                        : '-'}
+                    </TableCell>
+                    <TableCell>
+                      {proxima ? (
+                        <Select
+                          value={proxima.status}
+                          onValueChange={(v) => handleInlineStatusChange(proxima.id, v)}
+                        >
+                          <SelectTrigger className="h-8 w-[120px]">
+                            <Badge variant={getParcelaStatusVariant(proxima.status)} className="capitalize text-xs">
+                              {proxima.status}
+                            </Badge>
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="aberta">Aberta</SelectItem>
+                            <SelectItem value="paga">Paga</SelectItem>
+                            <SelectItem value="vencida">Vencida</SelectItem>
+                            <SelectItem value="cancelada">Cancelada</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">Sem parcelas</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => openParcelas(conta)} title="Ver parcelas">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        {canEdit('contas_pagar') && (
+                          <Button variant="ghost" size="icon" onClick={() => openEdit(conta)} title="Editar">
+                            <Pencil className="h-4 w-4 text-primary" />
+                          </Button>
+                        )}
+                        {canDelete('contas_pagar') && (
+                          <Button variant="ghost" size="icon" onClick={() => handleDelete(conta.id)} title="Excluir">
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        )}
                       </div>
-                    ) : (
-                      <span>{primeiraParcela.numero_parcela}/{conta.quantidade_parcelas}</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {primeiraParcela.data_vencimento 
-                      ? new Date(primeiraParcela.data_vencimento + 'T00:00:00').toLocaleDateString('pt-BR') 
-                      : '-'}
-                  </TableCell>
-                  <TableCell>
-                    <Select
-                      value={primeiraParcela.status}
-                      onValueChange={(v) => handleInlineStatusChange(primeiraParcela.id, v)}
-                    >
-                      <SelectTrigger className="h-7 w-[110px]">
-                        <Badge variant={getParcelaStatusVariant(primeiraParcela.status)} className="text-xs">
-                          {primeiraParcela.status}
-                        </Badge>
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="aberta">Aberta</SelectItem>
-                        <SelectItem value="paga">Paga</SelectItem>
-                        <SelectItem value="vencida">Vencida</SelectItem>
-                        <SelectItem value="cancelada">Cancelada</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                  <TableCell className="max-w-[150px] truncate">{primeiraParcela.observacao || conta.observacao || '-'}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      <Button variant="ghost" size="sm" onClick={() => openParcelas(conta)}>
-                        <Eye className="h-4 w-4 mr-1" />
-                        {temMaisParcelas ? 'Ver Todas' : 'Editar'}
-                      </Button>
-                      {canEdit('contas_pagar') && (
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(conta)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {canDelete('contas_pagar') && (
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(conta.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                <TableRow key={conta.id}>
-                  <TableCell />
-                  <TableCell className="font-bold text-primary">#{conta.id.slice(-6).toUpperCase()}</TableCell>
-                  <TableCell>{new Date(conta.data_emissao + 'T00:00:00').toLocaleDateString('pt-BR')}</TableCell>
-                  <TableCell className="font-medium">{conta.empresa_nome || '-'}</TableCell>
-                  <TableCell>{conta.fornecedor_nome || '-'}</TableCell>
-                  <TableCell className="font-mono">{formatCurrency(conta.valor_total)}</TableCell>
-                  <TableCell colSpan={3} className="text-center text-muted-foreground">Sem parcelas</TableCell>
-                  <TableCell>{conta.observacao || '-'}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-1">
-                      <Button variant="ghost" size="sm" onClick={() => openParcelas(conta)}>
-                        <Plus className="h-4 w-4 mr-1" />
-                        Parcelas
-                      </Button>
-                      {canEdit('contas_pagar') && (
-                        <Button variant="ghost" size="icon" onClick={() => openEdit(conta)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {canDelete('contas_pagar') && (
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(conta.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
       </div>
 
       {/* DiÃ¡logo de Nova/Editar Conta */}
