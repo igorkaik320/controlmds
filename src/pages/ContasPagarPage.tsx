@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Card } from '@/components/ui/card';
 import { Plus, Pencil, Trash2, Eye, Calendar as CalendarIcon, Building, CheckSquare, FileText, Search, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useModulePermissions } from '@/hooks/useModulePermissions';
@@ -666,41 +667,28 @@ export default function ContasPagarPage() {
   }, [sortedFiltered, searchFornecedor, dateFromStr, dateToStr]);
 
   return (
-    <div className="space-y-4">
-      {/* Filtros superiores */}
-      <div className="rounded-xl border bg-card p-4">
-        <div className="grid gap-4 md:grid-cols-[1fr,180px,180px]">
-          <div>
-            <Label className="text-sm">Pesquisar fornecedor</Label>
-            <Input
-              placeholder="Digite para pesquisar"
-              value={searchFornecedor}
-              onChange={(e) => setSearchFornecedor(e.target.value)}
-            />
+    <div className="space-y-5">
+      <Card className="border-border/70 p-4 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-1">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+              Financeiro
+            </p>
+            <h2 className="text-2xl font-bold tracking-tight">Contas a Pagar</h2>
+            <p className="text-sm text-muted-foreground">
+              {visiveis.length} conta(s) encontradas
+              {selectedParcelas.size > 0 ? ` • ${selectedParcelas.size} parcela(s) selecionada(s)` : ''}
+            </p>
           </div>
-          <div>
-            <Label className="text-sm">Data inicial</Label>
-            <Input type="date" value={dateFromStr} onChange={(e) => setDateFromStr(e.target.value)} />
-          </div>
-          <div>
-            <Label className="text-sm">Data final</Label>
-            <Input type="date" value={dateToStr} onChange={(e) => setDateToStr(e.target.value)} />
-          </div>
-        </div>
-      </div>
 
-      {/* Card da tabela */}
-      <div className="rounded-xl border bg-card">
-        <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-base font-semibold">Contas a Pagar</h2>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {selectedParcelas.size > 0 && (
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/35 px-3 py-2">
+                <span className="text-sm font-medium text-muted-foreground">
                   {selectedParcelas.size} selecionada(s)
                 </span>
                 <Select onValueChange={handleBulkStatusChange}>
-                  <SelectTrigger className="w-[160px] h-9">
+                  <SelectTrigger className="h-9 w-[160px] bg-background">
                     <SelectValue placeholder="Alterar status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -723,6 +711,50 @@ export default function ContasPagarPage() {
               </Button>
             )}
           </div>
+        </div>
+      </Card>
+
+      <Card className="border-border/70 p-4 shadow-sm">
+        <div className="mb-4">
+          <h3 className="text-sm font-semibold">Filtros</h3>
+          <p className="text-sm text-muted-foreground">
+            Refine a consulta por fornecedor e período de vencimento.
+          </p>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-[minmax(240px,1fr)_180px_180px]">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">Pesquisar fornecedor</Label>
+            <Input
+              className="h-10 bg-background"
+              placeholder="Digite para pesquisar"
+              value={searchFornecedor}
+              onChange={(e) => setSearchFornecedor(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">Data inicial</Label>
+            <Input className="h-10 bg-background" type="date" value={dateFromStr} onChange={(e) => setDateFromStr(e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">Data final</Label>
+            <Input className="h-10 bg-background" type="date" value={dateToStr} onChange={(e) => setDateToStr(e.target.value)} />
+          </div>
+        </div>
+      </Card>
+
+      {/* Card da tabela */}
+      <Card className="overflow-hidden border-border/70 shadow-sm">
+        <div className="flex flex-col gap-1 border-b border-border/70 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="text-sm font-semibold">Lançamentos</h3>
+            <p className="text-sm text-muted-foreground">
+              Acompanhe fornecedores, parcelas, valores e vencimentos.
+            </p>
+          </div>
+          <Badge variant="secondary" className="w-fit">
+            {visiveis.length} item(ns)
+          </Badge>
         </div>
 
         <div className="overflow-auto">
@@ -826,7 +858,7 @@ export default function ContasPagarPage() {
             </TableBody>
           </Table>
         </div>
-      </div>
+      </Card>
 
       {/* DiÃ¡logo de Nova/Editar Conta */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
