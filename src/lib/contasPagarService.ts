@@ -5,6 +5,8 @@ import { recordAuditEntry } from '@/lib/audit';
 export interface ContaPagar {
   id: string;
   numero: number;
+  origem: 'CP' | 'CF' | 'CA';
+  origem_id: string | null;
   data_emissao: string;
   data_primeiro_vencimento: string | null;
   empresa_id: string | null;
@@ -72,6 +74,8 @@ export async function fetchContasPagar(): Promise<ContaPagarComParcelas[]> {
 
   return (data || []).map((item: any) => ({
     ...item,
+    origem: item.origem || 'CP',
+    origem_id: item.origem_id || null,
     parcelas: (item.contas_pagar_parcelas || []).map((p: any) => ({
       ...p,
       created_by: p.created_by || '',
@@ -148,6 +152,10 @@ export async function deleteContaPagar(id: string, userId: string): Promise<void
     .select('*')
     .eq('id', id)
     .maybeSingle();
+
+  if (previous?.origem && previous.origem !== 'CP') {
+    throw new Error('Este lançamento deve ser excluído pela tela de origem.');
+  }
 
   const { error } = await supabase
     .from('contas_pagar')

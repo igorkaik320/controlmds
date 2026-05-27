@@ -61,7 +61,7 @@ export default function ContasPagarPage() {
   const printRef = useRef<HTMLDivElement>(null);
 
   // Ordenação
-  type SortKey = 'numero' | 'data_emissao' | 'empresa' | 'fornecedor' | 'valor_total' | 'parcela' | 'vencimento' | 'status' | 'observacao';
+  type SortKey = 'numero' | 'data_emissao' | 'empresa' | 'fornecedor' | 'origem' | 'valor_total' | 'parcela' | 'vencimento' | 'status' | 'observacao';
   type SortDir = 'asc' | 'desc';
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>('asc');
@@ -171,6 +171,7 @@ export default function ContasPagarPage() {
         case 'data_emissao': return c.data_emissao || '';
         case 'empresa': return (c.empresa_nome || '').toLowerCase();
         case 'fornecedor': return (c.fornecedor_nome || '').toLowerCase();
+        case 'origem': return (c.origem || 'CP').toLowerCase();
         case 'valor_total': return Number(c.valor_total) || 0;
         case 'parcela': return c.quantidade_parcelas || 0;
         case 'vencimento': return primeira?.data_vencimento || '';
@@ -258,6 +259,8 @@ export default function ContasPagarPage() {
       
       const obra = obras.find(o => o.id === form.obra_id);
       const payload = {
+        origem: 'CP' as const,
+        origem_id: null,
         data_emissao: form.data_emissao,
         data_primeiro_vencimento: form.data_primeiro_vencimento || null,
         empresa_id: form.empresa_id,
@@ -363,6 +366,22 @@ export default function ContasPagarPage() {
       cancelada: 'outline',
     };
     return map[status] || 'default';
+  }
+
+  function OrigemBadge({ origem }: { origem?: string | null }) {
+    const value = origem || 'CP';
+    return (
+      <Badge
+        variant="outline"
+        title={value === 'CF' ? 'Compras Faturadas' : value === 'CP' ? 'Contas a Pagar' : 'Compras à Vista'}
+        className={cn(
+          'h-6 min-w-9 justify-center rounded-md px-2 text-[11px] font-semibold',
+          value === 'CF' ? 'border-blue-200 bg-blue-50 text-blue-700' : 'border-slate-200 bg-slate-50 text-slate-700'
+        )}
+      >
+        {value}
+      </Badge>
+    );
   }
 
   // Agrupar parcelas por data para o relatÃ³rio
@@ -746,6 +765,9 @@ export default function ContasPagarPage() {
                 <TableHead onClick={() => handleSort('fornecedor')} className="cursor-pointer select-none bg-slate-50 text-xs font-medium text-slate-500 hover:bg-slate-100">
                   <div className="flex items-center">Fornecedor<SortIcon column="fornecedor" /></div>
                 </TableHead>
+                <TableHead onClick={() => handleSort('origem')} className="w-20 cursor-pointer select-none bg-slate-50 text-xs font-medium text-slate-500 hover:bg-slate-100">
+                  <div className="flex items-center">Origem<SortIcon column="origem" /></div>
+                </TableHead>
                 <TableHead className="bg-slate-50 text-xs font-medium text-slate-500">
                   <div className="flex items-center">Descrição</div>
                 </TableHead>
@@ -767,7 +789,7 @@ export default function ContasPagarPage() {
             <TableBody>
               {visiveis.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                     Nenhuma conta encontrada
                   </TableCell>
                 </TableRow>
@@ -783,6 +805,9 @@ export default function ContasPagarPage() {
                 return (
                   <TableRow key={conta.id} className="h-14 border-slate-200 hover:bg-slate-50/60">
                     <TableCell className="font-medium text-slate-950">{conta.fornecedor_nome || '-'}</TableCell>
+                    <TableCell>
+                      <OrigemBadge origem={conta.origem} />
+                    </TableCell>
                     <TableCell className="text-xs uppercase text-slate-500">
                       {descricao}
                     </TableCell>
@@ -829,12 +854,12 @@ export default function ContasPagarPage() {
                         <Button variant="ghost" size="icon" onClick={() => openParcelas(conta)} title="Ver parcelas">
                           <Eye className="h-4 w-4 text-slate-950" />
                         </Button>
-                        {canEdit('contas_pagar') && (
+                        {canEdit('contas_pagar') && conta.origem !== 'CF' && (
                           <Button variant="ghost" size="icon" onClick={() => openEdit(conta)} title="Editar">
                             <Pencil className="h-4 w-4 text-slate-950" />
                           </Button>
                         )}
-                        {canDelete('contas_pagar') && (
+                        {canDelete('contas_pagar') && conta.origem !== 'CF' && (
                           <Button variant="ghost" size="icon" onClick={() => handleDelete(conta.id)} title="Excluir">
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
@@ -995,6 +1020,7 @@ export default function ContasPagarPage() {
         parcelas={contaParcelas?.parcelas || []}
         onSave={handleParcelasSave}
         userId={user?.id || ''}
+        enforceTotal={contaParcelas?.origem === 'CF' ? Number(contaParcelas.valor_total) : undefined}
       />
 
       {/* DiÃ¡logo de RelatÃ³rio */}

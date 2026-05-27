@@ -24,6 +24,7 @@ interface Props {
   parcelas: ContaPagarParcela[];
   onSave: (parcelas: ContaPagarParcela[], total: number) => void;
   userId: string;
+  enforceTotal?: number;
 }
 
 export default function ContasPagarParcelasDialog({
@@ -32,7 +33,8 @@ export default function ContasPagarParcelasDialog({
   contaPagarId,
   parcelas: initialParcelas,
   onSave,
-  userId
+  userId,
+  enforceTotal
 }: Props) {
   const [parcelas, setParcelas] = useState<ContaPagarParcela[]>([]);
   const [loading, setLoading] = useState(false);
@@ -177,6 +179,11 @@ export default function ContasPagarParcelasDialog({
       }
 
       const total = parcelas.reduce((sum, p) => sum + (p.valor_parcela || 0), 0);
+
+      if (typeof enforceTotal === 'number' && Math.abs(total - enforceTotal) > 0.01) {
+        toast.error(`O total das parcelas deve continuar igual a ${formatCurrency(enforceTotal)}.`);
+        return;
+      }
 
       await updateContaPagar(contaPagarId, {
         valor_total: total,

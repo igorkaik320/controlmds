@@ -1,5 +1,12 @@
 import { supabase } from '@/integrations/supabase/client';
 import { recordAuditEntry } from '@/lib/audit';
+import { buildInstallmentsFromItem, toIsoDateString } from '@/lib/parcelas';
+import {
+  saveContaPagar,
+  saveParcelas,
+  updateContaPagar,
+  ContaPagarParcela,
+} from '@/lib/contasPagarService';
 
 // Types
 export interface CompraFaturada {
@@ -203,6 +210,8 @@ export async function saveCompraFaturada(
     user_id: userId,
   });
 
+  await syncContaPagarFromCompraFaturada(data as CompraFaturada, userId);
+
   return data;
 }
 
@@ -229,6 +238,8 @@ export async function updateCompraFaturada(id: string, c: Partial<CompraFaturada
     new_values: data,
     user_id: userId,
   });
+
+  await syncContaPagarFromCompraFaturada(data as CompraFaturada, userId);
 }
 
 export async function deleteCompraFaturada(id: string, userId: string) {
@@ -237,6 +248,21 @@ export async function deleteCompraFaturada(id: string, userId: string) {
     .select('*')
     .eq('id', id)
     .maybeSingle();
+
+  const { data: contasGeradas } = await supabase
+    .from('contas_pagar')
+    .select('*')
+    .eq('origem', 'CF')
+    .eq('origem_id', id);
+
+  if (contasGeradas?.length) {
+    const { error: contasError } = await supabase
+      .from('contas_pagar')
+      .delete()
+      .eq('origem', 'CF')
+      .eq('origem_id', id);
+    if (contasError) throw contasError;
+  }
 
   const { error } = await supabase.from('previsao_compras_faturadas').delete().eq('id', id);
   if (error) throw error;
@@ -248,6 +274,112 @@ export async function deleteCompraFaturada(id: string, userId: string) {
     old_values: previous,
     user_id: userId,
   });
+
+  if (contasGeradas?.length) {
+    for (const conta of contasGeradas) {
+      await recordAuditEntry({
+        entity_type: 'contas_pagar',
+        entity_id: conta.id,
+        action: 'exclusao',
+        old_values: conta,
+        user_id: userId,
+      });
+    }
+  }
+}
+
+async function syncContaPagarFromCompraFaturada(compra: CompraFaturada, userId: string) {
+  const installments = buildInstallmentsFromItem(compra);
+  const firstDueDate = toIsoDateString(installments[0]?.due) || compra.data_liquidacao || compra.data;
+
+  const { data: existing, error: existingError } = await supabase
+    .from('contas_pagar')
+    .select('id')
+    .eq('origem', 'CF')
+    .eq('origem_id', compra.id)
+    .maybeSingle();
+
+  if (existingError) throw existingError;
+
+  let contaId = existing?.id as string | undefined;
+
+  const contaPayload = {
+    origem: 'CF' as const,
+    origem_id: compra.id,
+    data_emissao: compra.data,
+    data_primeiro_vencimento: firstDueDate || null,
+    empresa_id: null,
+    empresa_nome: null,
+    fornecedor_id: null,
+    fornecedor_nome: compra.fornecedor,
+    obra_id: null,
+    obra_nome: compra.obra || null,
+    valor_total: compra.valor,
+    quantidade_parcelas: Math.max(installments.length, 1),
+    observacao: compra.observacao || null,
+    status: 'aberto' as const,
+    created_by: compra.created_by || userId,
+    updated_by: userId,
+  };
+
+  if (contaId) {
+    await updateContaPagar(contaId, contaPayload, userId);
+  } else {
+    const saved = await saveContaPagar(contaPayload, userId);
+    contaId = saved.id;
+  }
+
+  const { data: previousParcelas } = await supabase
+    .from('contas_pagar_parcelas')
+    .select('*')
+    .eq('conta_pagar_id', contaId);
+
+  const previousByNumber = new Map<number, ContaPagarParcela>(
+    (previousParcelas || []).map((parcela: any) => [parcela.numero_parcela, parcela])
+  );
+
+  if (previousParcelas?.length) {
+    const { error: deleteParcelasError } = await supabase
+      .from('contas_pagar_parcelas')
+      .delete()
+      .eq('conta_pagar_id', contaId);
+    if (deleteParcelasError) throw deleteParcelasError;
+  }
+
+  const parcelas = installments.map((installment, index) => {
+    const numeroParcela = index + 1;
+    const previous = previousByNumber.get(numeroParcela);
+
+    return {
+      conta_pagar_id: contaId!,
+      numero_parcela: numeroParcela,
+      valor_parcela: installment.value,
+      data_vencimento: toIsoDateString(installment.due) || firstDueDate,
+      data_pagamento: previous?.data_pagamento || null,
+      valor_pago: previous?.valor_pago ?? null,
+      status: (previous?.status as ContaPagarParcela['status']) || 'aberta',
+      observacao: previous?.observacao || null,
+      created_by: userId,
+    };
+  });
+
+  if (parcelas.length > 0) {
+    await saveParcelas(parcelas, userId);
+  } else {
+    await saveParcelas([
+      {
+        conta_pagar_id: contaId,
+        numero_parcela: 1,
+        valor_parcela: compra.valor,
+        data_vencimento: firstDueDate || compra.data,
+        data_pagamento: null,
+        valor_pago: null,
+        status: 'aberta',
+        observacao: null,
+        created_by: userId,
+      },
+    ], userId);
+  }
 }
 
 // ---- Compras à Vista ----
