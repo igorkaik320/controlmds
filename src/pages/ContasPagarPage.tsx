@@ -64,6 +64,9 @@ export default function ContasPagarPage() {
   type SortDir = 'asc' | 'desc';
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>('asc');
+  const [searchFornecedor, setSearchFornecedor] = useState('');
+  const [dateFromStr, setDateFromStr] = useState('');
+  const [dateToStr, setDateToStr] = useState('');
 
   function handleSort(key: SortKey) {
     if (sortKey !== key) {
@@ -417,6 +420,25 @@ export default function ContasPagarPage() {
     return reportGroups.reduce((sum, group) => sum + group.total, 0);
   }, [reportGroups]);
 
+  const visiveis = useMemo(() => {
+    const term = searchFornecedor.trim().toLowerCase();
+    const from = dateFromStr ? new Date(dateFromStr + 'T00:00:00') : null;
+    const to = dateToStr ? new Date(dateToStr + 'T23:59:59') : null;
+
+    return sortedFiltered.filter((c) => {
+      if (term && !(c.fornecedor_nome || '').toLowerCase().includes(term)) return false;
+      if (from || to) {
+        const parcelas = [...c.parcelas].sort((a, b) => a.numero_parcela - b.numero_parcela);
+        const proxima = parcelas.find((p) => p.status !== 'paga') || parcelas[0];
+        if (!proxima?.data_vencimento) return false;
+        const dt = new Date(proxima.data_vencimento + 'T00:00:00');
+        if (from && dt < from) return false;
+        if (to && dt > to) return false;
+      }
+      return true;
+    });
+  }, [sortedFiltered, searchFornecedor, dateFromStr, dateToStr]);
+
   async function handleExportPdf() {
     if (exportingPdf) return;
     if (reportGroups.length === 0) {
@@ -642,29 +664,6 @@ export default function ContasPagarPage() {
   if (loading) {
     return <div className="flex min-h-screen items-center justify-center"><p>Carregando...</p></div>;
   }
-
-  // Busca textual por fornecedor (filtro live)
-  const [searchFornecedor, setSearchFornecedor] = useState('');
-  const [dateFromStr, setDateFromStr] = useState('');
-  const [dateToStr, setDateToStr] = useState('');
-
-  const visiveis = useMemo(() => {
-    const term = searchFornecedor.trim().toLowerCase();
-    const from = dateFromStr ? new Date(dateFromStr + 'T00:00:00') : null;
-    const to = dateToStr ? new Date(dateToStr + 'T23:59:59') : null;
-    return sortedFiltered.filter((c) => {
-      if (term && !(c.fornecedor_nome || '').toLowerCase().includes(term)) return false;
-      if (from || to) {
-        const parcelas = [...c.parcelas].sort((a, b) => a.numero_parcela - b.numero_parcela);
-        const proxima = parcelas.find((p) => p.status !== 'paga') || parcelas[0];
-        if (!proxima?.data_vencimento) return false;
-        const dt = new Date(proxima.data_vencimento + 'T00:00:00');
-        if (from && dt < from) return false;
-        if (to && dt > to) return false;
-      }
-      return true;
-    });
-  }, [sortedFiltered, searchFornecedor, dateFromStr, dateToStr]);
 
   return (
     <div className="space-y-5">
