@@ -249,7 +249,7 @@ export default function ContasPagarPage() {
 
   async function handleSubmit() {
     if (!user || !form.valor_total || !form.empresa_id || !form.fornecedor_id) {
-      toast.error('Preencha todos os campos obrigatÃ³rios');
+      toast.error('Preencha todos os campos obrigatórios');
       return;
     }
 
@@ -306,7 +306,7 @@ export default function ContasPagarPage() {
     if (!confirm('Excluir esta conta e todas as parcelas?')) return;
     try {
       await deleteContaPagar(id, user?.id || '');
-      toast.success('Conta excluÃ­da');
+      toast.success('Conta excluída');
       load();
     } catch (e: any) {
       toast.error(e.message);
@@ -384,7 +384,7 @@ export default function ContasPagarPage() {
     );
   }
 
-  // Agrupar parcelas por data para o relatÃ³rio
+  // Agrupar parcelas por data para o relatório
   const reportGroups = useMemo(() => {
     const groups: Record<string, { date: string; dateLabel: string; parcels: number; total: number; items: any[] }> = {};
     
@@ -432,7 +432,7 @@ export default function ContasPagarPage() {
     result.forEach(group => {
       group.items.sort((a, b) => a.valor_parcela - b.valor_parcela);
     });
-    // Retornar grupos ordenados por data (mesma lÃ³gica do FaturadosParcelasPage)
+    // Retornar grupos ordenados por data (mesma lógica do FaturadosParcelasPage)
     return result.sort((a, b) => (a.date > b.date ? -1 : a.date < b.date ? 1 : 0));
   }, [filtered]);
 
@@ -487,10 +487,10 @@ export default function ContasPagarPage() {
         return false;
       };
 
-      // â”€â”€ CabeÃ§alho â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      // Cabeçalho
       pdf.setFontSize(8);
       pdf.setTextColor(120, 120, 120);
-      pdf.text("RELATÃ“RIO", marginLeft, y);
+      pdf.text("RELATÓRIO", marginLeft, y);
       y += 5;
 
       pdf.setFontSize(14);
@@ -509,12 +509,12 @@ export default function ContasPagarPage() {
       );
       y += 3;
 
-      // Linha separadora do cabeÃ§alho
+      // Linha separadora do cabeçalho
       pdf.setDrawColor(200, 200, 200);
       pdf.line(marginLeft, y, marginRight, y);
       y += 5;
 
-      // â”€â”€ CabeÃ§alho da tabela â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      // Cabeçalho da tabela
       const cols = {
         venc:      { x: marginLeft,      w: 22 },
         empresa:   { x: marginLeft + 22, w: 28 },
@@ -556,7 +556,7 @@ export default function ContasPagarPage() {
         pdf.setFillColor(248, 249, 250);
         pdf.rect(marginLeft, y - 3.5, usableWidth, 10, "F");
 
-        // Nome da data (sem dia da semana para economizar espaÃ§o)
+        // Nome da data (sem dia da semana para economizar espaço)
         const dateObj = new Date(group.date + "T00:00:00");
         const dateLabel = dateObj.toLocaleDateString("pt-BR", {
           year: "numeric",
@@ -653,7 +653,7 @@ export default function ContasPagarPage() {
           y += 7;
         });
 
-        y += 2; // espaÃ§o entre grupos
+        y += 2; // espaço entre grupos
       });
 
       // â”€â”€ Total Geral â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -874,7 +874,7 @@ export default function ContasPagarPage() {
         </div>
       </Card>
 
-      {/* DiÃ¡logo de Nova/Editar Conta */}
+      {/* Diálogo de Nova/Editar Conta */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
@@ -884,7 +884,7 @@ export default function ContasPagarPage() {
           <div className="grid gap-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Data de EmissÃ£o *</Label>
+                <Label>Data de Emissão *</Label>
                 <Input 
                   type="date"
                   value={form.data_emissao} 
@@ -892,7 +892,7 @@ export default function ContasPagarPage() {
                 />
               </div>
               <div>
-                <Label>1Âº Vencimento *</Label>
+                <Label>1º Vencimento *</Label>
                 <Input 
                   type="date"
                   value={form.data_primeiro_vencimento} 
@@ -947,7 +947,7 @@ export default function ContasPagarPage() {
                 />
                 {editingId && items.find(item => item.id === editingId)?.parcelas.length > 0 && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    Para alterar o valor, use a ediÃ§Ã£o de parcelas
+                    Para alterar o valor, use a edição de parcelas
                   </p>
                 )}
               </div>
@@ -971,7 +971,7 @@ export default function ContasPagarPage() {
                 </Select>
                 {editingId && items.find(item => item.id === editingId)?.parcelas.length > 0 && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    Para alterar as parcelas, use a ediÃ§Ã£o de parcelas
+                    Para alterar as parcelas, use a edição de parcelas
                   </p>
                 )}
               </div>
@@ -980,7 +980,7 @@ export default function ContasPagarPage() {
             {/* Preview das parcelas */}
             {!editingId && form.valor_total && parseInt(form.quantidade_parcelas) > 0 && (
               <div className="p-3 bg-muted rounded-lg text-sm space-y-1">
-                <p className="font-medium text-xs text-muted-foreground">PrÃ©via das parcelas:</p>
+                <p className="font-medium text-xs text-muted-foreground">Prévia das parcelas:</p>
                 {Array.from({ length: parseInt(form.quantidade_parcelas) }, (_, i) => {
                   const val = parseCurrencyInput(form.valor_total) / parseInt(form.quantidade_parcelas);
                   const dt = new Date(`${form.data_primeiro_vencimento || form.data_emissao}T00:00:00`);
@@ -996,11 +996,11 @@ export default function ContasPagarPage() {
             )}
 
             <div>
-              <Label>ObservaÃ§Ã£o</Label>
+              <Label>Observação</Label>
               <Input 
                 value={form.observacao} 
                 onChange={(e) => setForm((p) => ({ ...p, observacao: e.target.value }))} 
-                placeholder="ObservaÃ§Ãµes sobre a conta..."
+                placeholder="Observações sobre a conta..."
               />
             </div>
           </div>
@@ -1012,7 +1012,7 @@ export default function ContasPagarPage() {
         </DialogContent>
       </Dialog>
 
-      {/* DiÃ¡logo de EdiÃ§Ã£o de Parcelas */}
+      {/* Diálogo de Edição de Parcelas */}
       <ContasPagarParcelasDialog
         open={showParcelasDialog}
         onClose={() => setShowParcelasDialog(false)}
@@ -1023,11 +1023,11 @@ export default function ContasPagarPage() {
         enforceTotal={contaParcelas?.origem === 'CF' ? Number(contaParcelas.valor_total) : undefined}
       />
 
-      {/* DiÃ¡logo de RelatÃ³rio */}
+      {/* Diálogo de Relatório */}
       <Dialog open={showReport} onOpenChange={setShowReport}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-auto">
           <DialogHeader>
-            <DialogTitle>RelatÃ³rio de Contas a Pagar</DialogTitle>
+            <DialogTitle>Relatório de Contas a Pagar</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4">
@@ -1039,7 +1039,7 @@ export default function ContasPagarPage() {
                   <span className="text-muted-foreground">Empresa:</span>
                   <p className="font-medium">
                     {filtrosAplicados.empresa 
-                      ? empresas.find(e => e.id === filtrosAplicados.empresa)?.nome || 'NÃ£o encontrada'
+                      ? empresas.find(e => e.id === filtrosAplicados.empresa)?.nome || 'Não encontrada'
                       : 'Todas'}
                   </p>
                 </div>
@@ -1047,25 +1047,25 @@ export default function ContasPagarPage() {
                   <span className="text-muted-foreground">Fornecedor:</span>
                   <p className="font-medium">
                     {filtrosAplicados.fornecedor
-                      ? fornecedores.find(f => f.id === filtrosAplicados.fornecedor)?.nome_fornecedor || 'NÃ£o encontrado'
+                      ? fornecedores.find(f => f.id === filtrosAplicados.fornecedor)?.nome_fornecedor || 'Não encontrado'
                       : 'Todos'}
                   </p>
                 </div>
                 <div>
-                  <span className="text-muted-foreground">PerÃ­odo:</span>
+                  <span className="text-muted-foreground">Período:</span>
                   <p className="font-medium">
                     {filtrosAplicados.startDate || filtrosAplicados.endDate
-                      ? `${filtrosAplicados.startDate ? format(filtrosAplicados.startDate, 'dd/MM/yyyy', { locale: ptBR }) : 'InÃ­cio'} a ${filtrosAplicados.endDate ? format(filtrosAplicados.endDate, 'dd/MM/yyyy', { locale: ptBR }) : 'Fim'}`
-                      : 'Todo o perÃ­odo'}
+                      ? `${filtrosAplicados.startDate ? format(filtrosAplicados.startDate, 'dd/MM/yyyy', { locale: ptBR }) : 'Início'} a ${filtrosAplicados.endDate ? format(filtrosAplicados.endDate, 'dd/MM/yyyy', { locale: ptBR }) : 'Fim'}`
+                      : 'Todo o período'}
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* Tabela do RelatÃ³rio */}
+            {/* Tabela do Relatório */}
             <div ref={reportRef}>
               <div className="mb-3 rounded-md border bg-white px-4 py-3">
-                <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">RelatÃ³rio</p>
+                <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Relatório</p>
                 <div className="mt-1 flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
                   <h3 className="text-base font-semibold leading-tight">Contas a Pagar</h3>
                   <p className="text-sm text-muted-foreground">
