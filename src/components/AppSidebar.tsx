@@ -22,7 +22,6 @@ import {
   Landmark,
   LayoutDashboard,
   Lock,
-  LogOut,
   MapPin,
   MapPinned,
   Package,
@@ -36,7 +35,6 @@ import {
   Users as AdminIcon,
 } from 'lucide-react';
 import { ModuleKey } from '@/lib/modulePermissions';
-import { confirmDraftDiscard } from '@/lib/draftGuard';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useLocation } from 'react-router-dom';
@@ -56,7 +54,7 @@ interface MenuGroup {
 }
 
 export function AppSidebar() {
-  const { userRole, profile, signOut } = useAuth();
+  const { userRole, profile } = useAuth();
   const { canAccess, loading: permLoading } = useModulePermissions();
   const isAdmin = userRole === 'admin';
   const location = useLocation();
@@ -184,11 +182,6 @@ export function AppSidebar() {
     );
   }
 
-  async function handleSignOut() {
-    if (!confirmDraftDiscard()) return;
-    await signOut();
-  }
-
   const openGroup = groups.find((g) => g.key === activeGroup);
 
   return (
@@ -231,21 +224,6 @@ export function AppSidebar() {
               );
             })}
           </nav>
-
-          {/* Sign out */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={handleSignOut}
-                className="flex h-10 w-10 items-center justify-center rounded-xl text-white/50 transition-all hover:bg-white/8 hover:text-white/80"
-              >
-                <LogOut className="h-5 w-5" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="right" className="bg-slate-800 text-white border-slate-700">
-              Sair
-            </TooltipContent>
-          </Tooltip>
         </div>
 
         {/* Expandable subitems panel */}

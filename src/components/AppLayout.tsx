@@ -8,6 +8,7 @@ import { prefetchAllRoutesOnIdle } from '@/lib/routePrefetch';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
 import { LogOut, PanelLeft } from 'lucide-react';
+import { confirmDraftDiscard } from '@/lib/draftGuard';
 
 function getPageHeader(pathname: string) {
   if (
@@ -35,6 +36,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pageHeader = getPageHeader(location.pathname);
   const userInitial = (profile?.display_name || user?.email || 'U').trim().charAt(0).toUpperCase();
 
+  async function handleSignOut() {
+    if (!confirmDraftDiscard()) return;
+    await signOut();
+  }
+
   useEffect(() => {
     prefetchAllRoutesOnIdle();
   }, []);
@@ -43,23 +49,23 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-screen w-full">
       <AppSidebar />
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-[60px] items-center justify-between border-b border-border/70 bg-card px-6">
+        <header className="flex h-[56px] items-center justify-between border-b border-slate-200 bg-white px-6">
           <div className="flex min-w-0 items-center gap-4">
-            <div className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground">
+            <div className="flex h-7 w-7 items-center justify-center rounded-md text-slate-500">
               <PanelLeft className="h-4 w-4" />
             </div>
             <div className="min-w-0">
-              <h1 className="truncate text-lg font-semibold leading-5 tracking-tight">{pageHeader.title}</h1>
-              <p className="truncate text-xs text-muted-foreground">{pageHeader.subtitle}</p>
+              <h1 className="truncate text-base font-semibold leading-5 tracking-normal text-slate-950">{pageHeader.title}</h1>
+              <p className="truncate text-xs leading-4 text-slate-500">{pageHeader.subtitle}</p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
             <NotificationMenu compact />
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-950 text-sm font-semibold text-white">
               {userInitial}
             </div>
-            <Button variant="outline" size="sm" onClick={signOut} className="gap-2">
+            <Button variant="outline" size="sm" onClick={handleSignOut} className="h-9 gap-2 border-slate-200 bg-white text-slate-950 hover:bg-slate-50">
               <LogOut className="h-4 w-4" />
               Sair
             </Button>
