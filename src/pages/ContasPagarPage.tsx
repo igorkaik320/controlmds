@@ -376,7 +376,7 @@ export default function ContasPagarPage() {
         title={value === 'CF' ? 'Compras Faturadas' : value === 'CP' ? 'Contas a Pagar' : 'Compras à Vista'}
         className={cn(
           'h-6 min-w-9 justify-center rounded-md px-2 text-[11px] font-semibold',
-          value === 'CF' ? 'border-blue-200 bg-blue-50 text-blue-700' : 'border-slate-200 bg-slate-50 text-slate-700'
+          value === 'CF' ? 'border-primary/20 bg-primary/10 text-primary' : 'border-border bg-muted/50 text-muted-foreground'
         )}
       >
         {value}
@@ -686,54 +686,54 @@ export default function ContasPagarPage() {
   }
 
   return (
-    <div className="space-y-5 text-[13px] text-slate-950">
-      <Card className="rounded-lg border-slate-200 p-4 shadow-sm">
+    <div className="space-y-5 text-[13px] text-foreground">
+      <Card className="glass-card rounded-lg p-4">
         <div className="mb-4">
-          <h3 className="text-sm font-semibold text-slate-950">Filtros</h3>
-          <p className="text-xs text-slate-500">
+          <h3 className="text-sm font-semibold text-foreground">Filtros</h3>
+          <p className="text-xs text-muted-foreground">
             Refine a consulta por fornecedor e período de vencimento.
           </p>
         </div>
 
         <div className="grid gap-4 md:grid-cols-[minmax(240px,1fr)_180px_180px]">
           <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-slate-600">Pesquisar fornecedor</Label>
+            <Label className="text-xs font-medium text-muted-foreground">Pesquisar fornecedor</Label>
             <Input
-              className="h-9 rounded-md border-slate-200 bg-white text-sm text-slate-950 shadow-none placeholder:text-slate-500"
+              className="h-9 rounded-md border-input bg-card text-sm shadow-none placeholder:text-muted-foreground"
               placeholder="Digite para pesquisar"
               value={searchFornecedor}
               onChange={(e) => setSearchFornecedor(e.target.value)}
             />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-slate-600">Data inicial</Label>
-            <Input className="h-9 rounded-md border-slate-200 bg-white text-sm text-slate-950 shadow-none" type="date" value={dateFromStr} onChange={(e) => setDateFromStr(e.target.value)} />
+            <Label className="text-xs font-medium text-muted-foreground">Data inicial</Label>
+            <Input className="h-9 rounded-md border-input bg-card text-sm shadow-none" type="date" value={dateFromStr} onChange={(e) => setDateFromStr(e.target.value)} />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-slate-600">Data final</Label>
-            <Input className="h-9 rounded-md border-slate-200 bg-white text-sm text-slate-950 shadow-none" type="date" value={dateToStr} onChange={(e) => setDateToStr(e.target.value)} />
+            <Label className="text-xs font-medium text-muted-foreground">Data final</Label>
+            <Input className="h-9 rounded-md border-input bg-card text-sm shadow-none" type="date" value={dateToStr} onChange={(e) => setDateToStr(e.target.value)} />
           </div>
         </div>
       </Card>
 
       {/* Card da tabela */}
-      <Card className="overflow-hidden rounded-lg border-slate-200 shadow-sm">
-        <div className="flex flex-col gap-3 border-b border-slate-200 px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
+      <Card className="overflow-hidden rounded-lg border-border/50 shadow-sm">
+        <div className="flex flex-col gap-3 border-b border-border px-4 py-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h3 className="text-sm font-semibold text-slate-950">Contas a Pagar</h3>
-            <p className="text-xs text-slate-500">
+            <h3 className="text-sm font-semibold text-foreground">Contas a Pagar</h3>
+            <p className="text-xs text-muted-foreground">
               {visiveis.length} item(ns) encontrados
               {selectedParcelas.size > 0 ? ` • ${selectedParcelas.size} parcela(s) selecionada(s)` : ''}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {selectedParcelas.size > 0 && (
-              <div className="flex flex-wrap items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
-                <span className="text-xs font-medium text-slate-600">
+              <div className="flex flex-wrap items-center gap-2 rounded-md border border-border bg-muted/50 px-3 py-2">
+                <span className="text-xs font-medium text-muted-foreground">
                   {selectedParcelas.size} selecionada(s)
                 </span>
                 <Select onValueChange={handleBulkStatusChange}>
-                  <SelectTrigger className="h-9 w-[160px] border-slate-200 bg-white text-sm shadow-none">
+                  <SelectTrigger className="h-9 w-[160px] border-input bg-card text-sm shadow-none">
                     <SelectValue placeholder="Alterar status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -745,12 +745,12 @@ export default function ContasPagarPage() {
                 </Select>
               </div>
             )}
-            <Button variant="outline" size="sm" onClick={() => setShowReport(true)} className="h-9 gap-2 border-slate-200 bg-white text-slate-950 hover:bg-slate-50">
+            <Button variant="outline" size="sm" onClick={() => setShowReport(true)} className="h-9 gap-2">
               <FileText className="h-4 w-4" />
               Relatório
             </Button>
             {canCreate('contas_pagar') && (
-              <Button size="sm" onClick={openNew} className="h-9 gap-1 bg-slate-950 text-white hover:bg-slate-800">
+              <Button size="sm" onClick={openNew} className="h-9 gap-1">
                 <Plus className="h-4 w-4" />
                 Novo
               </Button>
@@ -762,28 +762,28 @@ export default function ContasPagarPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead onClick={() => handleSort('fornecedor')} className="cursor-pointer select-none bg-slate-50 text-xs font-medium text-slate-500 hover:bg-slate-100">
+                <TableHead onClick={() => handleSort('fornecedor')} className="cursor-pointer select-none bg-muted/50 text-xs font-medium text-muted-foreground hover:bg-muted">
                   <div className="flex items-center">Fornecedor<SortIcon column="fornecedor" /></div>
                 </TableHead>
-                <TableHead onClick={() => handleSort('origem')} className="w-20 cursor-pointer select-none bg-slate-50 text-xs font-medium text-slate-500 hover:bg-slate-100">
+                <TableHead onClick={() => handleSort('origem')} className="w-20 cursor-pointer select-none bg-muted/50 text-xs font-medium text-muted-foreground hover:bg-muted">
                   <div className="flex items-center">Origem<SortIcon column="origem" /></div>
                 </TableHead>
-                <TableHead className="bg-slate-50 text-xs font-medium text-slate-500">
+                <TableHead className="bg-muted/50 text-xs font-medium text-muted-foreground">
                   <div className="flex items-center">Descrição</div>
                 </TableHead>
-                <TableHead onClick={() => handleSort('parcela')} className="cursor-pointer select-none bg-slate-50 text-xs font-medium text-slate-500 hover:bg-slate-100">
+                <TableHead onClick={() => handleSort('parcela')} className="cursor-pointer select-none bg-muted/50 text-xs font-medium text-muted-foreground hover:bg-muted">
                   <div className="flex items-center">Parcelas<SortIcon column="parcela" /></div>
                 </TableHead>
-                <TableHead onClick={() => handleSort('valor_total')} className="cursor-pointer select-none bg-slate-50 text-right text-xs font-medium text-slate-500 hover:bg-slate-100">
+                <TableHead onClick={() => handleSort('valor_total')} className="cursor-pointer select-none bg-muted/50 text-right text-xs font-medium text-muted-foreground hover:bg-muted">
                   <div className="flex items-center justify-end">Valor<SortIcon column="valor_total" /></div>
                 </TableHead>
-                <TableHead onClick={() => handleSort('vencimento')} className="cursor-pointer select-none bg-slate-50 text-xs font-medium text-slate-500 hover:bg-slate-100">
+                <TableHead onClick={() => handleSort('vencimento')} className="cursor-pointer select-none bg-muted/50 text-xs font-medium text-muted-foreground hover:bg-muted">
                   <div className="flex items-center">Próximo vencimento<SortIcon column="vencimento" /></div>
                 </TableHead>
-                <TableHead onClick={() => handleSort('status')} className="cursor-pointer select-none bg-slate-50 text-xs font-medium text-slate-500 hover:bg-slate-100">
+                <TableHead onClick={() => handleSort('status')} className="cursor-pointer select-none bg-muted/50 text-xs font-medium text-muted-foreground hover:bg-muted">
                   <div className="flex items-center">Status<SortIcon column="status" /></div>
                 </TableHead>
-                <TableHead className="bg-slate-50 text-right text-xs font-medium text-slate-500">Ações</TableHead>
+                <TableHead className="bg-muted/50 text-right text-xs font-medium text-muted-foreground">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -803,19 +803,19 @@ export default function ContasPagarPage() {
                 const descricao = conta.observacao || proxima?.observacao || conta.obra_nome || '-';
 
                 return (
-                  <TableRow key={conta.id} className="h-14 border-slate-200 hover:bg-slate-50/60">
-                    <TableCell className="font-medium text-slate-950">{conta.fornecedor_nome || '-'}</TableCell>
+                  <TableRow key={conta.id} className="h-14 border-border/50 hover:bg-muted/30">
+                    <TableCell className="font-medium text-foreground">{conta.fornecedor_nome || '-'}</TableCell>
                     <TableCell>
                       <OrigemBadge origem={conta.origem} />
                     </TableCell>
-                    <TableCell className="text-xs uppercase text-slate-500">
+                    <TableCell className="text-xs uppercase text-muted-foreground">
                       {descricao}
                     </TableCell>
-                    <TableCell className="text-slate-700">{pagas}/{total}</TableCell>
+                    <TableCell className="text-muted-foreground">{pagas}/{total}</TableCell>
                     <TableCell className="text-right font-mono font-semibold">
                       {formatCurrency(conta.valor_total)}
                     </TableCell>
-                    <TableCell className="text-slate-500">
+                    <TableCell className="text-muted-foreground">
                       {proxima?.data_vencimento
                         ? new Date(proxima.data_vencimento + 'T00:00:00').toLocaleDateString('pt-BR')
                         : '-'}
@@ -826,13 +826,13 @@ export default function ContasPagarPage() {
                           value={proxima.status}
                           onValueChange={(v) => handleInlineStatusChange(proxima.id, v)}
                         >
-                          <SelectTrigger className="h-8 w-[108px] rounded-md border-slate-200 bg-white px-2 shadow-none">
+                          <SelectTrigger className="h-8 w-[108px] rounded-md border-input bg-card px-2 shadow-none">
                             <Badge
                               variant={getParcelaStatusVariant(proxima.status)}
                               className={cn(
                                 "capitalize text-[11px] font-semibold",
-                                proxima.status === 'aberta' && "bg-slate-950 text-white hover:bg-slate-950",
-                                proxima.status === 'paga' && "bg-slate-100 text-slate-700 hover:bg-slate-100"
+                                proxima.status === 'aberta' && "bg-primary/10 text-primary hover:bg-primary/10",
+                                proxima.status === 'paga' && "bg-success/10 text-success hover:bg-success/10"
                               )}
                             >
                               {proxima.status}
@@ -852,11 +852,11 @@ export default function ContasPagarPage() {
                     <TableCell>
                       <div className="flex items-center justify-end gap-1">
                         <Button variant="ghost" size="icon" onClick={() => openParcelas(conta)} title="Ver parcelas">
-                          <Eye className="h-4 w-4 text-slate-950" />
+                          <Eye className="h-4 w-4 text-foreground" />
                         </Button>
                         {canEdit('contas_pagar') && conta.origem !== 'CF' && (
                           <Button variant="ghost" size="icon" onClick={() => openEdit(conta)} title="Editar">
-                            <Pencil className="h-4 w-4 text-slate-950" />
+                            <Pencil className="h-4 w-4 text-foreground" />
                           </Button>
                         )}
                         {canDelete('contas_pagar') && conta.origem !== 'CF' && (

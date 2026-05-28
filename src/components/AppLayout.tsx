@@ -49,29 +49,29 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-screen w-full">
       <AppSidebar />
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-[56px] items-center justify-between border-b border-slate-200 bg-white px-6">
+        <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-card px-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-4">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md text-slate-500">
+            <div className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground">
               <PanelLeft className="h-4 w-4" />
             </div>
             <div className="min-w-0">
-              <h1 className="truncate text-base font-semibold leading-5 tracking-normal text-slate-950">{pageHeader.title}</h1>
-              <p className="truncate text-xs leading-4 text-slate-500">{pageHeader.subtitle}</p>
+              <h1 className="truncate text-base font-semibold leading-tight text-foreground">{pageHeader.title}</h1>
+              <p className="truncate text-xs text-muted-foreground">{pageHeader.subtitle}</p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
             <NotificationMenu compact />
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-950 text-sm font-semibold text-white">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
               {userInitial}
             </div>
-            <Button variant="outline" size="sm" onClick={handleSignOut} className="h-9 gap-2 border-slate-200 bg-white text-slate-950 hover:bg-slate-50">
+            <Button variant="outline" size="sm" onClick={handleSignOut} className="gap-1.5">
               <LogOut className="h-4 w-4" />
               Sair
             </Button>
           </div>
         </header>
-        <main className="min-w-0 flex-1 overflow-auto p-4 md:p-6">
+        <main className="min-w-0 flex-1 overflow-auto p-4 sm:p-6">
           <Suspense fallback={<PageSkeleton />}>{children}</Suspense>
         </main>
       </div>

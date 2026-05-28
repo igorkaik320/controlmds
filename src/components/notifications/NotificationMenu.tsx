@@ -34,7 +34,7 @@ export function NotificationMenu({ compact = false }: NotificationMenuProps) {
         <Button
           variant={compact ? "ghost" : "outline"}
           size={compact ? "icon" : "sm"}
-          className={compact ? "relative h-9 w-9 rounded-full text-slate-950 hover:bg-slate-100" : "relative px-3"}
+          className={compact ? "relative h-9 w-9 rounded-full text-muted-foreground hover:bg-muted" : "relative px-3"}
           aria-label="Notificações"
         >
           <Bell className="h-4 w-4" />

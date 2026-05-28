@@ -154,7 +154,7 @@ export function AppSidebar() {
     if (locked) {
       return (
         <li key={item.url}>
-          <div className="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2.5 text-white/30">
+          <div className="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2.5 text-sidebar-muted/70">
             <item.icon className="h-4 w-4 shrink-0" />
             <span className="text-sm">{item.title}</span>
             <Lock className="ml-auto h-3.5 w-3.5" />
@@ -170,8 +170,8 @@ export function AppSidebar() {
         <NavLink
           to={item.url}
           className={cn(
-            'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-white/75 transition-all duration-150 hover:bg-white/10 hover:text-white',
-            isActive && 'bg-blue-500/90 text-white font-semibold shadow-[0_4px_14px_rgba(59,130,246,0.35)]'
+            'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-sidebar-foreground transition-all duration-150 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+            isActive && 'bg-sidebar-primary text-sidebar-primary-foreground font-semibold shadow-sm'
           )}
           activeClassName=""
         >
@@ -188,10 +188,10 @@ export function AppSidebar() {
     <TooltipProvider delayDuration={100}>
       <div className="sticky top-0 flex h-screen shrink-0">
         {/* Icon strip */}
-        <div className="flex w-[60px] flex-col items-center border-r border-white/10 bg-[#0f1a2d] py-4">
+        <div className="flex w-[60px] flex-col items-center border-r border-sidebar-border bg-sidebar py-4">
           {/* Logo */}
           <div className="mb-6 flex h-10 w-10 items-center justify-center">
-            <span className="text-lg font-black text-white tracking-wider">M</span>
+            <span className="text-lg font-black text-sidebar-accent-foreground tracking-wider">M</span>
           </div>
 
           {/* Group icons */}
@@ -208,16 +208,16 @@ export function AppSidebar() {
                       className={cn(
                         'flex h-10 w-10 items-center justify-center rounded-xl transition-all duration-150',
                         isOpen
-                          ? 'bg-blue-500 text-white shadow-[0_4px_14px_rgba(59,130,246,0.4)]'
+                          ? 'bg-sidebar-primary text-sidebar-primary-foreground shadow-sm'
                           : isGroupActive
-                          ? 'bg-white/15 text-white'
-                          : 'text-white/50 hover:bg-white/8 hover:text-white/80'
+                          ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                          : 'text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
                       )}
                     >
                       <group.icon className="h-5 w-5" />
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent side="right" className="bg-slate-800 text-white border-slate-700">
+                  <TooltipContent side="right" className="bg-sidebar text-sidebar-foreground border-sidebar-border">
                     {group.label}
                   </TooltipContent>
                 </Tooltip>
@@ -229,29 +229,29 @@ export function AppSidebar() {
         {/* Expandable subitems panel */}
         <div
           className={cn(
-            'flex flex-col overflow-hidden bg-[#233247] transition-all duration-250 ease-in-out',
-            openGroup ? 'w-[220px] border-r border-white/10' : 'w-0'
+            'flex flex-col overflow-hidden bg-sidebar-accent transition-all duration-250 ease-in-out',
+            openGroup ? 'w-[220px] border-r border-sidebar-border' : 'w-0'
           )}
         >
           {openGroup && (
             <div className="flex h-full w-[220px] flex-col">
               {/* Panel header */}
-              <div className="flex items-center justify-between border-b border-white/10 px-4 py-4">
-                <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-white/60">
+              <div className="flex items-center justify-between border-b border-sidebar-border px-4 py-4">
+                <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-sidebar-muted">
                   {openGroup.label}
                 </h2>
                 <button
                   onClick={() => setActiveGroup(null)}
-                  className="rounded p-1 text-white/40 hover:bg-white/10 hover:text-white/70"
+                  className="rounded p-1 text-sidebar-muted hover:bg-sidebar hover:text-sidebar-foreground"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
               </div>
 
               {/* User info */}
-              <div className="border-b border-white/10 px-4 py-3">
-                <p className="truncate text-sm text-white/75">{profile?.display_name}</p>
-                <span className="mt-1 inline-flex rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium text-white/80">
+              <div className="border-b border-sidebar-border px-4 py-3">
+                <p className="truncate text-sm text-sidebar-foreground">{profile?.display_name}</p>
+                <span className="mt-1 inline-flex rounded-full bg-sidebar px-2 py-0.5 text-[10px] font-medium text-sidebar-foreground">
                   {userRole === 'admin'
                     ? 'Administração'
                     : userRole === 'conferente'
