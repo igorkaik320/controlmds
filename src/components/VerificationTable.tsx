@@ -1,4 +1,4 @@
-import { Trash2 } from 'lucide-react';
+﻿import { Trash2 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { formatCurrency, Verification } from '@/lib/cashRegister';
@@ -64,20 +64,20 @@ export default function VerificationTable({ verifications, profileMap, onDelete,
           <TableBody>
             {pagination.paginatedItems.map((v) => (
               <TableRow key={v.id} className="group">
-                <TableCell className="font-mono text-sm">{formatDate(v.date)}</TableCell>
-                <TableCell className="text-right font-mono text-sm">{formatCurrency(v.system_balance)}</TableCell>
-                <TableCell className="text-right font-mono font-medium">{formatCurrency(v.gaveta_value)}</TableCell>
-                <TableCell className={`text-right font-mono font-medium ${
-                  v.difference < 0 
-                    ? 'text-red-600' 
-                    : v.difference === 0 
-                      ? 'text-black' 
-                      : 'text-green-600'
+                <TableCell>{formatDate(v.date)}</TableCell>
+                <TableCell className="text-right">{formatCurrency(v.system_balance)}</TableCell>
+                <TableCell className="text-right font-medium">{formatCurrency(v.gaveta_value)}</TableCell>
+                <TableCell className={`text-right font-medium ${
+                  v.difference < 0
+                    ? 'text-destructive'
+                    : v.difference === 0
+                      ? 'text-foreground'
+                      : 'text-success'
                 }`}>
                   {formatCurrency(v.difference)}
                 </TableCell>
-                <TableCell className="text-sm">{profileMap[v.created_by] || '—'}</TableCell>
-                <TableCell className="text-sm max-w-[200px] truncate">{v.observation || '—'}</TableCell>
+                <TableCell>{profileMap[v.created_by] || '—'}</TableCell>
+                <TableCell className="max-w-[200px] truncate">{v.observation || '—'}</TableCell>
                 <TableCell className="text-xs text-muted-foreground">{formatDateTime(v.created_at)}</TableCell>
                 {canDelete && (
                   <TableCell>

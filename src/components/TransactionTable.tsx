@@ -1,4 +1,4 @@
-import { Pencil, Trash2 } from 'lucide-react';
+﻿import { Pencil, Trash2 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -90,37 +90,37 @@ export default function TransactionTable({
 
               return (
                 <TableRow key={t.id} className="group">
-                  <TableCell className="font-mono text-sm">{formatDate(t.date)}</TableCell>
+                  <TableCell>{formatDate(t.date)}</TableCell>
                   <TableCell>{typeLabel(t.type)}</TableCell>
                   <TableCell
-                    className={`text-right font-mono font-medium ${
+                    className={`text-right font-medium ${
                       t.type === 'entrada' ? 'text-entrada' : t.type === 'saida' ? 'text-saida' : ''
                     }`}
                   >
                     {t.type === 'entrada' ? '+' : t.type === 'saida' ? '-' : ''}
                     {formatCurrency(t.value)}
                   </TableCell>
-                  <TableCell className="text-right font-mono text-sm text-muted-foreground">
+                  <TableCell className="text-right text-muted-foreground">
                     {formatCurrency(t.balance_before)}
                   </TableCell>
-                  <TableCell className="text-right font-mono font-semibold">
+                  <TableCell className="text-right font-semibold">
                     {formatCurrency(t.balance_after)}
                   </TableCell>
-                  <TableCell className="text-right font-mono text-sm">
+                  <TableCell className="text-right">
                     {t.gaveta != null ? formatCurrency(t.gaveta) : '—'}
                   </TableCell>
                   <TableCell
-                    className={`text-right font-mono text-sm font-medium ${
+                    className={`text-right font-medium ${
                       Math.abs(t.difference) > 0.01 ? 'text-warning' : 'text-muted-foreground'
                     }`}
                   >
                     {formatCurrency(t.difference)}
                   </TableCell>
-                  <TableCell className="text-sm">{t.obra || '—'}</TableCell>
-                  <TableCell className="text-sm">{t.fornecedor || '—'}</TableCell>
-                  <TableCell className="text-sm">{t.nota_numero || '—'}</TableCell>
-                  <TableCell className="text-sm max-w-[200px] truncate">{t.observation || '—'}</TableCell>
-                  <TableCell className="text-sm">
+                  <TableCell>{t.obra || '—'}</TableCell>
+                  <TableCell>{t.fornecedor || '—'}</TableCell>
+                  <TableCell>{t.nota_numero || '—'}</TableCell>
+                  <TableCell className="max-w-[200px] truncate">{t.observation || '—'}</TableCell>
+                  <TableCell>
                     <AuditInfo
                       createdBy={t.created_by}
                       createdAt={t.created_at}

@@ -1,5 +1,5 @@
-import { useState, useCallback, useEffect } from "react";
-import { Plus, PlayCircle, FileDown, FileSpreadsheet, Search, LogOut } from "lucide-react";
+﻿import { useState, useCallback, useEffect } from "react";
+import { Plus, PlayCircle, FileDown, FileSpreadsheet, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import DashboardCards from "@/components/DashboardCards";
 import TransactionTable from "@/components/TransactionTable";
@@ -34,7 +34,7 @@ import { exportPDF, exportXLSX } from "@/lib/exportUtils";
 import { toast } from "sonner";
 
 export default function Index() {
-  const { user, profile, signOut, userRole } = useAuth();
+  const { user, profile, userRole } = useAuth();
   const { canView, canCreate, canEdit, canDelete, canExport } = useModulePermissions();
 
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
@@ -254,60 +254,58 @@ export default function Index() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-5 flex items-center justify-between">
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Controle de Caixa</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
+            <h2 className="text-2xl font-bold tracking-tight">Controle de Caixa</h2>
+          <p className="text-sm text-muted-foreground">
               {profile?.display_name} • <span className="font-medium capitalize">{userRole}</span>
             </p>
           </div>
 
-          <div className="flex gap-2 flex-wrap justify-end">
+          <div className="flex flex-wrap justify-end gap-2">
             {canExportCash && (
               <>
-                <Button variant="outline" size="sm" onClick={() => exportPDF(transactions, verifications, profileMap)}>
-                  <FileDown className="h-4 w-4 mr-1" /> PDF
+                <Button variant="outline" size="sm" className="h-9 gap-2" onClick={() => exportPDF(transactions, verifications, profileMap)}>
+                  <FileDown className="h-4 w-4" /> PDF
                 </Button>
 
-                <Button variant="outline" size="sm" onClick={() => exportXLSX(transactions, verifications, profileMap)}>
-                  <FileSpreadsheet className="h-4 w-4 mr-1" /> XLSX
+                <Button variant="outline" size="sm" className="h-9 gap-2" onClick={() => exportXLSX(transactions, verifications, profileMap)}>
+                  <FileSpreadsheet className="h-4 w-4" /> Excel
                 </Button>
               </>
             )}
 
             {canCreateCash && (
               <>
-                <Button variant="outline" size="sm" onClick={() => setShowInit(true)}>
-                  <PlayCircle className="h-4 w-4 mr-1" /> Inicialização
+                <Button variant="outline" size="sm" className="h-9 gap-2" onClick={() => setShowInit(true)}>
+                  <PlayCircle className="h-4 w-4" /> Inicialização
                 </Button>
 
-                <Button variant="outline" size="sm" onClick={() => setShowVerify(true)}>
-                  <Search className="h-4 w-4 mr-1" /> Conferir Caixa
+                <Button variant="outline" size="sm" className="h-9 gap-2" onClick={() => setShowVerify(true)}>
+                  <Search className="h-4 w-4" /> Conferir Caixa
                 </Button>
 
                 <Button
                   size="sm"
+                  className="h-9 gap-1"
                   onClick={() => {
                     setEditingId(null);
                     setShowNew(true);
                   }}
                 >
-                  <Plus className="h-4 w-4 mr-1" /> Novo Lançamento
+                  <Plus className="h-4 w-4" /> Novo
                 </Button>
               </>
             )}
-
-            <Button variant="ghost" size="sm" onClick={signOut}>
-              <LogOut className="h-4 w-4" />
-            </Button>
           </div>
         </div>
-      </header>
-
-      <main className="mx-auto w-full max-w-[1600px] px-4 py-6 space-y-6">
-        <div className="rounded-xl border bg-card p-4 space-y-4">
+      <main className="space-y-5">
+        <div className="glass-card rounded-lg p-4">
+          <div className="mb-4">
+            <h3 className="text-sm font-semibold text-foreground">Filtros</h3>
+            <p className="text-xs text-muted-foreground">Refine a consulta por período, tipo e ordenação.</p>
+          </div>
           <div className="grid gap-4 md:grid-cols-6">
             <div>
               <Label className="text-xs font-medium text-muted-foreground">De</Label>
@@ -348,8 +346,11 @@ export default function Index() {
 
         <DashboardCards summary={summary} />
 
-        <div>
-          <h2 className="text-lg font-semibold mb-3">Lançamentos</h2>
+        <div className="space-y-3">
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">Lançamentos</h3>
+            <p className="text-xs text-muted-foreground">{filteredTransactions.length} item(ns) encontrados</p>
+          </div>
           <TransactionTable
             transactions={filteredTransactions}
             onEdit={handleEdit}
@@ -360,8 +361,11 @@ export default function Index() {
           />
         </div>
 
-        <div>
-          <h2 className="text-lg font-semibold mb-3">Conferências de Caixa</h2>
+        <div className="space-y-3">
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">Conferências de Caixa</h3>
+            <p className="text-xs text-muted-foreground">{verifications.length} item(ns) encontrados</p>
+          </div>
           <VerificationTable
             verifications={verifications}
             profileMap={profileMap}
