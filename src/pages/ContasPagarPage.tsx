@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card } from '@/components/ui/card';
-import { Plus, Pencil, Trash2, Eye, Calendar as CalendarIcon, Building, CheckSquare, FileText, Search, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, Pencil, Trash2, Eye, Calendar as CalendarIcon, Building, CheckSquare, FileText, Search, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useModulePermissions } from '@/hooks/useModulePermissions';
 import { toast } from 'sonner';
@@ -68,6 +68,8 @@ export default function ContasPagarPage() {
   const [searchFornecedor, setSearchFornecedor] = useState('');
   const [dateFromStr, setDateFromStr] = useState('');
   const [dateToStr, setDateToStr] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(30);
 
   function handleSort(key: SortKey) {
     if (sortKey !== key) {
@@ -439,6 +441,22 @@ export default function ContasPagarPage() {
     });
   }, [sortedFiltered, searchFornecedor, dateFromStr, dateToStr]);
 
+  const totalPages = Math.max(1, Math.ceil(visiveis.length / pageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const pageStartIndex = (safeCurrentPage - 1) * pageSize;
+  const pageEndIndex = Math.min(pageStartIndex + pageSize, visiveis.length);
+  const paginatedVisiveis = visiveis.slice(pageStartIndex, pageEndIndex);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [sortKey, sortDir, searchFornecedor, dateFromStr, dateToStr, filterEmpresa, filterFornecedor, startDate, endDate]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
   async function handleExportPdf() {
     if (exportingPdf) return;
     if (reportGroups.length === 0) {
@@ -775,7 +793,7 @@ export default function ContasPagarPage() {
                 </TableRow>
               )}
 
-              {visiveis.map((conta) => {
+              {paginatedVisiveis.map((conta) => {
                 const parcelas = [...conta.parcelas].sort((a, b) => a.numero_parcela - b.numero_parcela);
                 const proxima = parcelas.find((p) => p.status !== 'paga') || parcelas[0];
                 const pagas = parcelas.filter((p) => p.status === 'paga').length;
@@ -852,6 +870,57 @@ export default function ContasPagarPage() {
               })}
             </TableBody>
           </Table>
+        </div>
+        <div className="flex flex-col gap-3 border-t border-border px-4 py-3 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            {visiveis.length > 0
+              ? `Mostrando ${pageStartIndex + 1}-${pageEndIndex} de ${visiveis.length}`
+              : 'Nenhum item para mostrar'}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <span>Itens por página</span>
+            <Select
+              value={String(pageSize)}
+              onValueChange={(value) => {
+                setPageSize(Number(value));
+                setCurrentPage(1);
+              }}
+            >
+              <SelectTrigger className="h-8 w-[82px] border-input bg-card text-xs shadow-none">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="30">30</SelectItem>
+                <SelectItem value="60">60</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                disabled={safeCurrentPage <= 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="min-w-[74px] text-center">
+                {safeCurrentPage} de {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                disabled={safeCurrentPage >= totalPages}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
         </div>
       </Card>
 
