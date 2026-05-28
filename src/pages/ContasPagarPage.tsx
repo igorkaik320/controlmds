@@ -1060,9 +1060,11 @@ export default function ContasPagarPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center justify-end gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => openParcelas(conta)} title="Ver parcelas">
-                          <Eye className="h-4 w-4 text-foreground" />
-                        </Button>
+                        {conta.origem !== 'CP' && (
+                          <Button variant="ghost" size="icon" onClick={() => openParcelas(conta)} title="Editar parcelas">
+                            <Eye className="h-4 w-4 text-foreground" />
+                          </Button>
+                        )}
                         {canEdit('contas_pagar') && conta.origem !== 'CF' && (
                           <Button variant="ghost" size="icon" onClick={() => openEdit(conta)} title="Editar">
                             <Pencil className="h-4 w-4 text-foreground" />
@@ -1136,7 +1138,7 @@ export default function ContasPagarPage() {
 
       {/* Diálogo de Nova/Editar Conta */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="max-h-[92vh] w-[95vw] max-w-4xl overflow-y-auto">
+        <DialogContent className="max-h-[92vh] w-[95vw] max-w-5xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingId ? 'Editar' : 'Nova'} Conta a Pagar</DialogTitle>
           </DialogHeader>
@@ -1275,12 +1277,12 @@ export default function ContasPagarPage() {
               </div>
 
               <div className="overflow-x-auto">
-                <Table>
+                <Table className="min-w-[980px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-20 bg-muted/50 text-xs font-medium text-muted-foreground">Parcela</TableHead>
                       <TableHead className="w-40 bg-muted/50 text-xs font-medium text-muted-foreground">Vencimento</TableHead>
-                      <TableHead className="w-40 bg-muted/50 text-xs font-medium text-muted-foreground">Valor</TableHead>
+                      <TableHead className="w-52 bg-muted/50 text-xs font-medium text-muted-foreground">Valor</TableHead>
                       <TableHead className="w-36 bg-muted/50 text-xs font-medium text-muted-foreground">Status</TableHead>
                       <TableHead className="w-40 bg-muted/50 text-xs font-medium text-muted-foreground">Pagamento</TableHead>
                       <TableHead className="min-w-44 bg-muted/50 text-xs font-medium text-muted-foreground">Obs.</TableHead>
@@ -1299,12 +1301,12 @@ export default function ContasPagarPage() {
                             className="h-9"
                           />
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="min-w-[190px]">
                           <Input
                             value={parcela.valor_parcela}
                             onChange={(e) => updateParcelaForm(index, { valor_parcela: formatCurrencyInput(e.target.value) })}
                             placeholder="R$ 0,00"
-                            className="h-9 text-right font-mono"
+                            className="h-9 min-w-[170px] text-right font-mono"
                           />
                         </TableCell>
                         <TableCell>
