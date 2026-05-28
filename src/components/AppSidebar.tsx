@@ -96,7 +96,7 @@ export function AppSidebar() {
       { title: 'Compras à Vista', url: '/compras/avista', icon: ShoppingCart, module: 'compras_avista' },
       { title: 'Programação Semanal', url: '/compras/programacao-semanal', icon: CalendarDays, module: 'programacao_semanal' },
       {
-        title: 'RelatÃ³rios',
+        title: 'Relatórios',
         url: '/compras/relatorios',
         icon: FileBarChart,
         children: [
