@@ -596,8 +596,8 @@ function openNew() {
               <TableHead>Data</TableHead>
               <TableHead>Fornecedor</TableHead>
               <TableHead>Pedido</TableHead>
-              <TableHead className="w-[108px]">Forma Pgto</TableHead>
-              <TableHead>Condição</TableHead>
+              <TableHead>Forma Pgto</TableHead>
+              <TableHead className="w-[108px]">Condição</TableHead>
               <TableHead>Vencimentos</TableHead>
               <TableHead>CNPJ/CPF</TableHead>
               <TableHead className="text-right">Valor</TableHead>
@@ -639,12 +639,12 @@ function openNew() {
                   </div>
                 </TableCell>
                 <TableCell>{i.pedido || '—'}</TableCell>
+                <TableCell>{i.forma_pagamento || '—'}</TableCell>
                 <TableCell className="max-w-[108px]">
-                  <div className="truncate" title={i.forma_pagamento || '—'}>
-                    {i.forma_pagamento || '—'}
+                  <div className="truncate" title={i.condicao_pagamento || '—'}>
+                    {i.condicao_pagamento || '—'}
                   </div>
                 </TableCell>
-                <TableCell>{i.condicao_pagamento || '—'}</TableCell>
                 <TableCell className="max-w-[220px]">
                   <div
                     className="truncate"
