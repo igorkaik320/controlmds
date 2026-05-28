@@ -803,7 +803,7 @@ export default function ContasPagarPage() {
                 const descricao = conta.observacao || proxima?.observacao || conta.obra_nome || '-';
 
                 return (
-                  <TableRow key={conta.id} className="h-14 border-border/50 hover:bg-muted/30">
+                  <TableRow key={conta.id} className="border-border/50 hover:bg-muted/30">
                     <TableCell className="font-medium text-foreground">{conta.fornecedor_nome || '-'}</TableCell>
                     <TableCell>
                       <OrigemBadge origem={conta.origem} />
@@ -812,7 +812,7 @@ export default function ContasPagarPage() {
                       {descricao}
                     </TableCell>
                     <TableCell className="text-muted-foreground">{pagas}/{total}</TableCell>
-                    <TableCell className="text-right font-mono font-semibold">
+                    <TableCell className="text-right font-semibold">
                       {formatCurrency(conta.valor_total)}
                     </TableCell>
                     <TableCell className="text-muted-foreground">

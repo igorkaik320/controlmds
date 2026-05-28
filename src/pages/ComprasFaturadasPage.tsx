@@ -650,7 +650,7 @@ function openNew() {
                   </div>
                 </TableCell>
                 <TableCell className="max-w-[160px] break-words">{i.cnpj_cpf || '—'}</TableCell>
-                <TableCell className="text-right font-mono">{formatCurrencyBR(i.valor)}</TableCell>
+                <TableCell className="text-right font-semibold">{formatCurrencyBR(i.valor)}</TableCell>
                 <TableCell className="max-w-[190px]">
                   <div className="truncate" title={i.obra || '—'}>
                     {i.obra || '—'}
