@@ -32,6 +32,8 @@ import { fetchEmpresas } from '@/lib/empresasService';
 import { fetchProfiles } from '@/lib/cashRegister';
 import ObservationInfoTooltip from '@/components/compras/ObservationInfoTooltip';
 import { useDataRefreshFlash } from '@/hooks/useDataRefreshFlash';
+import TablePagination from '@/components/TablePagination';
+import { usePagination } from '@/hooks/usePagination';
 import {
   buildInstallmentsFromItem,
   distributeInstallmentValues,
@@ -246,6 +248,7 @@ export default function ComprasFaturadasPage() {
 
     return true;
   });
+  const pagination = usePagination(filtered);
 
   function handleConsultar() {
     setDraftDateFrom(dateFrom);
@@ -616,7 +619,7 @@ function openNew() {
               </TableRow>
             )}
 
-            {filtered.map((i) => (
+            {pagination.paginatedItems.map((i) => (
               <TableRow key={i.id}>
                 <TableCell>
                   <Checkbox
@@ -689,6 +692,19 @@ function openNew() {
             ))}
           </TableBody>
         </Table>
+        <TablePagination
+          totalItems={filtered.length}
+          startIndex={pagination.startIndex}
+          endIndex={pagination.endIndex}
+          currentPage={pagination.currentPage}
+          totalPages={pagination.totalPages}
+          pageSize={pagination.pageSize}
+          onPageChange={pagination.setCurrentPage}
+          onPageSizeChange={(pageSize) => {
+            pagination.setPageSize(pageSize);
+            pagination.setCurrentPage(1);
+          }}
+        />
       </div>
 
       <Dialog

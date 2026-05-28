@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Transaction, formatCurrency } from '@/lib/cashRegister';
 import AuditInfo from '@/components/AuditInfo';
+import TablePagination from '@/components/TablePagination';
+import { usePagination } from '@/hooks/usePagination';
 
 interface Props {
   transactions: Transaction[];
@@ -48,6 +50,8 @@ export default function TransactionTable({
   canDelete = false,
   currentUserId,
 }: Props) {
+  const pagination = usePagination(transactions);
+
   if (transactions.length === 0) {
     return (
       <div className="text-center py-16 text-muted-foreground">
@@ -60,7 +64,7 @@ export default function TransactionTable({
   const showActions = canEdit || canDelete;
 
   return (
-    <div className="rounded-lg border overflow-hidden">
+    <div className="overflow-hidden rounded-lg border border-border/50 bg-card shadow-sm">
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
@@ -81,7 +85,7 @@ export default function TransactionTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {transactions.map((t) => {
+            {pagination.paginatedItems.map((t) => {
               const canEditThis = canEdit && (!currentUserId || t.created_by === currentUserId);
 
               return (
@@ -154,6 +158,19 @@ export default function TransactionTable({
           </TableBody>
         </Table>
       </div>
+      <TablePagination
+        totalItems={transactions.length}
+        startIndex={pagination.startIndex}
+        endIndex={pagination.endIndex}
+        currentPage={pagination.currentPage}
+        totalPages={pagination.totalPages}
+        pageSize={pagination.pageSize}
+        onPageChange={pagination.setCurrentPage}
+        onPageSizeChange={(pageSize) => {
+          pagination.setPageSize(pageSize);
+          pagination.setCurrentPage(1);
+        }}
+      />
     </div>
   );
 }

@@ -3,6 +3,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { formatCurrency, Verification } from '@/lib/cashRegister';
 import { parseDateTimeSafe } from '@/lib/formatters';
+import TablePagination from '@/components/TablePagination';
+import { usePagination } from '@/hooks/usePagination';
 
 interface Props {
   verifications: Verification[];
@@ -33,6 +35,8 @@ function formatDateTime(iso: string) {
 }
 
 export default function VerificationTable({ verifications, profileMap, onDelete, canDelete = false }: Props) {
+  const pagination = usePagination(verifications);
+
   if (verifications.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
@@ -42,7 +46,7 @@ export default function VerificationTable({ verifications, profileMap, onDelete,
   }
 
   return (
-    <div className="rounded-lg border overflow-hidden">
+    <div className="overflow-hidden rounded-lg border border-border/50 bg-card shadow-sm">
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
@@ -58,7 +62,7 @@ export default function VerificationTable({ verifications, profileMap, onDelete,
             </TableRow>
           </TableHeader>
           <TableBody>
-            {verifications.map((v) => (
+            {pagination.paginatedItems.map((v) => (
               <TableRow key={v.id} className="group">
                 <TableCell className="font-mono text-sm">{formatDate(v.date)}</TableCell>
                 <TableCell className="text-right font-mono text-sm">{formatCurrency(v.system_balance)}</TableCell>
@@ -91,6 +95,19 @@ export default function VerificationTable({ verifications, profileMap, onDelete,
           </TableBody>
         </Table>
       </div>
+      <TablePagination
+        totalItems={verifications.length}
+        startIndex={pagination.startIndex}
+        endIndex={pagination.endIndex}
+        currentPage={pagination.currentPage}
+        totalPages={pagination.totalPages}
+        pageSize={pagination.pageSize}
+        onPageChange={pagination.setCurrentPage}
+        onPageSizeChange={(pageSize) => {
+          pagination.setPageSize(pageSize);
+          pagination.setCurrentPage(1);
+        }}
+      />
     </div>
   );
 }

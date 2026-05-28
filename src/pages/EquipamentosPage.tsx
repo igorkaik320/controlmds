@@ -39,6 +39,8 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import { toast } from 'sonner';
 import AuditInfo from '@/components/AuditInfo';
 import { useProfileMap } from '@/hooks/useProfileMap';
+import TablePagination from '@/components/TablePagination';
+import { usePagination } from '@/hooks/usePagination';
 import * as XLSX from 'xlsx';
 
 const emptyForm = {
@@ -175,6 +177,7 @@ export default function EquipamentosPage() {
 
     return matchNome && matchPatrimonio && matchObra && matchResp && matchSit;
   });
+  const pagination = usePagination(filtered);
 
   function openMovimento(equip: Equipamento) {
     setMovimentoForm({
@@ -667,7 +670,7 @@ export default function EquipamentosPage() {
               </TableRow>
             )}
 
-            {filtered.map((i) => (
+            {pagination.paginatedItems.map((i) => (
               <TableRow key={i.id}>
                 <TableCell className="font-medium">{i.nome}</TableCell>
                 <TableCell>{i.n_patrimonio || '-'}</TableCell>
@@ -723,6 +726,19 @@ export default function EquipamentosPage() {
             ))}
           </TableBody>
         </Table>
+        <TablePagination
+          totalItems={filtered.length}
+          startIndex={pagination.startIndex}
+          endIndex={pagination.endIndex}
+          currentPage={pagination.currentPage}
+          totalPages={pagination.totalPages}
+          pageSize={pagination.pageSize}
+          onPageChange={pagination.setCurrentPage}
+          onPageSizeChange={(pageSize) => {
+            pagination.setPageSize(pageSize);
+            pagination.setCurrentPage(1);
+          }}
+        />
       </div>
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>

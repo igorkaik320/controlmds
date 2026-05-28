@@ -32,6 +32,8 @@ import { fetchEmpresas } from '@/lib/empresasService';
 import { fetchProfiles } from '@/lib/cashRegister';
 import ObservationInfoTooltip from '@/components/compras/ObservationInfoTooltip';
 import { useDataRefreshFlash } from '@/hooks/useDataRefreshFlash';
+import TablePagination from '@/components/TablePagination';
+import { usePagination } from '@/hooks/usePagination';
 
 const emptyForm = {
   data: '',
@@ -133,6 +135,7 @@ export default function ComprasAvistaPage() {
 
   const selectedVisibleCount = filtered.filter((item) => selectedItems.has(item.id)).length;
   const allVisibleSelected = filtered.length > 0 && selectedVisibleCount === filtered.length;
+  const pagination = usePagination(filtered);
 
   function getReportItems() {
     return selectedItems.size > 0 ? filtered.filter((item) => selectedItems.has(item.id)) : filtered;
@@ -458,7 +461,7 @@ export default function ComprasAvistaPage() {
               </TableRow>
             )}
 
-            {filtered.map((i) => (
+            {pagination.paginatedItems.map((i) => (
               <TableRow key={i.id}>
                 <TableCell>
                   <Checkbox
@@ -512,6 +515,19 @@ export default function ComprasAvistaPage() {
             ))}
           </TableBody>
         </Table>
+        <TablePagination
+          totalItems={filtered.length}
+          startIndex={pagination.startIndex}
+          endIndex={pagination.endIndex}
+          currentPage={pagination.currentPage}
+          totalPages={pagination.totalPages}
+          pageSize={pagination.pageSize}
+          onPageChange={pagination.setCurrentPage}
+          onPageSizeChange={(pageSize) => {
+            pagination.setPageSize(pageSize);
+            pagination.setCurrentPage(1);
+          }}
+        />
       </div>
 
       <Dialog

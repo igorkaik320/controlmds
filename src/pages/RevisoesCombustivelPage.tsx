@@ -26,6 +26,8 @@ import VeiculoSearchSelect from '@/components/compras/VeiculoSearchSelect';
 import FornecedorSearchSelect from '@/components/compras/FornecedorSelect';
 import { toast } from 'sonner';
 import { useDataRefreshFlash } from '@/hooks/useDataRefreshFlash';
+import TablePagination from '@/components/TablePagination';
+import { usePagination } from '@/hooks/usePagination';
 
 const emptyForm = {
   veiculo_id: '',
@@ -94,6 +96,7 @@ export default function RevisoesCombustivelPage() {
   }, [draftDateFrom, draftDateTo, draftFornecedor, draftVeiculo, items]);
 
   const totalGeral = filtered.reduce((sum, item) => sum + item.valor, 0);
+  const pagination = usePagination(filtered);
 
   function resetDialogDraft() {
     setEditingId(null);
@@ -332,7 +335,7 @@ export default function RevisoesCombustivelPage() {
                 </TableRow>
               )}
 
-              {filtered.map((item) => {
+              {pagination.paginatedItems.map((item) => {
                 const intervalo = item.quilometragem_proxima - item.quilometragem_atual;
                 const tipoMed = item.tipo_medicao as string;
                 const unidade = tipoMed === 'horas' ? 'h' : tipoMed === 'meses' ? 'meses' : 'km';
@@ -398,6 +401,19 @@ export default function RevisoesCombustivelPage() {
               )}
             </TableBody>
           </Table>
+          <TablePagination
+            totalItems={filtered.length}
+            startIndex={pagination.startIndex}
+            endIndex={pagination.endIndex}
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            pageSize={pagination.pageSize}
+            onPageChange={pagination.setCurrentPage}
+            onPageSizeChange={(pageSize) => {
+              pagination.setPageSize(pageSize);
+              pagination.setCurrentPage(1);
+            }}
+          />
         </div>
       </div>
 

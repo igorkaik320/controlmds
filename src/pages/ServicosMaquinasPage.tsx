@@ -24,6 +24,8 @@ import { toast } from 'sonner';
 import AuditInfo from '@/components/AuditInfo';
 import { useProfileMap } from '@/hooks/useProfileMap';
 import ServicoMaquinaDialog from '@/components/servicos/ServicoMaquinaDialog';
+import TablePagination from '@/components/TablePagination';
+import { usePagination } from '@/hooks/usePagination';
 
 function formatDate(d: string | null | undefined) {
   if (!d || typeof d !== 'string') return '—';
@@ -81,6 +83,7 @@ export default function ServicosMaquinasPage() {
       return haystack.includes(term);
     });
   }, [items, search, tipoFilter]);
+  const pagination = usePagination(filtered);
 
   function openNew() {
     setEditing(null);
@@ -167,7 +170,7 @@ export default function ServicosMaquinasPage() {
                 </TableCell>
               </TableRow>
             )}
-            {filtered.map((s) => (
+            {pagination.paginatedItems.map((s) => (
               <TableRow key={s.id}>
                 <TableCell>{formatDate(s.data)}</TableCell>
                 <TableCell>
@@ -224,6 +227,19 @@ export default function ServicosMaquinasPage() {
             ))}
           </TableBody>
         </Table>
+        <TablePagination
+          totalItems={filtered.length}
+          startIndex={pagination.startIndex}
+          endIndex={pagination.endIndex}
+          currentPage={pagination.currentPage}
+          totalPages={pagination.totalPages}
+          pageSize={pagination.pageSize}
+          onPageChange={pagination.setCurrentPage}
+          onPageSizeChange={(pageSize) => {
+            pagination.setPageSize(pageSize);
+            pagination.setCurrentPage(1);
+          }}
+        />
       </div>
 
       <ServicoMaquinaDialog

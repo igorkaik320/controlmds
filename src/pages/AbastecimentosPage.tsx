@@ -31,6 +31,8 @@ import { fetchProfiles } from '@/lib/cashRegister';
 import AuditInfo from '@/components/AuditInfo';
 import ResponsavelSelect from '@/components/compras/ResponsavelSelect';
 import { useRealtimeTable } from '@/hooks/useRealtimeTable';
+import TablePagination from '@/components/TablePagination';
+import { usePagination } from '@/hooks/usePagination';
 
 
 const emptyForm = {
@@ -137,6 +139,7 @@ export default function AbastecimentosPage() {
 
   const totalGeral = filtered.reduce((sum, item) => sum + item.valor_total, 0);
   const totalLitros = filtered.reduce((sum, item) => sum + item.quantidade_litros, 0);
+  const pagination = usePagination(filtered);
 
   function resetDialogDraft() {
     setEditingId(null);
@@ -359,7 +362,7 @@ export default function AbastecimentosPage() {
               </TableRow>
             )}
 
-            {filtered.map((item) => (
+            {pagination.paginatedItems.map((item) => (
               <TableRow key={item.id}>
                 <TableCell>{formatDateBR(item.data)}</TableCell>
                 <TableCell>{item.veiculo?.placa || ''}</TableCell>
@@ -410,6 +413,19 @@ export default function AbastecimentosPage() {
             )}
           </TableBody>
         </Table>
+        <TablePagination
+          totalItems={filtered.length}
+          startIndex={pagination.startIndex}
+          endIndex={pagination.endIndex}
+          currentPage={pagination.currentPage}
+          totalPages={pagination.totalPages}
+          pageSize={pagination.pageSize}
+          onPageChange={pagination.setCurrentPage}
+          onPageSizeChange={(pageSize) => {
+            pagination.setPageSize(pageSize);
+            pagination.setCurrentPage(1);
+          }}
+        />
       </div>
 
       <Dialog

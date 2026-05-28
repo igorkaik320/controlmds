@@ -1,6 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { Plus, PlayCircle, FileDown, FileSpreadsheet, Search, LogOut, History, ImagePlus } from "lucide-react";
+import { Plus, PlayCircle, FileDown, FileSpreadsheet, Search, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import DashboardCards from "@/components/DashboardCards";
 import TransactionTable from "@/components/TransactionTable";
@@ -11,7 +10,6 @@ import VerificationDialog from "@/components/VerificationDialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import LogoSettings from "@/components/LogoSettings";
 import { useAuth } from "@/lib/auth";
 import { useModulePermissions } from "@/hooks/useModulePermissions";
 import {
@@ -38,7 +36,6 @@ import { toast } from "sonner";
 export default function Index() {
   const { user, profile, signOut, userRole } = useAuth();
   const { canView, canCreate, canEdit, canDelete, canExport } = useModulePermissions();
-  const navigate = useNavigate();
 
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
   const [allVerifications, setAllVerifications] = useState<Verification[]>([]);
@@ -47,7 +44,6 @@ export default function Index() {
   const [showInit, setShowInit] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showVerify, setShowVerify] = useState(false);
-  const [showLogo, setShowLogo] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -59,8 +55,6 @@ export default function Index() {
   const canEditCash = canEdit("controle_caixa");
   const canDeleteCash = canDelete("controle_caixa");
   const canExportCash = canExport("controle_caixa");
-  const canViewAudit = canView("auditoria");
-  const canViewConfig = canView("config_relatorio");
 
   const loadData = useCallback(async () => {
     try {
@@ -283,18 +277,6 @@ export default function Index() {
               </>
             )}
 
-            {canViewConfig && (
-              <Button variant="outline" size="sm" onClick={() => setShowLogo(true)}>
-                <ImagePlus className="h-4 w-4 mr-1" /> Logo
-              </Button>
-            )}
-
-            {canViewAudit && (
-              <Button variant="outline" size="sm" onClick={() => navigate("/auditoria")}>
-                <History className="h-4 w-4 mr-1" /> Auditoria
-              </Button>
-            )}
-
             {canCreateCash && (
               <>
                 <Button variant="outline" size="sm" onClick={() => setShowInit(true)}>
@@ -328,17 +310,17 @@ export default function Index() {
         <div className="rounded-xl border bg-card p-4 space-y-4">
           <div className="grid gap-4 md:grid-cols-6">
             <div>
-              <Label className="text-xs uppercase tracking-[0.3em] text-slate-500">De</Label>
-              <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="mt-1" />
+              <Label className="text-xs font-medium text-muted-foreground">De</Label>
+              <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="mt-1 h-9" />
             </div>
             <div>
-              <Label className="text-xs uppercase tracking-[0.3em] text-slate-500">Até</Label>
-              <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="mt-1" />
+              <Label className="text-xs font-medium text-muted-foreground">Até</Label>
+              <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="mt-1 h-9" />
             </div>
             <div className="md:col-span-2">
-              <Label className="text-xs uppercase tracking-[0.3em] text-slate-500">Tipo</Label>
+              <Label className="text-xs font-medium text-muted-foreground">Tipo</Label>
               <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value as any)}>
-                <SelectTrigger>
+                <SelectTrigger className="mt-1 h-9">
                   <SelectValue placeholder="Todos" />
                 </SelectTrigger>
                 <SelectContent>
@@ -350,9 +332,9 @@ export default function Index() {
               </Select>
             </div>
             <div className="md:col-span-2">
-              <Label className="text-xs uppercase tracking-[0.3em] text-slate-500">Ordenar</Label>
+              <Label className="text-xs font-medium text-muted-foreground">Ordenar</Label>
               <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as any)}>
-                <SelectTrigger>
+                <SelectTrigger className="mt-1 h-9">
                   <SelectValue placeholder="Mais recentes" />
                 </SelectTrigger>
                 <SelectContent>
@@ -422,8 +404,6 @@ export default function Index() {
         allTransactions={allTransactions}
       />
 
-      <LogoSettings open={showLogo} onClose={() => setShowLogo(false)} />
     </div>
   );
 }
-5;
