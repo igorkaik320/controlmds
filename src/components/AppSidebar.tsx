@@ -9,6 +9,7 @@ import {
   Building2,
   CalendarDays,
   Car,
+  ChevronDown,
   ChevronLeft,
   CircleDollarSign,
   Cog,
@@ -44,6 +45,7 @@ interface MenuItem {
   url: string;
   icon: any;
   module?: ModuleKey;
+  children?: MenuItem[];
 }
 
 interface MenuGroup {
@@ -59,6 +61,9 @@ export function AppSidebar() {
   const isAdmin = userRole === 'admin';
   const location = useLocation();
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
+  const [openSubmenus, setOpenSubmenus] = useState<Record<string, boolean>>({
+    '/compras/relatorios': true,
+  });
 
   const groups: MenuGroup[] = [];
 
@@ -89,9 +94,16 @@ export function AppSidebar() {
     items: [
       { title: 'Compras Faturadas', url: '/compras/faturadas', icon: Receipt, module: 'compras_faturadas' },
       { title: 'Compras à Vista', url: '/compras/avista', icon: ShoppingCart, module: 'compras_avista' },
-      { title: 'Espelho Geral', url: '/compras/espelho', icon: Eye, module: 'espelho_geral' },
       { title: 'Programação Semanal', url: '/compras/programacao-semanal', icon: CalendarDays, module: 'programacao_semanal' },
-      { title: 'Espelho Semanal', url: '/compras/espelho-semanal', icon: BarChart3, module: 'espelho_semanal' },
+      {
+        title: 'RelatÃ³rios',
+        url: '/compras/relatorios',
+        icon: FileBarChart,
+        children: [
+          { title: 'Espelho Geral', url: '/compras/espelho', icon: Eye, module: 'espelho_geral' },
+          { title: 'Espelho Semanal', url: '/compras/espelho-semanal', icon: BarChart3, module: 'espelho_semanal' },
+        ],
+      },
     ],
   });
 
@@ -140,7 +152,11 @@ export function AppSidebar() {
 
   // Detect which group is active based on current route
   const currentGroupKey = groups.find((g) =>
-    g.items.some((item) => location.pathname.startsWith(item.url))
+    g.items.some((item) =>
+      item.children
+        ? item.children.some((child) => location.pathname.startsWith(child.url))
+        : location.pathname.startsWith(item.url)
+    )
   )?.key;
 
   function handleGroupClick(key: string) {
@@ -148,6 +164,41 @@ export function AppSidebar() {
   }
 
   function renderMenuItem(item: MenuItem) {
+    if (item.children?.length) {
+      const visibleChildren = item.children.filter((child) => !child.module || canAccess(child.module) || permLoading);
+      const isOpen = openSubmenus[item.url] ?? false;
+      const hasActiveChild = item.children.some(
+        (child) => location.pathname === child.url || location.pathname.startsWith(child.url + '/')
+      );
+
+      if (visibleChildren.length === 0) return null;
+
+      return (
+        <li key={item.url}>
+          <button
+            type="button"
+            onClick={() => setOpenSubmenus((prev) => ({ ...prev, [item.url]: !isOpen }))}
+            className={cn(
+              'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-sidebar-foreground transition-all duration-150 hover:bg-sidebar hover:text-sidebar-accent-foreground',
+              hasActiveChild && 'bg-sidebar text-sidebar-accent-foreground font-semibold'
+            )}
+          >
+            <item.icon className="h-4 w-4 shrink-0" />
+            <span className="flex-1 text-left">{item.title}</span>
+            <ChevronDown
+              className={cn('h-4 w-4 shrink-0 text-sidebar-muted transition-transform', isOpen && 'rotate-180')}
+            />
+          </button>
+
+          {isOpen && (
+            <ul className="ml-5 mt-1 space-y-0.5 border-l border-sidebar-border/80 pl-3">
+              {item.children.map(renderMenuItem)}
+            </ul>
+          )}
+        </li>
+      );
+    }
+
     const hasAccess = !item.module || canAccess(item.module);
     const locked = item.module && !hasAccess && !permLoading;
 
