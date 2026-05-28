@@ -808,10 +808,10 @@ export default function ContasPagarPage() {
                         >
                           <SelectTrigger
                             className={cn(
-                              "h-8 w-[118px] rounded-md border-transparent px-3 text-xs font-semibold capitalize shadow-none [&>svg]:text-current",
-                              proxima.status === 'aberta' && "bg-primary text-primary-foreground hover:bg-primary/90",
-                              proxima.status === 'paga' && "bg-success text-success-foreground hover:bg-success/90",
-                              proxima.status === 'vencida' && "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+                              "h-7 w-[104px] rounded-md border-transparent px-2.5 text-[11px] font-semibold capitalize shadow-none [&>svg]:text-current",
+                              proxima.status === 'aberta' && "bg-primary/15 text-primary hover:bg-primary/20",
+                              proxima.status === 'paga' && "bg-success/15 text-success hover:bg-success/20",
+                              proxima.status === 'vencida' && "bg-destructive/15 text-destructive hover:bg-destructive/20",
                               proxima.status === 'cancelada' && "bg-muted text-muted-foreground hover:bg-muted/80"
                             )}
                           >
