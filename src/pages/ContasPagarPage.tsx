@@ -23,22 +23,40 @@ import {
   updateContaPagar, 
   deleteContaPagar,
   saveParcelas,
-  gerarParcelas,
+  updateParcela,
+  deleteParcela,
   updateParcelasStatus,
   ContaPagarComParcelas,
   ContaPagarParcela
 } from '@/lib/contasPagarService';
 import { fetchEmpresas } from '@/lib/empresasService';
-import { fetchFornecedores, Fornecedor } from '@/lib/comprasService';
+import { fetchFornecedores, Fornecedor, syncCompraFaturadaParcelasFromContaPagar } from '@/lib/comprasService';
 import { fetchObras, fetchObrasPorEmpresa, Obra } from '@/lib/obrasService';
+import { CategoriaFinanceira, fetchCategoriasFinanceiras } from '@/lib/categoriasFinanceirasService';
 import ContasPagarParcelasDialog from '@/components/ContasPagarParcelasDialog';
 import FornecedorSelect from '@/components/compras/FornecedorSelect';
 import EmpresaSelect from '@/components/compras/EmpresaSelect';
+import SearchableSelect, { SearchableSelectOption } from '@/components/SearchableSelect';
 import { cn } from '@/lib/utils';
 
 interface Empresa {
   id: string;
   nome: string;
+}
+
+type ParcelaForm = {
+  id?: string;
+  numero_parcela: number;
+  data_vencimento: string;
+  valor_parcela: string;
+  status: ContaPagarParcela['status'];
+  data_pagamento: string;
+  observacao: string;
+};
+
+function getCategoryLevel(code?: string | null) {
+  if (!code) return 0;
+  return Math.max(0, code.split('.').length - 1);
 }
 
 export default function ContasPagarPage() {
@@ -48,6 +66,7 @@ export default function ContasPagarPage() {
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
   const [obras, setObras] = useState<Obra[]>([]);
+  const [categorias, setCategorias] = useState<CategoriaFinanceira[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
   const [showParcelasDialog, setShowParcelasDialog] = useState(false);
@@ -102,6 +121,9 @@ export default function ContasPagarPage() {
     fornecedor: '',
     startDate: null as Date | undefined,
     endDate: null as Date | undefined,
+    searchFornecedor: '',
+    dateFromStr: '',
+    dateToStr: '',
   });
 
   const [form, setForm] = useState({
@@ -110,21 +132,25 @@ export default function ContasPagarPage() {
     empresa_id: '',
     fornecedor_id: '',
     obra_id: '',
+    categoria_financeira_id: '',
     valor_total: '',
     quantidade_parcelas: '1',
     observacao: '',
   });
+  const [parcelasForm, setParcelasForm] = useState<ParcelaForm[]>([]);
 
   const load = useCallback(async () => {
     try {
-      const [contasData, empresasData, fornecedoresData] = await Promise.all([
+      const [contasData, empresasData, fornecedoresData, categoriasData] = await Promise.all([
         fetchContasPagar(),
         fetchEmpresas().catch(() => []),
         fetchFornecedores().catch(() => []),
+        fetchCategoriasFinanceiras().catch(() => []),
       ]);
       setItems(contasData);
       setEmpresas(empresasData);
       setFornecedores(fornecedoresData);
+      setCategorias(categoriasData);
     } catch (e: any) {
       toast.error('Erro ao carregar dados: ' + e.message);
     } finally {
@@ -143,10 +169,11 @@ export default function ContasPagarPage() {
   }, [form.empresa_id]);
 
   const filtered = items.filter((i) => {
-    if (!filtrosAplicados.empresa && !filtrosAplicados.fornecedor && !filtrosAplicados.startDate && !filtrosAplicados.endDate) return true;
+    const term = filtrosAplicados.searchFornecedor.trim().toLowerCase();
+    if (term && !(i.fornecedor_nome || '').toLowerCase().includes(term)) return false;
     if (filtrosAplicados.empresa && i.empresa_id !== filtrosAplicados.empresa) return false;
     if (filtrosAplicados.fornecedor && i.fornecedor_id !== filtrosAplicados.fornecedor) return false;
-    if (filtrosAplicados.startDate || filtrosAplicados.endDate) {
+    if (filtrosAplicados.startDate || filtrosAplicados.endDate || filtrosAplicados.dateFromStr || filtrosAplicados.dateToStr) {
       const venc = i.parcelas
         .map((p) => p.data_vencimento)
         .filter(Boolean)
@@ -155,6 +182,8 @@ export default function ContasPagarPage() {
       const vencDate = new Date(venc + 'T00:00:00');
       if (filtrosAplicados.startDate && vencDate < filtrosAplicados.startDate) return false;
       if (filtrosAplicados.endDate && vencDate > filtrosAplicados.endDate) return false;
+      if (filtrosAplicados.dateFromStr && venc < filtrosAplicados.dateFromStr) return false;
+      if (filtrosAplicados.dateToStr && venc > filtrosAplicados.dateToStr) return false;
     }
     return true;
   });
@@ -203,21 +232,110 @@ export default function ContasPagarPage() {
       fornecedor: filterFornecedor,
       startDate: startDate,
       endDate: endDate,
+      searchFornecedor,
+      dateFromStr,
+      dateToStr,
     });
+    setCurrentPage(1);
+  }
+
+  function handleLimparFiltros() {
+    setFilterEmpresa('');
+    setFilterFornecedor('');
+    setStartDate(undefined);
+    setEndDate(undefined);
+    setSearchFornecedor('');
+    setDateFromStr('');
+    setDateToStr('');
+    setFiltrosAplicados({
+      empresa: '',
+      fornecedor: '',
+      startDate: undefined,
+      endDate: undefined,
+      searchFornecedor: '',
+      dateFromStr: '',
+      dateToStr: '',
+    });
+    setCurrentPage(1);
+  }
+
+  function buildParcelasForm(valorTotalText: string, quantidadeText: string, primeiroVencimento: string) {
+    const quantidade = Math.max(1, parseInt(quantidadeText || '1', 10) || 1);
+    const valorTotal = parseCurrencyInput(valorTotalText || '0');
+    const valorParcela = Math.round((valorTotal / quantidade) * 100) / 100;
+    const valorUltima = Math.round((valorTotal - valorParcela * (quantidade - 1)) * 100) / 100;
+
+    return Array.from({ length: quantidade }, (_, index) => {
+      const data = new Date(`${primeiroVencimento || new Date().toISOString().split('T')[0]}T00:00:00`);
+      data.setMonth(data.getMonth() + index);
+
+      return {
+        numero_parcela: index + 1,
+        data_vencimento: data.toISOString().split('T')[0],
+        valor_parcela: formatCurrencyInput(formatCurrencyReal(index === quantidade - 1 ? valorUltima : valorParcela)),
+        status: 'aberta' as const,
+        data_pagamento: '',
+        observacao: '',
+      };
+    });
+  }
+
+  function regenerateParcelas(nextForm = form) {
+    setParcelasForm(buildParcelasForm(
+      nextForm.valor_total,
+      nextForm.quantidade_parcelas,
+      nextForm.data_primeiro_vencimento || nextForm.data_emissao
+    ));
+  }
+
+  function updateParcelaForm(index: number, patch: Partial<ParcelaForm>) {
+    setParcelasForm((prev) => prev.map((parcela, i) => (i === index ? { ...parcela, ...patch } : parcela)));
+  }
+
+  function addParcelaInline() {
+    setParcelasForm((prev) => {
+      const ultima = prev[prev.length - 1];
+      const dataBase = ultima?.data_vencimento || form.data_primeiro_vencimento || form.data_emissao || new Date().toISOString().split('T')[0];
+      const data = new Date(`${dataBase}T00:00:00`);
+      data.setMonth(data.getMonth() + 1);
+
+      return [
+        ...prev,
+        {
+          numero_parcela: prev.length + 1,
+          data_vencimento: data.toISOString().split('T')[0],
+          valor_parcela: formatCurrencyInput(formatCurrencyReal(0)),
+          status: 'aberta' as const,
+          data_pagamento: '',
+          observacao: '',
+        },
+      ];
+    });
+    setForm((prev) => ({ ...prev, quantidade_parcelas: String(parcelasForm.length + 1) }));
+  }
+
+  function removeParcelaInline(index: number) {
+    setParcelasForm((prev) => prev
+      .filter((_, i) => i !== index)
+      .map((parcela, i) => ({ ...parcela, numero_parcela: i + 1 })));
+    setForm((prev) => ({ ...prev, quantidade_parcelas: String(Math.max(1, parcelasForm.length - 1)) }));
   }
 
   function openNew() {
     setEditingId(null);
-    setForm({
+    const nextForm = {
       data_emissao: new Date().toISOString().split('T')[0],
       data_primeiro_vencimento: new Date().toISOString().split('T')[0],
       empresa_id: '',
       fornecedor_id: '',
       obra_id: '',
+      categoria_financeira_id: '',
       valor_total: '',
       quantidade_parcelas: '1',
       observacao: '',
-    });
+    };
+    setForm(nextForm);
+    setParcelasForm(buildParcelasForm(nextForm.valor_total, nextForm.quantidade_parcelas, nextForm.data_primeiro_vencimento));
     setShowDialog(true);
   }
 
@@ -229,10 +347,24 @@ export default function ContasPagarPage() {
       empresa_id: item.empresa_id || '',
       fornecedor_id: item.fornecedor_id || '',
       obra_id: item.obra_id || '',
+      categoria_financeira_id: item.categoria_financeira_id || '',
       valor_total: formatCurrencyInput(formatCurrencyReal(item.valor_total)),
       quantidade_parcelas: item.quantidade_parcelas.toString(),
       observacao: item.observacao || '',
     });
+    setParcelasForm(
+      [...item.parcelas]
+        .sort((a, b) => a.numero_parcela - b.numero_parcela)
+        .map((parcela) => ({
+          id: parcela.id,
+          numero_parcela: parcela.numero_parcela,
+          data_vencimento: parcela.data_vencimento || '',
+          valor_parcela: formatCurrencyInput(formatCurrencyReal(parcela.valor_parcela || 0)),
+          status: parcela.status,
+          data_pagamento: parcela.data_pagamento ? parcela.data_pagamento.split('T')[0] : '',
+          observacao: parcela.observacao || '',
+        }))
+    );
     setShowDialog(true);
   }
 
@@ -241,7 +373,14 @@ export default function ContasPagarPage() {
     setShowParcelasDialog(true);
   }
 
-  async function handleParcelasSave() {
+  async function handleParcelasSave(parcelasAtualizadas?: ContaPagarParcela[]) {
+    if (contaParcelas?.origem === 'CF' && contaParcelas.origem_id && parcelasAtualizadas?.length) {
+      await syncCompraFaturadaParcelasFromContaPagar(
+        contaParcelas.origem_id,
+        parcelasAtualizadas,
+        user?.id || ''
+      );
+    }
     await load();
   }
 
@@ -254,12 +393,18 @@ export default function ContasPagarPage() {
       toast.error('Preencha todos os campos obrigatórios');
       return;
     }
+    if (parcelasForm.length === 0) {
+      toast.error('Gere ao menos uma parcela');
+      return;
+    }
 
     try {
       const empresa = empresas.find(e => e.id === form.empresa_id);
       const fornecedor = fornecedores.find(f => f.id === form.fornecedor_id);
+      const categoria = categorias.find(c => c.id === form.categoria_financeira_id);
       
       const obra = obras.find(o => o.id === form.obra_id);
+      const totalParcelas = parcelasForm.reduce((sum, parcela) => sum + parseCurrencyInput(parcela.valor_parcela), 0);
       const payload = {
         origem: 'CP' as const,
         origem_id: null,
@@ -271,8 +416,11 @@ export default function ContasPagarPage() {
         fornecedor_nome: fornecedor?.nome_fornecedor || '',
         obra_id: form.obra_id || null,
         obra_nome: obra?.nome || null,
-        valor_total: parseCurrencyInput(form.valor_total),
-        quantidade_parcelas: parseInt(form.quantidade_parcelas),
+        categoria_financeira_id: categoria?.id || null,
+        categoria_codigo: categoria?.codigo || null,
+        categoria_nome: categoria?.nome || null,
+        valor_total: totalParcelas,
+        quantidade_parcelas: parcelasForm.length,
         observacao: form.observacao.trim() || null,
         status: 'aberto' as const,
         created_by: user.id,
@@ -280,20 +428,53 @@ export default function ContasPagarPage() {
 
       if (editingId) {
         await updateContaPagar(editingId, payload, user.id);
+        const previousConta = items.find((item) => item.id === editingId);
+        const idsTela = parcelasForm.map((parcela) => parcela.id).filter(Boolean);
+        const idsParaExcluir = (previousConta?.parcelas || [])
+          .map((parcela) => parcela.id)
+          .filter((id) => !idsTela.includes(id));
+
+        for (const id of idsParaExcluir) {
+          await deleteParcela(id, user.id);
+        }
+
+        for (const parcela of parcelasForm) {
+          const payloadParcela = {
+            conta_pagar_id: editingId,
+            numero_parcela: parcela.numero_parcela,
+            valor_parcela: parseCurrencyInput(parcela.valor_parcela),
+            data_vencimento: parcela.data_vencimento || null,
+            data_pagamento: parcela.data_pagamento || null,
+            valor_pago: null,
+            status: parcela.status,
+            observacao: parcela.observacao.trim() || null,
+          };
+
+          if (parcela.id) {
+            await updateParcela(parcela.id, payloadParcela, user.id);
+          } else {
+            await saveParcelas([{ ...payloadParcela, created_by: user.id }], user.id);
+          }
+        }
         toast.success('Conta atualizada');
       } else {
         const savedConta = await saveContaPagar(payload, user.id);
-        
-        const parcelas = gerarParcelas(
-          savedConta.id,
-          payload.valor_total,
-          payload.quantidade_parcelas,
-          form.data_primeiro_vencimento || form.data_emissao,
+        await saveParcelas(
+          parcelasForm.map((parcela) => ({
+            conta_pagar_id: savedConta.id,
+            numero_parcela: parcela.numero_parcela,
+            valor_parcela: parseCurrencyInput(parcela.valor_parcela),
+            data_vencimento: parcela.data_vencimento || null,
+            data_pagamento: parcela.data_pagamento || null,
+            valor_pago: null,
+            status: parcela.status,
+            observacao: parcela.observacao.trim() || null,
+            created_by: user.id,
+          })),
           user.id
         );
-        await saveParcelas(parcelas, user.id);
         
-        toast.success('Conta cadastrada com parcelas geradas');
+        toast.success('Conta cadastrada');
       }
 
       setShowDialog(false);
@@ -370,7 +551,7 @@ export default function ContasPagarPage() {
   const reportGroups = useMemo(() => {
     const groups: Record<string, { date: string; dateLabel: string; parcels: number; total: number; items: any[] }> = {};
     
-    filtered.forEach(conta => {
+    sortedFiltered.forEach(conta => {
       conta.parcelas.forEach(parcela => {
         const date = parcela.data_vencimento || '0000-00-00';
 
@@ -380,6 +561,11 @@ export default function ContasPagarPage() {
           const vencDate = new Date(parcela.data_vencimento + 'T00:00:00');
           if (filtrosAplicados.startDate && vencDate < filtrosAplicados.startDate) return;
           if (filtrosAplicados.endDate && vencDate > filtrosAplicados.endDate) return;
+        }
+        if (filtrosAplicados.dateFromStr || filtrosAplicados.dateToStr) {
+          if (!parcela.data_vencimento) return;
+          if (filtrosAplicados.dateFromStr && parcela.data_vencimento < filtrosAplicados.dateFromStr) return;
+          if (filtrosAplicados.dateToStr && parcela.data_vencimento > filtrosAplicados.dateToStr) return;
         }
 
         if (!groups[date]) {
@@ -416,30 +602,39 @@ export default function ContasPagarPage() {
     });
     // Retornar grupos ordenados por data (mesma lógica do FaturadosParcelasPage)
     return result.sort((a, b) => (a.date > b.date ? -1 : a.date < b.date ? 1 : 0));
-  }, [filtered]);
+  }, [sortedFiltered, filtrosAplicados.startDate, filtrosAplicados.endDate, filtrosAplicados.dateFromStr, filtrosAplicados.dateToStr]);
 
   const reportTotal = useMemo(() => {
     return reportGroups.reduce((sum, group) => sum + group.total, 0);
   }, [reportGroups]);
 
-  const visiveis = useMemo(() => {
-    const term = searchFornecedor.trim().toLowerCase();
-    const from = dateFromStr ? new Date(dateFromStr + 'T00:00:00') : null;
-    const to = dateToStr ? new Date(dateToStr + 'T23:59:59') : null;
+  const visiveis = sortedFiltered;
 
-    return sortedFiltered.filter((c) => {
-      if (term && !(c.fornecedor_nome || '').toLowerCase().includes(term)) return false;
-      if (from || to) {
-        const parcelas = [...c.parcelas].sort((a, b) => a.numero_parcela - b.numero_parcela);
-        const proxima = parcelas.find((p) => p.status !== 'paga') || parcelas[0];
-        if (!proxima?.data_vencimento) return false;
-        const dt = new Date(proxima.data_vencimento + 'T00:00:00');
-        if (from && dt < from) return false;
-        if (to && dt > to) return false;
-      }
-      return true;
-    });
-  }, [sortedFiltered, searchFornecedor, dateFromStr, dateToStr]);
+  const obraOptions = useMemo<SearchableSelectOption[]>(() => {
+    return obras.map((obra) => ({
+      value: obra.id,
+      label: obra.nome,
+      description: obra.empresa_nome || undefined,
+      keywords: `${obra.nome} ${obra.empresa_nome || ''}`,
+    }));
+  }, [obras]);
+
+  const categoriaOptions = useMemo<SearchableSelectOption[]>(() => {
+    return categorias
+      .filter((categoria) => categoria.ativa && categoria.tipo === 'despesa')
+      .map((categoria) => ({
+        value: categoria.id,
+        label: `${categoria.codigo} - ${categoria.nome}`,
+        description: categoria.natureza === 'totalizadora' ? 'Matriz / totalizadora' : 'Movimento',
+        disabled: categoria.natureza !== 'movimento',
+        level: getCategoryLevel(categoria.codigo),
+        keywords: `${categoria.codigo} ${categoria.nome} ${categoria.natureza}`,
+      }));
+  }, [categorias]);
+
+  const parcelasTotal = useMemo(() => {
+    return parcelasForm.reduce((sum, parcela) => sum + parseCurrencyInput(parcela.valor_parcela), 0);
+  }, [parcelasForm]);
 
   const totalPages = Math.max(1, Math.ceil(visiveis.length / pageSize));
   const safeCurrentPage = Math.min(currentPage, totalPages);
@@ -449,7 +644,7 @@ export default function ContasPagarPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [sortKey, sortDir, searchFornecedor, dateFromStr, dateToStr, filterEmpresa, filterFornecedor, startDate, endDate]);
+  }, [sortKey, sortDir, filtrosAplicados]);
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -712,6 +907,15 @@ export default function ContasPagarPage() {
             <Input className="h-9 rounded-md border-input bg-card text-sm shadow-none" type="date" value={dateToStr} onChange={(e) => setDateToStr(e.target.value)} />
           </div>
         </div>
+        <div className="mt-4 flex justify-end gap-2">
+          <Button variant="outline" size="sm" className="h-9" onClick={handleLimparFiltros}>
+            Limpar
+          </Button>
+          <Button size="sm" className="h-9 gap-2" onClick={handleConsultar}>
+            <Search className="h-4 w-4" />
+            Consultar
+          </Button>
+        </div>
       </Card>
 
       {/* Card da tabela */}
@@ -767,6 +971,9 @@ export default function ContasPagarPage() {
                   <div className="flex items-center">Origem<SortIcon column="origem" /></div>
                 </TableHead>
                 <TableHead className="bg-muted/50 text-xs font-medium text-muted-foreground">
+                  <div className="flex items-center">Categoria</div>
+                </TableHead>
+                <TableHead className="bg-muted/50 text-xs font-medium text-muted-foreground">
                   <div className="flex items-center">Descrição</div>
                 </TableHead>
                 <TableHead onClick={() => handleSort('parcela')} className="cursor-pointer select-none bg-muted/50 text-xs font-medium text-muted-foreground hover:bg-muted">
@@ -787,7 +994,7 @@ export default function ContasPagarPage() {
             <TableBody>
               {visiveis.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                     Nenhuma conta encontrada
                   </TableCell>
                 </TableRow>
@@ -805,6 +1012,9 @@ export default function ContasPagarPage() {
                     <TableCell className="font-medium text-foreground">{conta.fornecedor_nome || '-'}</TableCell>
                     <TableCell>
                       <OrigemBadge origem={conta.origem} />
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {conta.categoria_codigo ? `${conta.categoria_codigo} - ${conta.categoria_nome}` : '-'}
                     </TableCell>
                     <TableCell className="text-xs uppercase text-muted-foreground">
                       {descricao}
@@ -926,7 +1136,7 @@ export default function ContasPagarPage() {
 
       {/* Diálogo de Nova/Editar Conta */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-h-[92vh] w-[95vw] max-w-4xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingId ? 'Editar' : 'Nova'} Conta a Pagar</DialogTitle>
           </DialogHeader>
@@ -970,18 +1180,29 @@ export default function ContasPagarPage() {
 
             <div>
               <Label>Obra</Label>
-              <Select value={form.obra_id} onValueChange={(v) => setForm((p) => ({ ...p, obra_id: v }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione uma obra" />
-                </SelectTrigger>
-                <SelectContent>
-                  {obras.map((obra) => (
-                    <SelectItem key={obra.id} value={obra.id}>
-                      {obra.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <SearchableSelect
+                value={form.obra_id}
+                onChange={(value) => setForm((p) => ({ ...p, obra_id: value }))}
+                options={obraOptions}
+                placeholder="Digite para pesquisar a obra"
+                emptyText="Nenhuma obra encontrada"
+                inputClassName="h-10"
+              />
+            </div>
+
+            <div>
+              <Label>Categoria</Label>
+              <SearchableSelect
+                value={form.categoria_financeira_id}
+                onChange={(value) => setForm((p) => ({ ...p, categoria_financeira_id: value }))}
+                options={categoriaOptions}
+                placeholder="Digite código ou descrição"
+                emptyText="Nenhuma categoria encontrada"
+                inputClassName="h-10"
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Matrizes aparecem para referência, mas somente categorias de movimento podem ser selecionadas.
+              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -991,24 +1212,23 @@ export default function ContasPagarPage() {
                   type="text"
                   value={form.valor_total}
                   onChange={(e) => setForm((p) => ({ ...p, valor_total: formatCurrencyInput(e.target.value) }))}
+                  onBlur={() => {
+                    if (!editingId) regenerateParcelas();
+                  }}
                   placeholder="R$ 0,00"
-                  disabled={editingId && items.find(item => item.id === editingId)?.parcelas.length > 0}
-                  className={editingId && items.find(item => item.id === editingId)?.parcelas.length > 0 ? "bg-muted" : ""}
                 />
-                {editingId && items.find(item => item.id === editingId)?.parcelas.length > 0 && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Para alterar o valor, use a edição de parcelas
-                  </p>
-                )}
               </div>
               <div>
                 <Label>Quantidade de Parcelas *</Label>
                 <Select 
                   value={form.quantidade_parcelas} 
-                  onValueChange={(value) => setForm((p) => ({ ...p, quantidade_parcelas: value }))}
-                  disabled={editingId && items.find(item => item.id === editingId)?.parcelas.length > 0}
+                  onValueChange={(value) => {
+                    const nextForm = { ...form, quantidade_parcelas: value };
+                    setForm(nextForm);
+                    regenerateParcelas(nextForm);
+                  }}
                 >
-                  <SelectTrigger className={editingId && items.find(item => item.id === editingId)?.parcelas.length > 0 ? "bg-muted" : ""}>
+                  <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -1019,31 +1239,8 @@ export default function ContasPagarPage() {
                     ))}
                   </SelectContent>
                 </Select>
-                {editingId && items.find(item => item.id === editingId)?.parcelas.length > 0 && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Para alterar as parcelas, use a edição de parcelas
-                  </p>
-                )}
               </div>
             </div>
-
-            {/* Preview das parcelas */}
-            {!editingId && form.valor_total && parseInt(form.quantidade_parcelas) > 0 && (
-              <div className="p-3 bg-muted rounded-lg text-sm space-y-1">
-                <p className="font-medium text-xs text-muted-foreground">Prévia das parcelas:</p>
-                {Array.from({ length: parseInt(form.quantidade_parcelas) }, (_, i) => {
-                  const val = parseCurrencyInput(form.valor_total) / parseInt(form.quantidade_parcelas);
-                  const dt = new Date(`${form.data_primeiro_vencimento || form.data_emissao}T00:00:00`);
-                  dt.setMonth(dt.getMonth() + i);
-                  return (
-                    <div key={i} className="flex justify-between text-xs">
-                      <span>Parcela {i + 1}: {dt.toLocaleDateString('pt-BR')}</span>
-                      <span className="font-mono">{formatCurrency(val)}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
 
             <div>
               <Label>Observação</Label>
@@ -1052,6 +1249,113 @@ export default function ContasPagarPage() {
                 onChange={(e) => setForm((p) => ({ ...p, observacao: e.target.value }))} 
                 placeholder="Observações sobre a conta..."
               />
+            </div>
+
+            <div className="rounded-md border border-border">
+              <div className="flex flex-col gap-3 border-b border-border bg-muted/30 p-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h4 className="text-sm font-semibold text-foreground">Parcelas</h4>
+                  <p className="text-xs text-muted-foreground">
+                    Edite vencimento, valor, status e pagamento antes de salvar.
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-medium text-muted-foreground">
+                    Total: {formatCurrency(parcelasTotal)}
+                  </span>
+                  <Button type="button" variant="outline" size="sm" onClick={() => regenerateParcelas()}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    Gerar parcelas
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" onClick={addParcelaInline}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Adicionar
+                  </Button>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-20 bg-muted/50 text-xs font-medium text-muted-foreground">Parcela</TableHead>
+                      <TableHead className="w-40 bg-muted/50 text-xs font-medium text-muted-foreground">Vencimento</TableHead>
+                      <TableHead className="w-40 bg-muted/50 text-xs font-medium text-muted-foreground">Valor</TableHead>
+                      <TableHead className="w-36 bg-muted/50 text-xs font-medium text-muted-foreground">Status</TableHead>
+                      <TableHead className="w-40 bg-muted/50 text-xs font-medium text-muted-foreground">Pagamento</TableHead>
+                      <TableHead className="min-w-44 bg-muted/50 text-xs font-medium text-muted-foreground">Obs.</TableHead>
+                      <TableHead className="w-12 bg-muted/50 text-right text-xs font-medium text-muted-foreground"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {parcelasForm.map((parcela, index) => (
+                      <TableRow key={parcela.id || index} className="hover:bg-muted/30">
+                        <TableCell className="font-medium">{parcela.numero_parcela}</TableCell>
+                        <TableCell>
+                          <Input
+                            type="date"
+                            value={parcela.data_vencimento}
+                            onChange={(e) => updateParcelaForm(index, { data_vencimento: e.target.value })}
+                            className="h-9"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            value={parcela.valor_parcela}
+                            onChange={(e) => updateParcelaForm(index, { valor_parcela: formatCurrencyInput(e.target.value) })}
+                            placeholder="R$ 0,00"
+                            className="h-9 text-right font-mono"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Select
+                            value={parcela.status}
+                            onValueChange={(value: ContaPagarParcela['status']) => updateParcelaForm(index, { status: value })}
+                          >
+                            <SelectTrigger className="h-9">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="aberta">Aberta</SelectItem>
+                              <SelectItem value="paga">Paga</SelectItem>
+                              <SelectItem value="vencida">Vencida</SelectItem>
+                              <SelectItem value="cancelada">Cancelada</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            type="date"
+                            value={parcela.data_pagamento}
+                            onChange={(e) => updateParcelaForm(index, { data_pagamento: e.target.value })}
+                            className="h-9"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            value={parcela.observacao}
+                            onChange={(e) => updateParcelaForm(index, { observacao: e.target.value })}
+                            placeholder="Observação"
+                            className="h-9"
+                          />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeParcelaInline(index)}
+                            disabled={parcelasForm.length <= 1}
+                            title="Remover parcela"
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           </div>
 
@@ -1098,13 +1402,15 @@ export default function ContasPagarPage() {
                   <p className="font-medium">
                     {filtrosAplicados.fornecedor
                       ? fornecedores.find(f => f.id === filtrosAplicados.fornecedor)?.nome_fornecedor || 'Não encontrado'
-                      : 'Todos'}
+                      : filtrosAplicados.searchFornecedor || 'Todos'}
                   </p>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Período:</span>
                   <p className="font-medium">
-                    {filtrosAplicados.startDate || filtrosAplicados.endDate
+                    {filtrosAplicados.dateFromStr || filtrosAplicados.dateToStr
+                      ? `${filtrosAplicados.dateFromStr ? new Date(filtrosAplicados.dateFromStr + 'T00:00:00').toLocaleDateString('pt-BR') : 'Início'} a ${filtrosAplicados.dateToStr ? new Date(filtrosAplicados.dateToStr + 'T00:00:00').toLocaleDateString('pt-BR') : 'Fim'}`
+                      : filtrosAplicados.startDate || filtrosAplicados.endDate
                       ? `${filtrosAplicados.startDate ? format(filtrosAplicados.startDate, 'dd/MM/yyyy', { locale: ptBR }) : 'Início'} a ${filtrosAplicados.endDate ? format(filtrosAplicados.endDate, 'dd/MM/yyyy', { locale: ptBR }) : 'Fim'}`
                       : 'Todo o período'}
                   </p>

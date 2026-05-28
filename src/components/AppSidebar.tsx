@@ -29,6 +29,7 @@ import {
   Receipt,
   Settings,
   ShoppingCart,
+  Tags,
   Truck,
   UserCheck,
   Users,
@@ -56,14 +57,12 @@ interface MenuGroup {
 }
 
 export function AppSidebar() {
-  const { userRole, profile } = useAuth();
+  const { userRole } = useAuth();
   const { canAccess, loading: permLoading } = useModulePermissions();
   const isAdmin = userRole === 'admin';
   const location = useLocation();
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
-  const [openSubmenus, setOpenSubmenus] = useState<Record<string, boolean>>({
-    '/compras/relatorios': true,
-  });
+  const [openSubmenus, setOpenSubmenus] = useState<Record<string, boolean>>({});
 
   const groups: MenuGroup[] = [];
 
@@ -139,6 +138,7 @@ export function AppSidebar() {
     icon: Cog,
     items: [
       { title: 'Empresas', url: '/empresas', icon: Factory, module: 'empresas' },
+      { title: 'Categorias', url: '/categorias-financeiras', icon: Tags, module: 'categorias_financeiras' },
       { title: 'Fornecedores', url: '/fornecedores', icon: Truck, module: 'fornecedores' },
       { title: 'Obras', url: '/obras', icon: Building2, module: 'obras' },
       { title: 'Responsáveis', url: '/responsaveis', icon: UserCheck, module: 'responsaveis' },
@@ -297,18 +297,6 @@ export function AppSidebar() {
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
-              </div>
-
-              {/* User info */}
-              <div className="border-b border-sidebar-border px-4 py-3">
-                <p className="truncate text-sm text-sidebar-foreground">{profile?.display_name}</p>
-                <span className="mt-1 inline-flex rounded-full bg-sidebar px-2 py-0.5 text-[10px] font-medium text-sidebar-foreground">
-                  {userRole === 'admin'
-                    ? 'Administração'
-                    : userRole === 'conferente'
-                    ? 'Conferente'
-                    : 'Operador'}
-                </span>
               </div>
 
               {/* Items */}

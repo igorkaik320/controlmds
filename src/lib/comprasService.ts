@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { recordAuditEntry } from '@/lib/audit';
-import { buildInstallmentsFromItem, toIsoDateString } from '@/lib/parcelas';
+import { buildInstallmentsFromItem, toBrDateString, toIsoDateString } from '@/lib/parcelas';
 import {
   saveContaPagar,
   saveParcelas,
@@ -288,7 +288,7 @@ export async function deleteCompraFaturada(id: string, userId: string) {
   }
 }
 
-async function syncContaPagarFromCompraFaturada(compra: CompraFaturada, userId: string) {
+export async function syncContaPagarFromCompraFaturada(compra: CompraFaturada, userId: string) {
   const installments = buildInstallmentsFromItem(compra);
   const firstDueDate = toIsoDateString(installments[0]?.due) || compra.data_liquidacao || compra.data;
 
@@ -314,6 +314,9 @@ async function syncContaPagarFromCompraFaturada(compra: CompraFaturada, userId: 
     fornecedor_nome: compra.fornecedor,
     obra_id: null,
     obra_nome: compra.obra || null,
+    categoria_financeira_id: null,
+    categoria_codigo: null,
+    categoria_nome: null,
     valor_total: compra.valor,
     quantidade_parcelas: Math.max(installments.length, 1),
     observacao: compra.observacao || null,
@@ -380,6 +383,52 @@ async function syncContaPagarFromCompraFaturada(compra: CompraFaturada, userId: 
       },
     ], userId);
   }
+}
+
+export async function syncCompraFaturadaParcelasFromContaPagar(
+  compraId: string,
+  parcelas: Pick<ContaPagarParcela, 'numero_parcela' | 'data_vencimento' | 'valor_parcela'>[],
+  userId: string
+) {
+  const ordenadas = [...parcelas]
+    .filter((parcela) => parcela.data_vencimento)
+    .sort((a, b) => a.numero_parcela - b.numero_parcela);
+
+  const parcelasJson = ordenadas.map((parcela) => ({
+    due: toBrDateString(parcela.data_vencimento),
+    value: Number(parcela.valor_parcela) || 0,
+  }));
+
+  const payload = {
+    parcelas: parcelasJson.length > 0 ? JSON.stringify(parcelasJson) : null,
+    vencimentos: parcelasJson.map((parcela) => parcela.due).filter(Boolean).join(' | ') || null,
+    updated_by: userId,
+    updated_at: new Date().toISOString(),
+  };
+
+  const { data: previous } = await supabase
+    .from('previsao_compras_faturadas')
+    .select('*')
+    .eq('id', compraId)
+    .maybeSingle();
+
+  const { data, error } = await supabase
+    .from('previsao_compras_faturadas')
+    .update(payload as any)
+    .eq('id', compraId)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  await recordAuditEntry({
+    entity_type: 'previsao_compras_faturadas',
+    entity_id: compraId,
+    action: 'edicao',
+    old_values: previous,
+    new_values: data,
+    user_id: userId,
+  });
 }
 
 // ---- Compras à Vista ----

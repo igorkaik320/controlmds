@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Pencil, Trash2, FileDown, FileSpreadsheet, Search, RotateCcw } from 'lucide-react';
+import { Plus, Pencil, Trash2, FileDown, FileSpreadsheet, Search, RotateCcw, Send } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useModulePermissions } from '@/hooks/useModulePermissions';
 import {
@@ -18,6 +18,7 @@ import {
   fetchConfigRelatorio,
   formatCurrencyBR,
   formatDateBR,
+  syncContaPagarFromCompraFaturada,
 } from '@/lib/comprasService';
 import { exportFaturadasPDF, exportFaturadasXLSX } from '@/lib/comprasExport';
 import { formatCPFCNPJ, formatCurrencyInput, parseCurrencyInput } from '@/lib/formatters';
@@ -449,6 +450,24 @@ function openNew() {
     exportFaturadasPDF(selectedData, config, observation);
   }
 
+  async function handleSendSelectedToContasPagar() {
+    if (!user) return;
+
+    const selectedData = filtered.filter((item) => selectedItems.has(item.id));
+    if (selectedData.length === 0) {
+      toast.error('Selecione ao menos uma compra faturada para enviar ao contas a pagar.');
+      return;
+    }
+
+    try {
+      await Promise.all(selectedData.map((item) => syncContaPagarFromCompraFaturada(item, user.id)));
+      toast.success(`${selectedData.length} compra(s) enviada(s) para o contas a pagar.`);
+      setSelectedItems(new Set());
+    } catch (e: any) {
+      toast.error(e.message || 'Erro ao enviar compras para o contas a pagar.');
+    }
+  }
+
   function handleFornecedorSelect(f: Fornecedor) {
     setForm((prev: typeof emptyForm) => ({
       ...prev,
@@ -499,6 +518,17 @@ function openNew() {
         </div>
 
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSendSelectedToContasPagar}
+            disabled={selectedItems.size === 0}
+            title="Enviar compras selecionadas para o contas a pagar"
+          >
+            <Send className="mr-1 h-4 w-4" />
+            Enviar CP
+          </Button>
+
           {canExport('compras_faturadas') && (
             <>
               <Button variant="outline" size="sm" onClick={handleExportPDF}>

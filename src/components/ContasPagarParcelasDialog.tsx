@@ -22,7 +22,7 @@ interface Props {
   onClose: () => void;
   contaPagarId: string;
   parcelas: ContaPagarParcela[];
-  onSave: (parcelas: ContaPagarParcela[], total: number) => void;
+  onSave: (parcelas: ContaPagarParcela[], total: number) => void | Promise<void>;
   userId: string;
   enforceTotal?: number;
 }
@@ -136,6 +136,13 @@ export default function ContasPagarParcelasDialog({
         return;
       }
 
+      const total = parcelas.reduce((sum, p) => sum + (p.valor_parcela || 0), 0);
+
+      if (typeof enforceTotal === 'number' && Math.abs(total - enforceTotal) > 0.01) {
+        toast.error(`O total das parcelas deve continuar igual a ${formatCurrency(enforceTotal)}.`);
+        return;
+      }
+
       const { data: parcelasBanco } = await supabase
         .from('contas_pagar_parcelas')
         .select('id')
@@ -178,13 +185,6 @@ export default function ContasPagarParcelasDialog({
         await saveParcelas(novas, userId);
       }
 
-      const total = parcelas.reduce((sum, p) => sum + (p.valor_parcela || 0), 0);
-
-      if (typeof enforceTotal === 'number' && Math.abs(total - enforceTotal) > 0.01) {
-        toast.error(`O total das parcelas deve continuar igual a ${formatCurrency(enforceTotal)}.`);
-        return;
-      }
-
       await updateContaPagar(contaPagarId, {
         valor_total: total,
         quantidade_parcelas: parcelas.length
@@ -196,7 +196,7 @@ export default function ContasPagarParcelasDialog({
         }
       }
 
-      onSave(parcelas, total);
+      await onSave(parcelas, total);
       onClose();
       toast.success('Parcelas salvas com sucesso');
     } catch (e: any) {

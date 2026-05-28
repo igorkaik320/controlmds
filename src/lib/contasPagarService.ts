@@ -15,6 +15,9 @@ export interface ContaPagar {
   fornecedor_nome: string | null;
   obra_id: string | null;
   obra_nome: string | null;
+  categoria_financeira_id: string | null;
+  categoria_codigo: string | null;
+  categoria_nome: string | null;
   valor_total: number;
   quantidade_parcelas: number;
   observacao: string | null;
