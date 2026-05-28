@@ -30,7 +30,7 @@ import type { Fornecedor } from '@/lib/comprasService';
 import { fetchObras, Obra } from '@/lib/obrasService';
 import { fetchEmpresas } from '@/lib/empresasService';
 import { fetchProfiles } from '@/lib/cashRegister';
-import AuditInfo from '@/components/AuditInfo';
+import ObservationInfoTooltip from '@/components/compras/ObservationInfoTooltip';
 import { useDataRefreshFlash } from '@/hooks/useDataRefreshFlash';
 import {
   buildInstallmentsFromItem,
@@ -596,13 +596,13 @@ function openNew() {
               <TableHead>Data</TableHead>
               <TableHead>Fornecedor</TableHead>
               <TableHead>Pedido</TableHead>
-              <TableHead>Forma Pgto</TableHead>
+              <TableHead className="w-[108px]">Forma Pgto</TableHead>
               <TableHead>Condição</TableHead>
               <TableHead>Vencimentos</TableHead>
               <TableHead>CNPJ/CPF</TableHead>
               <TableHead className="text-right">Valor</TableHead>
               <TableHead>Obra</TableHead>
-              <TableHead>Obs</TableHead>
+              <TableHead className="w-[64px] text-center">Info</TableHead>
               <TableHead className="w-[92px] text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -639,7 +639,11 @@ function openNew() {
                   </div>
                 </TableCell>
                 <TableCell>{i.pedido || '—'}</TableCell>
-                <TableCell>{i.forma_pagamento || '—'}</TableCell>
+                <TableCell className="max-w-[108px]">
+                  <div className="truncate" title={i.forma_pagamento || '—'}>
+                    {i.forma_pagamento || '—'}
+                  </div>
+                </TableCell>
                 <TableCell>{i.condicao_pagamento || '—'}</TableCell>
                 <TableCell className="max-w-[220px]">
                   <div
@@ -656,19 +660,15 @@ function openNew() {
                     {i.obra || '—'}
                   </div>
                 </TableCell>
-                <TableCell className="max-w-[190px]">
-                  <div className="truncate" title={i.observacao || '—'}>
-                    {i.observacao || '—'}
-                  </div>
-                  <div className="mt-1">
-                    <AuditInfo
-                      createdBy={i.created_by}
-                      createdAt={i.created_at}
-                      updatedBy={i.updated_by}
-                      updatedAt={i.updated_at}
-                      profileMap={profileMap}
-                    />
-                  </div>
+                <TableCell className="text-center">
+                  <ObservationInfoTooltip
+                    observation={i.observacao}
+                    createdBy={i.created_by}
+                    createdAt={i.created_at}
+                    updatedBy={i.updated_by}
+                    updatedAt={i.updated_at}
+                    profileMap={profileMap}
+                  />
                 </TableCell>
                 <TableCell>
                   <div className="flex justify-end gap-1">

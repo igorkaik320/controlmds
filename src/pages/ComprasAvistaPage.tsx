@@ -30,7 +30,7 @@ import type { Fornecedor } from '@/lib/comprasService';
 import { fetchObras, Obra } from '@/lib/obrasService';
 import { fetchEmpresas } from '@/lib/empresasService';
 import { fetchProfiles } from '@/lib/cashRegister';
-import AuditInfo from '@/components/AuditInfo';
+import ObservationInfoTooltip from '@/components/compras/ObservationInfoTooltip';
 import { useDataRefreshFlash } from '@/hooks/useDataRefreshFlash';
 
 const emptyForm = {
@@ -444,7 +444,7 @@ export default function ComprasAvistaPage() {
               <TableHead>CNPJ/CPF</TableHead>
               <TableHead className="text-right">Valor</TableHead>
               <TableHead>Obra</TableHead>
-              <TableHead>Obs</TableHead>
+              <TableHead className="w-[64px] text-center">Info</TableHead>
               <TableHead className="w-[92px] text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -483,19 +483,15 @@ export default function ComprasAvistaPage() {
                     {i.obra || '—'}
                   </div>
                 </TableCell>
-                <TableCell className="max-w-[190px]">
-                  <div className="truncate" title={i.observacao || '—'}>
-                    {i.observacao || '—'}
-                  </div>
-                  <div className="mt-1">
-                    <AuditInfo
-                      createdBy={i.created_by}
-                      createdAt={i.created_at}
-                      updatedBy={i.updated_by}
-                      updatedAt={i.updated_at}
-                      profileMap={profileMap}
-                    />
-                  </div>
+                <TableCell className="text-center">
+                  <ObservationInfoTooltip
+                    observation={i.observacao}
+                    createdBy={i.created_by}
+                    createdAt={i.created_at}
+                    updatedBy={i.updated_by}
+                    updatedAt={i.updated_at}
+                    profileMap={profileMap}
+                  />
                 </TableCell>
                 <TableCell>
                   <div className="flex justify-end gap-1">
