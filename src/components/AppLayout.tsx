@@ -7,7 +7,7 @@ import { useInactivityLogout } from '@/hooks/useInactivityLogout';
 import { prefetchAllRoutesOnIdle } from '@/lib/routePrefetch';
 import { useAuth } from '@/lib/auth';
 import { Button } from '@/components/ui/button';
-import { LogOut, PanelLeft } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { confirmDraftDiscard } from '@/lib/draftGuard';
 
 function getPageHeader(pathname: string) {
@@ -51,9 +51,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-card px-4 sm:px-6">
           <div className="flex min-w-0 items-center gap-4">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground">
-              <PanelLeft className="h-4 w-4" />
-            </div>
             <div className="min-w-0">
               <h1 className="truncate text-base font-semibold leading-tight text-foreground">{pageHeader.title}</h1>
               <p className="truncate text-xs text-muted-foreground">{pageHeader.subtitle}</p>

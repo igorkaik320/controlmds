@@ -348,26 +348,6 @@ export default function ContasPagarPage() {
     }
   }
 
-  function getStatusBadge(status: string) {
-    const variants: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-      aberto: { label: 'Aberto', variant: 'default' },
-      pago: { label: 'Pago', variant: 'secondary' },
-      cancelado: { label: 'Cancelado', variant: 'destructive' },
-    };
-    const config = variants[status] || { label: status, variant: 'default' };
-    return <Badge variant={config.variant}>{config.label}</Badge>;
-  }
-
-  function getParcelaStatusVariant(status: string): 'default' | 'secondary' | 'destructive' | 'outline' {
-    const map: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-      aberta: 'default',
-      paga: 'secondary',
-      vencida: 'destructive',
-      cancelada: 'outline',
-    };
-    return map[status] || 'default';
-  }
-
   function OrigemBadge({ origem }: { origem?: string | null }) {
     const value = origem || 'CP';
     return (
@@ -826,17 +806,18 @@ export default function ContasPagarPage() {
                           value={proxima.status}
                           onValueChange={(v) => handleInlineStatusChange(proxima.id, v)}
                         >
-                          <SelectTrigger className="h-8 w-[108px] rounded-md border-input bg-card px-2 shadow-none">
-                            <Badge
-                              variant={getParcelaStatusVariant(proxima.status)}
-                              className={cn(
-                                "capitalize text-[11px] font-semibold",
-                                proxima.status === 'aberta' && "bg-primary/10 text-primary hover:bg-primary/10",
-                                proxima.status === 'paga' && "bg-success/10 text-success hover:bg-success/10"
-                              )}
-                            >
+                          <SelectTrigger
+                            className={cn(
+                              "h-8 w-[118px] rounded-md border-transparent px-3 text-xs font-semibold capitalize shadow-none [&>svg]:text-current",
+                              proxima.status === 'aberta' && "bg-primary text-primary-foreground hover:bg-primary/90",
+                              proxima.status === 'paga' && "bg-success text-success-foreground hover:bg-success/90",
+                              proxima.status === 'vencida' && "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+                              proxima.status === 'cancelada' && "bg-muted text-muted-foreground hover:bg-muted/80"
+                            )}
+                          >
+                            <span>
                               {proxima.status}
-                            </Badge>
+                            </span>
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="aberta">Aberta</SelectItem>
