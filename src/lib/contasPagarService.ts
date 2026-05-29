@@ -18,6 +18,9 @@ export interface ContaPagar {
   categoria_financeira_id: string | null;
   categoria_codigo: string | null;
   categoria_nome: string | null;
+  tag_id?: string | null;
+  tag_nome?: string | null;
+  tag_cor?: string | null;
   valor_total: number;
   quantidade_parcelas: number;
   observacao: string | null;

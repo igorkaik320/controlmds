@@ -117,6 +117,46 @@ export interface Responsavel {
   updated_at: string;
 }
 
+function normalizeLookupText(value: string | null | undefined) {
+  return (value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+async function resolveEmpresaFromObraName(obraNome: string | null | undefined): Promise<{
+  obraId: string | null;
+  empresaId: string | null;
+  empresaNome: string | null;
+}> {
+  const normalizedObra = normalizeLookupText(obraNome);
+  if (!normalizedObra) {
+    return { obraId: null, empresaId: null, empresaNome: null };
+  }
+
+  const { data: obras, error } = await supabase
+    .from('obras')
+    .select('id, nome, empresa_id, empresas(nome)')
+    .not('empresa_id', 'is', null);
+
+  if (error) throw error;
+
+  const exactMatch = (obras || []).find((obra: any) => normalizeLookupText(obra.nome) === normalizedObra);
+  const containsMatch = (obras || []).find((obra: any) => {
+    const normalizedNome = normalizeLookupText(obra.nome);
+    return normalizedNome.includes(normalizedObra) || normalizedObra.includes(normalizedNome);
+  });
+  const obra = exactMatch || containsMatch;
+
+  return {
+    obraId: obra?.id || null,
+    empresaId: obra?.empresa_id || null,
+    empresaNome: obra?.empresas?.nome || null,
+  };
+}
+
 // ---- Fornecedores ----
 export async function fetchFornecedores(): Promise<Fornecedor[]> {
   const { data, error } = await supabase.from('fornecedores').select('*').order('nome_fornecedor');
@@ -291,31 +331,7 @@ export async function deleteCompraFaturada(id: string, userId: string) {
 export async function syncContaPagarFromCompraFaturada(compra: CompraFaturada, userId: string) {
   const installments = buildInstallmentsFromItem(compra);
   const firstDueDate = toIsoDateString(installments[0]?.due) || compra.data_liquidacao || compra.data;
-  let empresaId: string | null = null;
-  let empresaNome: string | null = null;
-  let obraId: string | null = null;
-
-  if (compra.obra?.trim()) {
-    const { data: obra } = await supabase
-      .from('obras')
-      .select('id, empresa_id')
-      .ilike('nome', compra.obra.trim())
-      .limit(1)
-      .maybeSingle();
-
-    obraId = obra?.id || null;
-    empresaId = obra?.empresa_id || null;
-
-    if (empresaId) {
-      const { data: empresa } = await supabase
-        .from('empresas')
-        .select('nome')
-        .eq('id', empresaId)
-        .maybeSingle();
-
-      empresaNome = empresa?.nome || null;
-    }
-  }
+  const { obraId, empresaId, empresaNome } = await resolveEmpresaFromObraName(compra.obra);
 
   const { data: existing, error: existingError } = await supabase
     .from('contas_pagar')

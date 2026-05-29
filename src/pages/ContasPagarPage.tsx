@@ -33,6 +33,7 @@ import { fetchEmpresas } from '@/lib/empresasService';
 import { fetchFornecedores, Fornecedor, syncCompraFaturadaParcelasFromContaPagar } from '@/lib/comprasService';
 import { fetchObras, fetchObrasPorEmpresa, Obra } from '@/lib/obrasService';
 import { CategoriaFinanceira, fetchCategoriasFinanceiras } from '@/lib/categoriasFinanceirasService';
+import { fetchFinanceiroTags, FinanceiroTag } from '@/lib/financeiroTagsService';
 import ContasPagarParcelasDialog from '@/components/ContasPagarParcelasDialog';
 import FornecedorSelect from '@/components/compras/FornecedorSelect';
 import EmpresaSelect from '@/components/compras/EmpresaSelect';
@@ -75,10 +76,12 @@ export default function ContasPagarPage() {
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
   const [obras, setObras] = useState<Obra[]>([]);
   const [categorias, setCategorias] = useState<CategoriaFinanceira[]>([]);
+  const [tags, setTags] = useState<FinanceiroTag[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
   const [showParcelasDialog, setShowParcelasDialog] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingConta, setEditingConta] = useState<ContaPagarComParcelas | null>(null);
   const [contaParcelas, setContaParcelas] = useState<ContaPagarComParcelas | null>(null);
   const [selectedParcelas, setSelectedParcelas] = useState<Set<string>>(new Set());
   const [showBulkStatus, setShowBulkStatus] = useState(false);
@@ -93,7 +96,7 @@ export default function ContasPagarPage() {
 
   // Ordenação
   type SortKey = 'numero' | 'data_emissao' | 'empresa' | 'fornecedor' | 'origem' | 'valor_total' | 'parcela' | 'vencimento' | 'status' | 'observacao';
-  type ParcelasSortKey = 'vencimento' | 'empresa' | 'fornecedor' | 'origem' | 'parcela' | 'valor' | 'status' | 'obra';
+  type ParcelasSortKey = 'vencimento' | 'empresa' | 'fornecedor' | 'origem' | 'tag' | 'parcela' | 'valor' | 'status' | 'obra';
   type SortDir = 'asc' | 'desc';
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>('asc');
@@ -105,6 +108,7 @@ export default function ContasPagarPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [parcelasCurrentPage, setParcelasCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(30);
+  const isExternalEditing = Boolean(editingConta?.origem && editingConta.origem !== 'CP');
 
   function handleSort(key: SortKey) {
     if (sortKey !== key) {
@@ -170,6 +174,7 @@ export default function ContasPagarPage() {
     fornecedor_id: '',
     obra_id: '',
     categoria_financeira_id: '',
+    tag_id: '',
     valor_total: '',
     quantidade_parcelas: '1',
     observacao: '',
@@ -179,16 +184,18 @@ export default function ContasPagarPage() {
   const load = useCallback(async () => {
     try {
       await marcarParcelasVencidas(user?.id);
-      const [contasData, empresasData, fornecedoresData, categoriasData] = await Promise.all([
+      const [contasData, empresasData, fornecedoresData, categoriasData, tagsData] = await Promise.all([
         fetchContasPagar(),
         fetchEmpresas().catch(() => []),
         fetchFornecedores().catch(() => []),
         fetchCategoriasFinanceiras().catch(() => []),
+        fetchFinanceiroTags().catch(() => []),
       ]);
       setItems(contasData);
       setEmpresas(empresasData);
       setFornecedores(fornecedoresData);
       setCategorias(categoriasData);
+      setTags(tagsData);
     } catch (e: any) {
       toast.error('Erro ao carregar dados: ' + e.message);
     } finally {
@@ -406,6 +413,7 @@ export default function ContasPagarPage() {
 
   function openNew() {
     setEditingId(null);
+    setEditingConta(null);
     const nextForm = {
       data_emissao: new Date().toISOString().split('T')[0],
       data_primeiro_vencimento: new Date().toISOString().split('T')[0],
@@ -413,6 +421,7 @@ export default function ContasPagarPage() {
       fornecedor_id: '',
       obra_id: '',
       categoria_financeira_id: '',
+      tag_id: '',
       valor_total: '',
       quantidade_parcelas: '1',
       observacao: '',
@@ -439,6 +448,7 @@ export default function ContasPagarPage() {
     const parcelasUnicas = Array.from(parcelasPorNumero.values()).sort((a, b) => a.numero_parcela - b.numero_parcela);
 
     setEditingId(item.id);
+    setEditingConta(item);
     setForm({
       data_emissao: item.data_emissao,
       data_primeiro_vencimento: item.data_primeiro_vencimento || item.data_emissao,
@@ -446,6 +456,7 @@ export default function ContasPagarPage() {
       fornecedor_id: item.fornecedor_id || '',
       obra_id: item.obra_id || '',
       categoria_financeira_id: item.categoria_financeira_id || '',
+      tag_id: item.tag_id || '',
       valor_total: formatCurrencyInput(formatCurrencyReal(item.valor_total)),
       quantidade_parcelas: item.quantidade_parcelas.toString(),
       observacao: item.observacao || '',
@@ -493,7 +504,9 @@ export default function ContasPagarPage() {
     setSavingConta(true);
 
     try {
-      if (!user || !form.valor_total || !form.empresa_id || !form.fornecedor_id) {
+      const isEditingExternal = editingConta?.origem && editingConta.origem !== 'CP';
+
+      if (!user || !form.valor_total || !form.empresa_id || (!isEditingExternal && !form.fornecedor_id)) {
         toast.error('Preencha todos os campos obrigatórios');
         return;
       }
@@ -505,9 +518,61 @@ export default function ContasPagarPage() {
       const empresa = empresas.find(e => e.id === form.empresa_id);
       const fornecedor = fornecedores.find(f => f.id === form.fornecedor_id);
       const categoria = categorias.find(c => c.id === form.categoria_financeira_id);
+      const tag = tags.find(t => t.id === form.tag_id);
       
       const obra = obras.find(o => o.id === form.obra_id);
       const totalParcelas = parcelasForm.reduce((sum, parcela) => sum + parseCurrencyInput(parcela.valor_parcela), 0);
+
+      if (editingId && isEditingExternal) {
+        const totalOriginal = Number(editingConta.valor_total || 0);
+        if (Math.abs(totalParcelas - totalOriginal) > 0.01) {
+          toast.error(`O total das parcelas deve continuar igual a ${formatCurrency(totalOriginal)}.`);
+          return;
+        }
+
+        const parcelasAtualizadas = parcelasForm.map((parcela) => ({
+          conta_pagar_id: editingId,
+          numero_parcela: parcela.numero_parcela,
+          valor_parcela: parseCurrencyInput(parcela.valor_parcela),
+          data_vencimento: parcela.data_vencimento || null,
+          data_pagamento: parcela.data_pagamento || null,
+          valor_pago: null,
+          status: parcela.status,
+          observacao: parcela.observacao.trim() || null,
+          created_by: user.id,
+        }));
+
+        await updateContaPagar(
+          editingId,
+          {
+            categoria_financeira_id: categoria?.id || null,
+            categoria_codigo: categoria?.codigo || null,
+            categoria_nome: categoria?.nome || null,
+            tag_id: tag?.id || null,
+            tag_nome: tag?.nome || null,
+            tag_cor: tag?.cor || null,
+            data_primeiro_vencimento: parcelasForm[0]?.data_vencimento || editingConta.data_primeiro_vencimento,
+            quantidade_parcelas: parcelasForm.length,
+            valor_total: totalOriginal,
+          },
+          user.id
+        );
+        await replaceParcelasConta(editingId, parcelasAtualizadas, user.id);
+
+        if (editingConta.origem === 'CF' && editingConta.origem_id) {
+          await syncCompraFaturadaParcelasFromContaPagar(
+            editingConta.origem_id,
+            parcelasAtualizadas,
+            user.id
+          );
+        }
+
+        toast.success('Parcelas atualizadas');
+        setShowDialog(false);
+        await load();
+        return;
+      }
+
       const payload = {
         origem: 'CP' as const,
         origem_id: null,
@@ -522,6 +587,9 @@ export default function ContasPagarPage() {
         categoria_financeira_id: categoria?.id || null,
         categoria_codigo: categoria?.codigo || null,
         categoria_nome: categoria?.nome || null,
+        tag_id: tag?.id || null,
+        tag_nome: tag?.nome || null,
+        tag_cor: tag?.cor || null,
         valor_total: totalParcelas,
         quantidade_parcelas: parcelasForm.length,
         observacao: form.observacao.trim() || null,
@@ -646,6 +714,47 @@ export default function ContasPagarPage() {
     );
   }
 
+  function TagBadge({ nome, cor, compact = false }: { nome?: string | null; cor?: string | null; compact?: boolean }) {
+    if (!nome) return <span className="text-xs text-muted-foreground">-</span>;
+    return (
+      <span
+        className={cn(
+          "inline-flex items-center rounded-md font-semibold text-white",
+          compact
+            ? "h-5 w-[86px] justify-center px-1.5 text-[10px]"
+            : "h-6 max-w-[120px] px-2 text-[11px]"
+        )}
+        style={{ backgroundColor: cor || '#64748b' }}
+        title={nome}
+      >
+        <span className="truncate">{nome}</span>
+      </span>
+    );
+  }
+
+  function hexToRgb(hex?: string | null): [number, number, number] {
+    const fallback: [number, number, number] = [100, 116, 139];
+    if (!hex) return fallback;
+
+    const clean = hex.replace('#', '').trim();
+    const full = clean.length === 3
+      ? clean.split('').map((char) => `${char}${char}`).join('')
+      : clean;
+
+    if (!/^[0-9a-fA-F]{6}$/.test(full)) return fallback;
+
+    return [
+      parseInt(full.slice(0, 2), 16),
+      parseInt(full.slice(2, 4), 16),
+      parseInt(full.slice(4, 6), 16),
+    ];
+  }
+
+  function getReadableTextColor([r, g, b]: [number, number, number]): [number, number, number] {
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+    return brightness > 150 ? [15, 23, 42] : [255, 255, 255];
+  }
+
   const consultaParcelas = useMemo(() => {
     const collator = new Intl.Collator('pt-BR', { sensitivity: 'base', numeric: true });
     const parcelas = items
@@ -673,6 +782,7 @@ export default function ContasPagarPage() {
           case 'empresa': return (item.conta.empresa_nome || '').toLowerCase();
           case 'fornecedor': return (item.conta.fornecedor_nome || '').toLowerCase();
           case 'origem': return (item.conta.origem || 'CP').toLowerCase();
+          case 'tag': return (item.conta.tag_nome || '').toLowerCase();
           case 'parcela': return item.numero_parcela || 0;
           case 'valor': return Number(item.valor_parcela) || 0;
           case 'status': return (item.status || '').toLowerCase();
@@ -699,11 +809,11 @@ export default function ContasPagarPage() {
 
       if (!groups[date]) {
         const dateObj = new Date(date + 'T00:00:00');
-        const dateLabel = dateObj.toLocaleDateString('pt-BR', { 
-          weekday: 'long', 
-          year: 'numeric', 
-          month: 'long', 
-          day: 'numeric' 
+        const dateLabel = dateObj.toLocaleDateString('pt-BR', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
         });
         
         groups[date] = {
@@ -768,6 +878,17 @@ export default function ContasPagarPage() {
       }));
   }, [categorias]);
 
+  const tagOptions = useMemo<SearchableSelectOption[]>(() => {
+    return tags
+      .filter((tag) => tag.ativa)
+      .map((tag) => ({
+        value: tag.id,
+        label: tag.nome,
+        description: tag.cor,
+        keywords: `${tag.nome} ${tag.cor}`,
+      }));
+  }, [tags]);
+
   const parcelasTotal = useMemo(() => {
     return parcelasForm.reduce((sum, parcela) => sum + parseCurrencyInput(parcela.valor_parcela), 0);
   }, [parcelasForm]);
@@ -821,7 +942,7 @@ export default function ContasPagarPage() {
       const XLSX = await import("xlsx");
       const cleanText = (value: unknown) => String(value ?? "").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "");
       const rows = [
-        ["Vencimento", "Empresa", "Fornecedor", "Parcela", "Valor", "Status"],
+        ["Vencimento", "Empresa", "Fornecedor", "Tag", "Parcela", "Valor", "Status"],
         ...reportGroups.flatMap((group) =>
           group.items.map((item: any) => [
             item.data_vencimento
@@ -829,12 +950,13 @@ export default function ContasPagarPage() {
               : "",
             cleanText(item.conta.empresa_nome),
             cleanText(item.conta.fornecedor_nome),
+            cleanText(item.conta.tag_nome),
             `${item.numero_parcela}/${item.conta.quantidade_parcelas}`,
             Number(item.valor_parcela || 0),
-            cleanText(item.status),
+            cleanText(item.status).toUpperCase(),
           ])
         ),
-        ["", "", "", "TOTAL GERAL", reportTotal, ""],
+        ["", "", "", "", "TOTAL GERAL", reportTotal, ""],
       ];
 
       const ws = XLSX.utils.aoa_to_sheet(rows);
@@ -842,6 +964,7 @@ export default function ContasPagarPage() {
         { wch: 14 },
         { wch: 28 },
         { wch: 42 },
+        { wch: 18 },
         { wch: 14 },
         { wch: 16 },
         { wch: 14 },
@@ -849,7 +972,7 @@ export default function ContasPagarPage() {
 
       const range = XLSX.utils.decode_range(ws["!ref"] || "A1");
       for (let row = range.s.r + 1; row <= range.e.r; row += 1) {
-        const cellRef = XLSX.utils.encode_cell({ r: row, c: 4 });
+        const cellRef = XLSX.utils.encode_cell({ r: row, c: 5 });
         if (ws[cellRef]) {
           ws[cellRef].t = "n";
           ws[cellRef].z = "#,##0.00";
@@ -924,12 +1047,34 @@ export default function ContasPagarPage() {
 
       // Cabeçalho da tabela
       const cols = {
-        venc:      { x: marginLeft,      w: 22 },
-        empresa:   { x: marginLeft + 22, w: 28 },
-        fornec:    { x: marginLeft + 50, w: 62 },
-        parcela:   { x: marginLeft + 112, w: 18 },
-        valor:     { x: marginLeft + 130, w: 34 },
-        status:    { x: marginLeft + 166, w: 20 },
+        venc:      { x: marginLeft,       w: 22 },
+        empresa:   { x: marginLeft + 22,  w: 30 },
+        fornec:    { x: marginLeft + 52,  w: 49 },
+        tag:       { x: marginLeft + 101, w: 22 },
+        parcela:   { x: marginLeft + 126, w: 17 },
+        valor:     { x: marginLeft + 143, w: 20 },
+        status:    { x: marginLeft + 164, w: 18 },
+      };
+
+      const pdfBadgeHeight = 4.2;
+      const pdfBadgeRadius = 0.8;
+      const drawPdfBadge = (
+        text: string,
+        x: number,
+        width: number,
+        fill: [number, number, number],
+        color: [number, number, number],
+        baselineY: number
+      ) => {
+        pdf.setFillColor(...fill);
+        pdf.roundedRect(x, baselineY - 2.9, width, pdfBadgeHeight, pdfBadgeRadius, pdfBadgeRadius, "F");
+        pdf.setTextColor(...color);
+        pdf.setFontSize(6);
+        pdf.setFont("helvetica", "bold");
+        pdf.text(text, x + width / 2, baselineY - 0.7, { align: "center" });
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(7.5);
+        pdf.setTextColor(50, 50, 50);
       };
 
       const drawTableHeader = () => {
@@ -943,9 +1088,10 @@ export default function ContasPagarPage() {
         pdf.text("Vencimento", cols.venc.x, y);
         pdf.text("Empresa", cols.empresa.x, y);
         pdf.text("Fornecedor", cols.fornec.x, y);
-        pdf.text("Parcela", cols.parcela.x, y, { align: "center" });
+        pdf.text("Tag", cols.tag.x + cols.tag.w / 2, y, { align: "center" });
+        pdf.text("Parcela", cols.parcela.x + cols.parcela.w / 2, y, { align: "center" });
         pdf.text("Valor", cols.valor.x + cols.valor.w, y, { align: "right" });
-        pdf.text("Status", cols.status.x, y);
+        pdf.text("Status", cols.status.x + cols.status.w / 2, y, { align: "center" });
 
         pdf.setDrawColor(210, 210, 210);
         pdf.line(marginLeft, y + 2, marginRight, y + 2);
@@ -954,17 +1100,16 @@ export default function ContasPagarPage() {
 
       drawTableHeader();
 
-      // â”€â”€ Grupos de datas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      // Grupos por data
       reportGroups.forEach((group) => {
         checkNewPage(14);
 
-        // Fundo do grupo
         pdf.setFillColor(248, 249, 250);
         pdf.rect(marginLeft, y - 3.5, usableWidth, 10, "F");
 
-        // Nome da data (sem dia da semana para economizar espaço)
         const dateObj = new Date(group.date + "T00:00:00");
         const dateLabel = dateObj.toLocaleDateString("pt-BR", {
+          weekday: "long",
           year: "numeric",
           month: "long",
           day: "numeric",
@@ -984,15 +1129,7 @@ export default function ContasPagarPage() {
           y + 6
         );
 
-        // Total do grupo
-        pdf.setFontSize(9);
-        pdf.setFont("helvetica", "bold");
-        pdf.setTextColor(30, 30, 30);
-        pdf.text(formatCurrency(group.total), marginRight, y + 3, {
-          align: "right",
-        });
-
-        y += 13;
+        y += 10;
 
         // Linhas de parcela
         group.items.forEach((item: any, idx: number) => {
@@ -1014,15 +1151,26 @@ export default function ContasPagarPage() {
             ? new Date(item.data_vencimento + "T00:00:00").toLocaleDateString("pt-BR")
             : "-";
 
-          const empresaNome: string = (item.conta.empresa_nome || "-").substring(0, 14);
-          const fornecNome: string = (item.conta.fornecedor_nome || "-").substring(0, 32);
+          const empresaNome: string = (item.conta.empresa_nome || "-").substring(0, 16);
+          const fornecNome: string = (item.conta.fornecedor_nome || "-").substring(0, 24);
+          const tagNome: string = (item.conta.tag_nome || "-").substring(0, 8);
           const parcelaText = `${item.numero_parcela}/${item.conta.quantidade_parcelas}`;
           const valorText = formatCurrency(item.valor_parcela);
-          const statusText: string = (item.status || "-");
+          const statusValue: string = item.status || "-";
+          const statusText: string = statusValue.toUpperCase().substring(0, 8);
 
           pdf.text(vencText, cols.venc.x, y);
           pdf.text(empresaNome, cols.empresa.x, y);
           pdf.text(fornecNome, cols.fornec.x, y);
+
+          if (item.conta.tag_nome) {
+            const [tagR, tagG, tagB] = hexToRgb(item.conta.tag_cor);
+            const [textR, textG, textB] = getReadableTextColor([tagR, tagG, tagB]);
+            drawPdfBadge(tagNome, cols.tag.x, cols.tag.w, [tagR, tagG, tagB], [textR, textG, textB], y);
+          } else {
+            pdf.text("-", cols.tag.x + cols.tag.w / 2, y, { align: "center" });
+          }
+
           pdf.text(parcelaText, cols.parcela.x + cols.parcela.w / 2, y, { align: "center" });
           pdf.text(valorText, cols.valor.x + cols.valor.w, y, { align: "right" });
 
@@ -1039,17 +1187,10 @@ export default function ContasPagarPage() {
             vencida:   [200, 50, 50],
             cancelada: [100, 100, 100],
           };
-          const [br, bg, bb] = statusColors[statusText] ?? [235, 235, 235];
-          const [tr, tg, tb] = statusTextColors[statusText] ?? [80, 80, 80];
+          const [br, bg, bb] = statusColors[statusValue] ?? [235, 235, 235];
+          const [tr, tg, tb] = statusTextColors[statusValue] ?? [80, 80, 80];
 
-          const statusX = cols.status.x;
-          const badgeW = 18;
-          const badgeH = 4.5;
-          pdf.setFillColor(br, bg, bb);
-          pdf.roundedRect(statusX, y - 3.2, badgeW, badgeH, 1, 1, "F");
-          pdf.setTextColor(tr, tg, tb);
-          pdf.setFontSize(6.5);
-          pdf.text(statusText, statusX + badgeW / 2, y - 0.7, { align: "center" });
+          drawPdfBadge(statusText, cols.status.x, cols.status.w, [br, bg, bb], [tr, tg, tb], y);
 
           pdf.setDrawColor(240, 240, 240);
           pdf.line(marginLeft, y + 2.5, marginRight, y + 2.5);
@@ -1057,7 +1198,17 @@ export default function ContasPagarPage() {
           y += 7;
         });
 
-        y += 2; // espaço entre grupos
+        checkNewPage(8);
+        pdf.setFillColor(248, 249, 250);
+        pdf.rect(marginLeft, y - 3.5, usableWidth, 7, "F");
+        pdf.setFontSize(8);
+        pdf.setFont("helvetica", "bold");
+        pdf.setTextColor(30, 30, 30);
+        pdf.text("TOTAL DO DIA", cols.fornec.x, y);
+        pdf.text(formatCurrency(group.total), cols.valor.x + cols.valor.w, y, { align: "right" });
+        pdf.setDrawColor(225, 225, 225);
+        pdf.line(marginLeft, y + 2.5, marginRight, y + 2.5);
+        y += 9;
       });
 
       // â”€â”€ Total Geral â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -1191,6 +1342,9 @@ export default function ContasPagarPage() {
                 <TableHead onClick={() => handleSort('origem')} className="w-20 cursor-pointer select-none bg-muted/50 text-xs font-medium text-muted-foreground hover:bg-muted">
                   <div className="flex items-center">Origem<SortIcon column="origem" /></div>
                 </TableHead>
+                <TableHead className="w-32 bg-muted/50 text-xs font-medium text-muted-foreground">
+                  <div className="flex items-center">Tag</div>
+                </TableHead>
                 <TableHead className="bg-muted/50 text-xs font-medium text-muted-foreground">
                   <div className="flex items-center">Categoria</div>
                 </TableHead>
@@ -1217,7 +1371,7 @@ export default function ContasPagarPage() {
             <TableBody>
               {visiveis.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
                     Nenhuma conta encontrada
                   </TableCell>
                 </TableRow>
@@ -1235,6 +1389,9 @@ export default function ContasPagarPage() {
                     <TableCell className="font-medium text-foreground">{conta.fornecedor_nome || '-'}</TableCell>
                     <TableCell>
                       <OrigemBadge origem={conta.origem} />
+                    </TableCell>
+                    <TableCell>
+                      <TagBadge nome={conta.tag_nome} cor={conta.tag_cor} />
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {conta.categoria_codigo ? `${conta.categoria_codigo} - ${conta.categoria_nome}` : '-'}
@@ -1284,7 +1441,7 @@ export default function ContasPagarPage() {
                     <TableCell>
                       <div className="flex items-center justify-end gap-1">
                         {conta.origem !== 'CP' && (
-                          <Button variant="ghost" size="icon" onClick={() => openParcelas(conta)} title="Editar parcelas">
+                          <Button variant="ghost" size="icon" onClick={() => openEdit(conta)} title="Editar parcelas">
                             <Eye className="h-4 w-4 text-foreground" />
                           </Button>
                         )}
@@ -1432,6 +1589,9 @@ export default function ContasPagarPage() {
                     <TableHead onClick={() => handleParcelasSort('origem')} className="cursor-pointer select-none bg-muted/50 text-xs font-medium text-muted-foreground hover:bg-muted">
                       <div className="flex items-center">Origem<ParcelasSortIcon column="origem" /></div>
                     </TableHead>
+                    <TableHead onClick={() => handleParcelasSort('tag')} className="cursor-pointer select-none bg-muted/50 text-xs font-medium text-muted-foreground hover:bg-muted">
+                      <div className="flex items-center">Tag<ParcelasSortIcon column="tag" /></div>
+                    </TableHead>
                     <TableHead onClick={() => handleParcelasSort('parcela')} className="cursor-pointer select-none bg-muted/50 text-xs font-medium text-muted-foreground hover:bg-muted">
                       <div className="flex items-center">Parcela<ParcelasSortIcon column="parcela" /></div>
                     </TableHead>
@@ -1450,7 +1610,7 @@ export default function ContasPagarPage() {
                 <TableBody>
                   {consultaParcelas.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={10} className="py-8 text-center text-muted-foreground">
+                      <TableCell colSpan={11} className="py-8 text-center text-muted-foreground">
                         Nenhuma parcela encontrada
                       </TableCell>
                     </TableRow>
@@ -1478,6 +1638,9 @@ export default function ContasPagarPage() {
                       </TableCell>
                       <TableCell>
                         <OrigemBadge origem={parcela.conta.origem} />
+                      </TableCell>
+                      <TableCell>
+                        <TagBadge nome={parcela.conta.tag_nome} cor={parcela.conta.tag_cor} />
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {parcela.numero_parcela}/{parcela.conta.quantidade_parcelas || parcela.conta.parcelas.length}
@@ -1515,7 +1678,7 @@ export default function ContasPagarPage() {
                       <TableCell>
                         <div className="flex items-center justify-end gap-1">
                           {parcela.conta.origem !== 'CP' && (
-                            <Button variant="ghost" size="icon" onClick={() => openParcelas(parcela.conta)} title="Editar parcelas">
+                            <Button variant="ghost" size="icon" onClick={() => openEdit(parcela.conta)} title="Editar parcelas">
                               <Eye className="h-4 w-4 text-foreground" />
                             </Button>
                           )}
@@ -1594,7 +1757,7 @@ export default function ContasPagarPage() {
       }}>
         <DialogContent className="max-h-[92vh] w-[95vw] max-w-5xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingId ? 'Editar' : 'Nova'} Conta a Pagar</DialogTitle>
+            <DialogTitle>{isExternalEditing ? 'Editar Parcelas' : editingId ? 'Editar' : 'Nova'} Conta a Pagar</DialogTitle>
           </DialogHeader>
 
           <div className="grid gap-4">
@@ -1605,6 +1768,7 @@ export default function ContasPagarPage() {
                   type="date"
                   value={form.data_emissao} 
                   onChange={(e) => setForm((p) => ({ ...p, data_emissao: e.target.value }))} 
+                  disabled={isExternalEditing}
                 />
               </div>
               <div>
@@ -1613,28 +1777,38 @@ export default function ContasPagarPage() {
                   type="date"
                   value={form.data_primeiro_vencimento} 
                   onChange={(e) => setForm((p) => ({ ...p, data_primeiro_vencimento: e.target.value }))} 
+                  disabled={isExternalEditing}
                 />
               </div>
             </div>
 
-            <EmpresaSelect 
-              value={form.empresa_id}
-              onChange={(value) => setForm((p) => ({ ...p, empresa_id: value }))}
-              label="Empresa *"
-            />
-
-            <div>
-              <Label>Fornecedor *</Label>
-              <FornecedorSelect
-                value={form.fornecedor_id}
-                onChange={(v) => setForm((p) => ({ ...p, fornecedor_id: v }))}
-                onFornecedorSelect={handleFornecedorSelect}
-                valueMode="id"
-                label=""
+            <div className={cn(isExternalEditing && 'pointer-events-none opacity-70')}>
+              <EmpresaSelect 
+                value={form.empresa_id}
+                onChange={(value) => setForm((p) => ({ ...p, empresa_id: value }))}
+                label="Empresa *"
               />
             </div>
 
-            <div>
+            {isExternalEditing ? (
+              <div>
+                <Label>Fornecedor *</Label>
+                <Input value={editingConta?.fornecedor_nome || '-'} disabled />
+              </div>
+            ) : (
+              <div>
+                <Label>Fornecedor *</Label>
+                <FornecedorSelect
+                  value={form.fornecedor_id}
+                  onChange={(v) => setForm((p) => ({ ...p, fornecedor_id: v }))}
+                  onFornecedorSelect={handleFornecedorSelect}
+                  valueMode="id"
+                  label=""
+                />
+              </div>
+            )}
+
+            <div className={cn(isExternalEditing && 'pointer-events-none opacity-70')}>
               <Label>Obra</Label>
               <SearchableSelect
                 value={form.obra_id}
@@ -1661,6 +1835,18 @@ export default function ContasPagarPage() {
               </p>
             </div>
 
+            <div>
+              <Label>Tag</Label>
+              <SearchableSelect
+                value={form.tag_id}
+                onChange={(value) => setForm((p) => ({ ...p, tag_id: value }))}
+                options={tagOptions}
+                placeholder="Digite para pesquisar a tag"
+                emptyText="Nenhuma tag encontrada"
+                inputClassName="h-10"
+              />
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Valor Total *</Label>
@@ -1672,12 +1858,14 @@ export default function ContasPagarPage() {
                     if (!editingId) regenerateParcelas();
                   }}
                   placeholder="R$ 0,00"
+                  disabled={isExternalEditing}
                 />
               </div>
               <div>
                 <Label>Quantidade de Parcelas *</Label>
                 <Select 
                   value={form.quantidade_parcelas} 
+                  disabled={isExternalEditing}
                   onValueChange={(value) => {
                     const nextForm = { ...form, quantidade_parcelas: value };
                     setForm(nextForm);
@@ -1704,6 +1892,7 @@ export default function ContasPagarPage() {
                 value={form.observacao} 
                 onChange={(e) => setForm((p) => ({ ...p, observacao: e.target.value }))} 
                 placeholder="Observações sobre a conta..."
+                disabled={isExternalEditing}
               />
             </div>
 
@@ -1907,6 +2096,7 @@ export default function ContasPagarPage() {
                       <TableHead>Vencimento</TableHead>
                       <TableHead>Empresa</TableHead>
                       <TableHead>Fornecedor</TableHead>
+                      <TableHead>Tag</TableHead>
                       <TableHead>Parcela</TableHead>
                       <TableHead className="text-right">Valor</TableHead>
                       <TableHead>Status</TableHead>
@@ -1914,23 +2104,15 @@ export default function ContasPagarPage() {
                   </TableHeader>
                   <TableBody>
                     {reportGroups.map((group) => [
-                      // Header do grupo (data e total do dia)
                       <TableRow key={group.date}>
-                          <TableCell colSpan={6} className="py-2">
-                            <div className="flex justify-between items-center">
-                              <div>
-                                <p className="font-semibold text-sm">{group.dateLabel}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {group.parcels} parcela{group.parcels === 1 ? '' : 's'}
-                                </p>
-                              </div>
-                              <div className="text-right">
-                                <p className="font-semibold text-base">
-                                  {formatCurrency(group.total)}
-                                </p>
-                              </div>
-                            </div>
-                          </TableCell>
+                        <TableCell colSpan={7} className="bg-muted/20 py-2">
+                          <div>
+                            <p className="text-sm font-semibold text-foreground">{group.dateLabel}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {group.parcels} parcela{group.parcels === 1 ? '' : 's'}
+                            </p>
+                          </div>
+                        </TableCell>
                       </TableRow>,
                       // Parcelas do dia
                         ...group.items.map((item) => (
@@ -1946,6 +2128,9 @@ export default function ContasPagarPage() {
                             <TableCell className="text-xs py-1">
                               {item.conta.fornecedor_nome || '-'}
                             </TableCell>
+                            <TableCell className="py-1">
+                              <TagBadge nome={item.conta.tag_nome} cor={item.conta.tag_cor} compact />
+                            </TableCell>
                             <TableCell className="text-center text-xs py-1">
                               {item.numero_parcela}/{item.conta.quantidade_parcelas}
                             </TableCell>
@@ -1953,17 +2138,26 @@ export default function ContasPagarPage() {
                               {formatCurrency(item.valor_parcela)}
                             </TableCell>
                             <TableCell className="py-1">
-                              <span className="text-xs px-2 py-1 bg-gray-100 rounded">
-                                {item.status}
+                              <span className="inline-flex h-5 w-[86px] items-center justify-center rounded-md bg-gray-100 px-1.5 text-[10px] font-semibold text-gray-700">
+                                {String(item.status || '-').toUpperCase()}
                               </span>
                             </TableCell>
                           </TableRow>
-                        ))
+                        )),
+                        <TableRow key={`${group.date}-total`}>
+                          <TableCell colSpan={5} className="bg-muted/30 py-2 text-right text-xs font-bold uppercase text-foreground">
+                            Total do dia
+                          </TableCell>
+                          <TableCell className="bg-muted/30 py-2 text-right text-xs font-bold">
+                            {formatCurrency(group.total)}
+                          </TableCell>
+                          <TableCell className="bg-muted/30 py-2" />
+                        </TableRow>
                     ])}
                     
                     {/* Total Geral */}
                       <TableRow>
-                        <TableCell colSpan={6} className="py-2">
+                        <TableCell colSpan={7} className="py-2">
                           <div className="flex justify-between items-center border-t-2 border-black">
                             <p className="font-bold text-sm">TOTAL GERAL</p>
                             <p className="font-bold text-base">

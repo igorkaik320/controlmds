@@ -38,6 +38,7 @@ const DashboardCombustivelPage = lazy(routeLoaders["/combustivel/dashboard"] as 
 const RevisoesCombustivelPage = lazy(routeLoaders["/combustivel/revisoes"] as any);
 const EmpresasPage = lazy(routeLoaders["/empresas"] as any);
 const CategoriasFinanceirasPage = lazy(routeLoaders["/categorias-financeiras"] as any);
+const FinanceiroTagsPage = lazy(routeLoaders["/financeiro/tags"] as any);
 const PainelExecutivoPage = lazy(routeLoaders["/painel-executivo"] as any);
 const FaturadosParcelasPage = lazy(routeLoaders["/financeiro/parcelas-faturadas"] as any);
 const ContasPagarPage = lazy(routeLoaders["/contas-pagar"] as any);
@@ -235,6 +236,7 @@ const App = () => (
 
                 <Route path="/empresas" element={<ModuleRoute module="empresas"><EmpresasPage /></ModuleRoute>} />
                 <Route path="/categorias-financeiras" element={<ModuleRoute module="categorias_financeiras"><CategoriasFinanceirasPage /></ModuleRoute>} />
+                <Route path="/financeiro/tags" element={<ModuleRoute module="financeiro_tags"><FinanceiroTagsPage /></ModuleRoute>} />
                 <Route path="/fornecedores" element={<ModuleRoute module="fornecedores"><FornecedoresPage /></ModuleRoute>} />
                 <Route path="/obras" element={<ModuleRoute module="obras"><ObrasPage /></ModuleRoute>} />
                 <Route path="/responsaveis" element={<ModuleRoute module="responsaveis"><ResponsaveisPage /></ModuleRoute>} />
