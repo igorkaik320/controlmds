@@ -10,6 +10,7 @@ interface Props {
   label?: string;
   className?: string;
   labelClassName?: string;
+  triggerClassName?: string;
   allowAll?: boolean;
 }
 
@@ -19,6 +20,7 @@ export default function EmpresaSelect({
   label = "Empresa",
   className,
   labelClassName,
+  triggerClassName,
   allowAll = false,
 }: Props) {
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
@@ -32,10 +34,10 @@ export default function EmpresaSelect({
   const selectValue = allowAll ? (value || "_all") : (value || undefined);
 
   return (
-    <div className={cn(className)}>
+    <div className={cn("space-y-1.5", className)}>
       {label && <Label className={cn("text-xs", labelClassName)}>{label}</Label>}
       <Select value={selectValue} onValueChange={(v) => onChange(v === "_all" ? "" : v)}>
-        <SelectTrigger className="w-full">
+        <SelectTrigger className={cn("w-full", triggerClassName)}>
           <SelectValue placeholder="Selecione..." />
         </SelectTrigger>
         <SelectContent>

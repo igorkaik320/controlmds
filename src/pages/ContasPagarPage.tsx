@@ -85,15 +85,20 @@ export default function ContasPagarPage() {
   const [showReport, setShowReport] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
   const [exportingExcel, setExportingExcel] = useState(false);
+  const [savingConta, setSavingConta] = useState(false);
   const [activeTab, setActiveTab] = useState('contas');
+  const savingContaRef = useRef(false);
   const reportRef = useRef<HTMLDivElement>(null);
   const printRef = useRef<HTMLDivElement>(null);
 
   // Ordenação
   type SortKey = 'numero' | 'data_emissao' | 'empresa' | 'fornecedor' | 'origem' | 'valor_total' | 'parcela' | 'vencimento' | 'status' | 'observacao';
+  type ParcelasSortKey = 'vencimento' | 'empresa' | 'fornecedor' | 'origem' | 'parcela' | 'valor' | 'status' | 'obra';
   type SortDir = 'asc' | 'desc';
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>('asc');
+  const [parcelasSortKey, setParcelasSortKey] = useState<ParcelasSortKey | null>(null);
+  const [parcelasSortDir, setParcelasSortDir] = useState<SortDir>('asc');
   const [searchFornecedor, setSearchFornecedor] = useState('');
   const [dateFromStr, setDateFromStr] = useState('');
   const [dateToStr, setDateToStr] = useState('');
@@ -116,6 +121,25 @@ export default function ContasPagarPage() {
   function SortIcon({ column }: { column: SortKey }) {
     if (sortKey !== column) return <ArrowUpDown className="h-3 w-3 ml-1 opacity-40" />;
     return sortDir === 'asc'
+      ? <ArrowUp className="h-3 w-3 ml-1" />
+      : <ArrowDown className="h-3 w-3 ml-1" />;
+  }
+
+  function handleParcelasSort(key: ParcelasSortKey) {
+    if (parcelasSortKey !== key) {
+      setParcelasSortKey(key);
+      setParcelasSortDir('asc');
+    } else if (parcelasSortDir === 'asc') {
+      setParcelasSortDir('desc');
+    } else {
+      setParcelasSortKey(null);
+      setParcelasSortDir('asc');
+    }
+  }
+
+  function ParcelasSortIcon({ column }: { column: ParcelasSortKey }) {
+    if (parcelasSortKey !== column) return <ArrowUpDown className="h-3 w-3 ml-1 opacity-40" />;
+    return parcelasSortDir === 'asc'
       ? <ArrowUp className="h-3 w-3 ml-1" />
       : <ArrowDown className="h-3 w-3 ml-1" />;
   }
@@ -461,16 +485,23 @@ export default function ContasPagarPage() {
   }
 
   async function handleSubmit() {
-    if (!user || !form.valor_total || !form.empresa_id || !form.fornecedor_id) {
-      toast.error('Preencha todos os campos obrigatórios');
-      return;
-    }
-    if (parcelasForm.length === 0) {
-      toast.error('Gere ao menos uma parcela');
+    if (savingContaRef.current) {
       return;
     }
 
+    savingContaRef.current = true;
+    setSavingConta(true);
+
     try {
+      if (!user || !form.valor_total || !form.empresa_id || !form.fornecedor_id) {
+        toast.error('Preencha todos os campos obrigatórios');
+        return;
+      }
+      if (parcelasForm.length === 0) {
+        toast.error('Gere ao menos uma parcela');
+        return;
+      }
+
       const empresa = empresas.find(e => e.id === form.empresa_id);
       const fornecedor = fornecedores.find(f => f.id === form.fornecedor_id);
       const categoria = categorias.find(c => c.id === form.categoria_financeira_id);
@@ -541,6 +572,9 @@ export default function ContasPagarPage() {
       load();
     } catch (e: any) {
       toast.error(e.message);
+    } finally {
+      savingContaRef.current = false;
+      setSavingConta(false);
     }
   }
 
@@ -613,7 +647,8 @@ export default function ContasPagarPage() {
   }
 
   const consultaParcelas = useMemo(() => {
-    return items
+    const collator = new Intl.Collator('pt-BR', { sensitivity: 'base', numeric: true });
+    const parcelas = items
       .filter(contaPassaFiltrosBasicos)
       .flatMap((conta) =>
         conta.parcelas.map((parcela) => ({
@@ -621,14 +656,39 @@ export default function ContasPagarPage() {
           conta,
         }))
       )
-      .filter((parcela) => !hasPeriodoAplicado || parcelaDentroDoPeriodo(parcela))
-      .sort((a, b) => {
+      .filter((parcela) => !hasPeriodoAplicado || parcelaDentroDoPeriodo(parcela));
+
+    parcelas.sort((a, b) => {
+      if (!parcelasSortKey) {
         const dataA = a.data_vencimento || '';
         const dataB = b.data_vencimento || '';
         if (dataA !== dataB) return dataA > dataB ? -1 : 1;
         return (a.conta.fornecedor_nome || '').localeCompare(b.conta.fornecedor_nome || '', 'pt-BR');
-      });
-  }, [items, filtrosAplicados, obras]);
+      }
+
+      const dir = parcelasSortDir === 'asc' ? 1 : -1;
+      const getVal = (item: typeof parcelas[number]): string | number => {
+        switch (parcelasSortKey) {
+          case 'vencimento': return item.data_vencimento || '';
+          case 'empresa': return (item.conta.empresa_nome || '').toLowerCase();
+          case 'fornecedor': return (item.conta.fornecedor_nome || '').toLowerCase();
+          case 'origem': return (item.conta.origem || 'CP').toLowerCase();
+          case 'parcela': return item.numero_parcela || 0;
+          case 'valor': return Number(item.valor_parcela) || 0;
+          case 'status': return (item.status || '').toLowerCase();
+          case 'obra': return (item.conta.obra_nome || '').toLowerCase();
+          default: return '';
+        }
+      };
+
+      const va = getVal(a);
+      const vb = getVal(b);
+      if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir;
+      return collator.compare(String(va), String(vb)) * dir;
+    });
+
+    return parcelas;
+  }, [items, filtrosAplicados, obras, parcelasSortKey, parcelasSortDir]);
 
   // Agrupar parcelas por data para o relatório
   const reportGroups = useMemo(() => {
@@ -1039,7 +1099,7 @@ export default function ContasPagarPage() {
           </p>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[220px_260px_minmax(240px,1fr)_180px_180px]">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[260px_260px_minmax(240px,1fr)_180px_180px]">
           <EmpresaSelect
             value={filterEmpresa}
             onChange={(value) => {
@@ -1047,6 +1107,8 @@ export default function ContasPagarPage() {
               setFilterObra('');
             }}
             label="Empresa"
+            labelClassName="font-medium text-muted-foreground"
+            triggerClassName="h-9 border-input bg-card text-sm shadow-none"
             allowAll
           />
           <div className="space-y-1.5">
@@ -1358,14 +1420,30 @@ export default function ContasPagarPage() {
                         aria-label="Selecionar parcelas visíveis"
                       />
                     </TableHead>
-                    <TableHead className="bg-muted/50 text-xs font-medium text-muted-foreground">Vencimento</TableHead>
-                    <TableHead className="bg-muted/50 text-xs font-medium text-muted-foreground">Empresa</TableHead>
-                    <TableHead className="bg-muted/50 text-xs font-medium text-muted-foreground">Fornecedor</TableHead>
-                    <TableHead className="bg-muted/50 text-xs font-medium text-muted-foreground">Origem</TableHead>
-                    <TableHead className="bg-muted/50 text-xs font-medium text-muted-foreground">Parcela</TableHead>
-                    <TableHead className="bg-muted/50 text-right text-xs font-medium text-muted-foreground">Valor</TableHead>
-                    <TableHead className="bg-muted/50 text-xs font-medium text-muted-foreground">Status</TableHead>
-                    <TableHead className="bg-muted/50 text-xs font-medium text-muted-foreground">Obra</TableHead>
+                    <TableHead onClick={() => handleParcelasSort('vencimento')} className="cursor-pointer select-none bg-muted/50 text-xs font-medium text-muted-foreground hover:bg-muted">
+                      <div className="flex items-center">Vencimento<ParcelasSortIcon column="vencimento" /></div>
+                    </TableHead>
+                    <TableHead onClick={() => handleParcelasSort('empresa')} className="cursor-pointer select-none bg-muted/50 text-xs font-medium text-muted-foreground hover:bg-muted">
+                      <div className="flex items-center">Empresa<ParcelasSortIcon column="empresa" /></div>
+                    </TableHead>
+                    <TableHead onClick={() => handleParcelasSort('fornecedor')} className="cursor-pointer select-none bg-muted/50 text-xs font-medium text-muted-foreground hover:bg-muted">
+                      <div className="flex items-center">Fornecedor<ParcelasSortIcon column="fornecedor" /></div>
+                    </TableHead>
+                    <TableHead onClick={() => handleParcelasSort('origem')} className="cursor-pointer select-none bg-muted/50 text-xs font-medium text-muted-foreground hover:bg-muted">
+                      <div className="flex items-center">Origem<ParcelasSortIcon column="origem" /></div>
+                    </TableHead>
+                    <TableHead onClick={() => handleParcelasSort('parcela')} className="cursor-pointer select-none bg-muted/50 text-xs font-medium text-muted-foreground hover:bg-muted">
+                      <div className="flex items-center">Parcela<ParcelasSortIcon column="parcela" /></div>
+                    </TableHead>
+                    <TableHead onClick={() => handleParcelasSort('valor')} className="cursor-pointer select-none bg-muted/50 text-right text-xs font-medium text-muted-foreground hover:bg-muted">
+                      <div className="flex items-center justify-end">Valor<ParcelasSortIcon column="valor" /></div>
+                    </TableHead>
+                    <TableHead onClick={() => handleParcelasSort('status')} className="cursor-pointer select-none bg-muted/50 text-xs font-medium text-muted-foreground hover:bg-muted">
+                      <div className="flex items-center">Status<ParcelasSortIcon column="status" /></div>
+                    </TableHead>
+                    <TableHead onClick={() => handleParcelasSort('obra')} className="cursor-pointer select-none bg-muted/50 text-xs font-medium text-muted-foreground hover:bg-muted">
+                      <div className="flex items-center">Obra<ParcelasSortIcon column="obra" /></div>
+                    </TableHead>
                     <TableHead className="bg-muted/50 text-right text-xs font-medium text-muted-foreground">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -1511,7 +1589,9 @@ export default function ContasPagarPage() {
       </Tabs>
 
       {/* Diálogo de Nova/Editar Conta */}
-      <Dialog open={showDialog} onOpenChange={setShowDialog}>
+      <Dialog open={showDialog} onOpenChange={(open) => {
+        if (!savingConta) setShowDialog(open);
+      }}>
         <DialogContent className="max-h-[92vh] w-[95vw] max-w-5xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingId ? 'Editar' : 'Nova'} Conta a Pagar</DialogTitle>
@@ -1639,11 +1719,11 @@ export default function ContasPagarPage() {
                   <span className="text-xs font-medium text-muted-foreground">
                     Total: {formatCurrency(parcelasTotal)}
                   </span>
-                  <Button type="button" variant="outline" size="sm" onClick={() => regenerateParcelas()}>
+                  <Button type="button" variant="outline" size="sm" onClick={() => regenerateParcelas()} disabled={savingConta}>
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     Gerar parcelas
                   </Button>
-                  <Button type="button" variant="outline" size="sm" onClick={addParcelaInline}>
+                  <Button type="button" variant="outline" size="sm" onClick={addParcelaInline} disabled={savingConta}>
                     <Plus className="mr-2 h-4 w-4" />
                     Adicionar
                   </Button>
@@ -1721,7 +1801,7 @@ export default function ContasPagarPage() {
                             variant="ghost"
                             size="icon"
                             onClick={() => removeParcelaInline(index)}
-                            disabled={parcelasForm.length <= 1}
+                            disabled={savingConta || parcelasForm.length <= 1}
                             title="Remover parcela"
                           >
                             <Trash2 className="h-4 w-4 text-destructive" />
@@ -1736,8 +1816,10 @@ export default function ContasPagarPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDialog(false)}>Cancelar</Button>
-            <Button onClick={handleSubmit}>{editingId ? 'Atualizar' : 'Cadastrar'}</Button>
+            <Button variant="outline" onClick={() => setShowDialog(false)} disabled={savingConta}>Cancelar</Button>
+            <Button onClick={handleSubmit} disabled={savingConta}>
+              {savingConta ? 'Salvando...' : editingId ? 'Atualizar' : 'Cadastrar'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
