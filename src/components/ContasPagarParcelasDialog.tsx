@@ -9,12 +9,9 @@ import { Plus, Trash2, Calendar } from 'lucide-react';
 import { formatCurrency, formatCurrencyInput, formatCurrencyReal, parseCurrencyInput } from '@/lib/formatters';
 import {
   ContaPagarParcela,
-  updateParcela,
-  saveParcelas,
-  deleteParcela,
+  replaceParcelasConta,
   updateContaPagar
 } from '@/lib/contasPagarService';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface Props {
@@ -38,7 +35,6 @@ export default function ContasPagarParcelasDialog({
 }: Props) {
   const [parcelas, setParcelas] = useState<ContaPagarParcela[]>([]);
   const [loading, setLoading] = useState(false);
-  const [removedParcelas, setRemovedParcelas] = useState<string[]>([]);
   const [valorInputs, setValorInputs] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -99,9 +95,6 @@ export default function ContasPagarParcelasDialog({
       numero_parcela: i + 1
     }));
     
-    if (parcelas[index]?.id) {
-      setRemovedParcelas((prev) => [...prev, parcelas[index].id]);
-    }
     setParcelas(renumeradas);
     setValorInputs(() => {
       const next: Record<string, string> = {};
@@ -143,21 +136,9 @@ export default function ContasPagarParcelasDialog({
         return;
       }
 
-      const { data: parcelasBanco } = await supabase
-        .from('contas_pagar_parcelas')
-        .select('id')
-        .eq('conta_pagar_id', contaPagarId);
-
-      const idsBanco = (parcelasBanco || []).map(p => p.id);
-      const idsTela = parcelas.filter(p => p.id).map(p => p.id);
-      const idsParaDeletar = idsBanco.filter(id => !idsTela.includes(id));
-
-      for (const id of idsParaDeletar) {
-        await deleteParcela(id, userId);
-      }
-
-      for (const p of parcelas.filter(p => p.id)) {
-        await updateParcela(p.id, {
+      await replaceParcelasConta(
+        contaPagarId,
+        parcelas.map((p) => ({
           conta_pagar_id: contaPagarId,
           numero_parcela: p.numero_parcela,
           valor_parcela: p.valor_parcela,
@@ -166,35 +147,15 @@ export default function ContasPagarParcelasDialog({
           valor_pago: p.valor_pago ?? null,
           status: p.status,
           observacao: p.observacao || null,
-        }, userId);
-      }
-
-      const novas = parcelas.filter(p => !p.id).map(p => ({
-        conta_pagar_id: contaPagarId,
-        numero_parcela: p.numero_parcela,
-        valor_parcela: p.valor_parcela,
-        data_vencimento: p.data_vencimento || null,
-        data_pagamento: toTimestampOrNull(p.data_pagamento),
-        valor_pago: p.valor_pago ?? null,
-        status: p.status,
-        observacao: p.observacao || null,
-        created_by: userId,
-      }));
-
-      if (novas.length > 0) {
-        await saveParcelas(novas, userId);
-      }
+          created_by: userId,
+        })),
+        userId
+      );
 
       await updateContaPagar(contaPagarId, {
         valor_total: total,
         quantidade_parcelas: parcelas.length
       }, userId);
-
-      if (removedParcelas.length > 0) {
-        for (const id of removedParcelas) {
-          await deleteParcela(id, userId);
-        }
-      }
 
       await onSave(parcelas, total);
       onClose();

@@ -4,7 +4,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Plus, Pencil, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { Fornecedor, fetchFornecedores, saveFornecedor, updateFornecedor, deleteFornecedor } from '@/lib/comprasService';
 import { formatCPFCNPJ, formatCelular } from '@/lib/formatters';
@@ -13,6 +14,17 @@ import { toast } from 'sonner';
 import AuditInfo from '@/components/AuditInfo';
 import { useProfileMap } from '@/hooks/useProfileMap';
 
+function normalizeSearch(value?: string | null) {
+  return (value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+function digitsOnly(value?: string | null) {
+  return (value || '').replace(/\D/g, '');
+}
 
 export default function FornecedoresPage() {
   const { user, userRole } = useAuth();
@@ -22,6 +34,8 @@ export default function FornecedoresPage() {
   const [showDialog, setShowDialog] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [pageSize, setPageSize] = useState(30);
+  const [currentPage, setCurrentPage] = useState(1);
   const [form, setForm] = useState({ nome_fornecedor: '', razao_social: '', banco: '', agencia: '', conta: '', cnpj_cpf: '', celular: '' });
 
   const profileMap = useProfileMap();
@@ -35,11 +49,30 @@ export default function FornecedoresPage() {
 
   // Busca inteligente: por nome, razão social ou CNPJ/CPF
   const filtered = items.filter(i => {
-    const s = search.toLowerCase();
-    return i.nome_fornecedor.toLowerCase().includes(s) ||
-      (i.razao_social || '').toLowerCase().includes(s) ||
-      (i.cnpj_cpf || '').replace(/\D/g, '').includes(search.replace(/\D/g, ''));
+    const s = normalizeSearch(search);
+    const digits = digitsOnly(search);
+    if (!s && !digits) return true;
+
+    return normalizeSearch(i.nome_fornecedor).includes(s) ||
+      normalizeSearch(i.razao_social).includes(s) ||
+      (!!digits && digitsOnly(i.cnpj_cpf).includes(digits));
   });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const pageStartIndex = (safeCurrentPage - 1) * pageSize;
+  const pageEndIndex = Math.min(pageStartIndex + pageSize, filtered.length);
+  const paginatedItems = filtered.slice(pageStartIndex, pageEndIndex);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, pageSize]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   function openNew() {
     setEditingId(null);
@@ -126,7 +159,7 @@ export default function FornecedoresPage() {
             {filtered.length === 0 && (
               <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground">Nenhum fornecedor</TableCell></TableRow>
             )}
-            {filtered.map(i => (
+            {paginatedItems.map(i => (
               <TableRow key={i.id}>
                 <TableCell>{i.nome_fornecedor}</TableCell>
                 <TableCell>{i.razao_social}</TableCell>
@@ -155,6 +188,58 @@ export default function FornecedoresPage() {
             ))}
           </TableBody>
         </Table>
+      </div>
+
+      <div className="flex flex-col gap-3 rounded-md border px-4 py-3 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          {filtered.length > 0
+            ? `Mostrando ${pageStartIndex + 1}-${pageEndIndex} de ${filtered.length}`
+            : 'Nenhum item para mostrar'}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <span>Itens por página</span>
+          <Select
+            value={String(pageSize)}
+            onValueChange={(value) => {
+              setPageSize(Number(value));
+              setCurrentPage(1);
+            }}
+          >
+            <SelectTrigger className="h-8 w-[82px] border-input bg-card text-xs shadow-none">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="30">30</SelectItem>
+              <SelectItem value="60">60</SelectItem>
+              <SelectItem value="100">100</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+              disabled={safeCurrentPage <= 1}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="min-w-[74px] text-center">
+              {safeCurrentPage} de {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+              disabled={safeCurrentPage >= totalPages}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       </div>
 
       <Dialog open={showDialog} onOpenChange={setShowDialog}>

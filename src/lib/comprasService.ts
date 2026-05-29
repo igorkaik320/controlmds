@@ -3,7 +3,7 @@ import { recordAuditEntry } from '@/lib/audit';
 import { buildInstallmentsFromItem, toBrDateString, toIsoDateString } from '@/lib/parcelas';
 import {
   saveContaPagar,
-  saveParcelas,
+  replaceParcelasConta,
   updateContaPagar,
   ContaPagarParcela,
 } from '@/lib/contasPagarService';
@@ -291,6 +291,31 @@ export async function deleteCompraFaturada(id: string, userId: string) {
 export async function syncContaPagarFromCompraFaturada(compra: CompraFaturada, userId: string) {
   const installments = buildInstallmentsFromItem(compra);
   const firstDueDate = toIsoDateString(installments[0]?.due) || compra.data_liquidacao || compra.data;
+  let empresaId: string | null = null;
+  let empresaNome: string | null = null;
+  let obraId: string | null = null;
+
+  if (compra.obra?.trim()) {
+    const { data: obra } = await supabase
+      .from('obras')
+      .select('id, empresa_id')
+      .ilike('nome', compra.obra.trim())
+      .limit(1)
+      .maybeSingle();
+
+    obraId = obra?.id || null;
+    empresaId = obra?.empresa_id || null;
+
+    if (empresaId) {
+      const { data: empresa } = await supabase
+        .from('empresas')
+        .select('nome')
+        .eq('id', empresaId)
+        .maybeSingle();
+
+      empresaNome = empresa?.nome || null;
+    }
+  }
 
   const { data: existing, error: existingError } = await supabase
     .from('contas_pagar')
@@ -308,11 +333,11 @@ export async function syncContaPagarFromCompraFaturada(compra: CompraFaturada, u
     origem_id: compra.id,
     data_emissao: compra.data,
     data_primeiro_vencimento: firstDueDate || null,
-    empresa_id: null,
-    empresa_nome: null,
+    empresa_id: empresaId,
+    empresa_nome: empresaNome,
     fornecedor_id: null,
     fornecedor_nome: compra.fornecedor,
-    obra_id: null,
+    obra_id: obraId,
     obra_nome: compra.obra || null,
     categoria_financeira_id: null,
     categoria_codigo: null,
@@ -328,8 +353,30 @@ export async function syncContaPagarFromCompraFaturada(compra: CompraFaturada, u
   if (contaId) {
     await updateContaPagar(contaId, contaPayload, userId);
   } else {
-    const saved = await saveContaPagar(contaPayload, userId);
-    contaId = saved.id;
+    try {
+      const saved = await saveContaPagar(contaPayload, userId);
+      contaId = saved.id;
+    } catch (error: any) {
+      const isDuplicateOrigin = error?.code === '23505';
+      if (!isDuplicateOrigin) throw error;
+
+      const { data: conflictConta, error: conflictError } = await supabase
+        .from('contas_pagar')
+        .select('id')
+        .eq('origem', 'CF')
+        .eq('origem_id', compra.id)
+        .maybeSingle();
+
+      if (conflictError) throw conflictError;
+      if (!conflictConta?.id) throw error;
+
+      contaId = conflictConta.id;
+      await updateContaPagar(contaId, contaPayload, userId);
+    }
+  }
+
+  if (!contaId) {
+    throw new Error('Não foi possível criar o lançamento no contas a pagar.');
   }
 
   const { data: previousParcelas } = await supabase
@@ -340,14 +387,6 @@ export async function syncContaPagarFromCompraFaturada(compra: CompraFaturada, u
   const previousByNumber = new Map<number, ContaPagarParcela>(
     (previousParcelas || []).map((parcela: any) => [parcela.numero_parcela, parcela])
   );
-
-  if (previousParcelas?.length) {
-    const { error: deleteParcelasError } = await supabase
-      .from('contas_pagar_parcelas')
-      .delete()
-      .eq('conta_pagar_id', contaId);
-    if (deleteParcelasError) throw deleteParcelasError;
-  }
 
   const parcelas = installments.map((installment, index) => {
     const numeroParcela = index + 1;
@@ -367,9 +406,9 @@ export async function syncContaPagarFromCompraFaturada(compra: CompraFaturada, u
   });
 
   if (parcelas.length > 0) {
-    await saveParcelas(parcelas, userId);
+    await replaceParcelasConta(contaId, parcelas, userId);
   } else {
-    await saveParcelas([
+    await replaceParcelasConta(contaId, [
       {
         conta_pagar_id: contaId,
         numero_parcela: 1,

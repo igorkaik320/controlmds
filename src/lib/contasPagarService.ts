@@ -48,6 +48,23 @@ export interface ContaPagarComParcelas extends ContaPagar {
   parcelas: ContaPagarParcela[];
 }
 
+function dedupeParcelasPorNumero(parcelas: ContaPagarParcela[]): ContaPagarParcela[] {
+  const parcelasPorNumero = new Map<number, ContaPagarParcela>();
+
+  [...parcelas]
+    .sort((a, b) => {
+      if (a.numero_parcela !== b.numero_parcela) return a.numero_parcela - b.numero_parcela;
+      return new Date(b.updated_at || b.created_at || 0).getTime() - new Date(a.updated_at || a.created_at || 0).getTime();
+    })
+    .forEach((parcela) => {
+      if (!parcelasPorNumero.has(parcela.numero_parcela)) {
+        parcelasPorNumero.set(parcela.numero_parcela, parcela);
+      }
+    });
+
+  return Array.from(parcelasPorNumero.values()).sort((a, b) => a.numero_parcela - b.numero_parcela);
+}
+
 // ---- Contas a Pagar ----
 export async function fetchContasPagar(): Promise<ContaPagarComParcelas[]> {
   const { data, error } = await supabase
@@ -75,17 +92,37 @@ export async function fetchContasPagar(): Promise<ContaPagarComParcelas[]> {
     throw new Error('Não foi possível carregar as contas a pagar');
   }
 
-  return (data || []).map((item: any) => ({
-    ...item,
-    origem: item.origem || 'CP',
-    origem_id: item.origem_id || null,
-    parcelas: (item.contas_pagar_parcelas || []).map((p: any) => ({
+  return (data || []).map((item: any) => {
+    const parcelas = (item.contas_pagar_parcelas || []).map((p: any) => ({
       ...p,
       created_by: p.created_by || '',
       created_at: p.created_at || '',
       updated_at: p.updated_at || '',
-    })),
-  }));
+    }));
+
+    return {
+      ...item,
+      origem: item.origem || 'CP',
+      origem_id: item.origem_id || null,
+      parcelas: dedupeParcelasPorNumero(parcelas),
+    };
+  });
+}
+
+export async function marcarParcelasVencidas(userId?: string): Promise<void> {
+  const hoje = new Date().toISOString().split('T')[0];
+
+  const { error } = await supabase
+    .from('contas_pagar_parcelas')
+    .update({
+      status: 'vencida',
+      updated_at: new Date().toISOString(),
+      ...(userId ? { updated_by: userId } : {}),
+    } as any)
+    .eq('status', 'aberta')
+    .lt('data_vencimento', hoje);
+
+  if (error) throw error;
 }
 
 export async function saveContaPagar(
@@ -155,10 +192,6 @@ export async function deleteContaPagar(id: string, userId: string): Promise<void
     .select('*')
     .eq('id', id)
     .maybeSingle();
-
-  if (previous?.origem && previous.origem !== 'CP') {
-    throw new Error('Este lançamento deve ser excluído pela tela de origem.');
-  }
 
   const { error } = await supabase
     .from('contas_pagar')
@@ -234,6 +267,39 @@ export async function saveParcelas(
 
   if (error) throw error;
   return data || [];
+}
+
+export async function replaceParcelasConta(
+  contaPagarId: string,
+  parcelas: Omit<ContaPagarParcela, 'id' | 'created_at' | 'updated_at'>[],
+  userId: string
+): Promise<ContaPagarParcela[]> {
+  const parcelasPorNumero = new Map<number, Omit<ContaPagarParcela, 'id' | 'created_at' | 'updated_at'>>();
+
+  parcelas
+    .filter((parcela) => parcela.conta_pagar_id === contaPagarId)
+    .forEach((parcela) => {
+      parcelasPorNumero.set(parcela.numero_parcela, parcela);
+    });
+
+  const normalizadas = Array.from(parcelasPorNumero.values())
+    .sort((a, b) => a.numero_parcela - b.numero_parcela)
+    .map((parcela, index) => ({
+      ...parcela,
+      conta_pagar_id: contaPagarId,
+      numero_parcela: index + 1,
+      created_by: parcela.created_by || userId,
+    }));
+
+  const { error: deleteError } = await supabase
+    .from('contas_pagar_parcelas')
+    .delete()
+    .eq('conta_pagar_id', contaPagarId);
+
+  if (deleteError) throw deleteError;
+  if (normalizadas.length === 0) return [];
+
+  return saveParcelas(normalizadas, userId);
 }
 
 export async function deleteParcela(id: string, userId: string): Promise<void> {

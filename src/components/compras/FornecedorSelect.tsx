@@ -21,7 +21,11 @@ interface Props {
 }
 
 function normalize(value: string) {
-  return value.toLowerCase().trim();
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
 }
 
 function digitsOnly(value: string) {
