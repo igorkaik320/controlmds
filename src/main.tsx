@@ -3,6 +3,10 @@ import App from "./App.tsx";
 import "./index.css";
 import { setupGlobalErrorHandling } from "./lib/safeUtils";
 
+document.documentElement.classList.remove("dark");
+document.documentElement.style.colorScheme = "light";
+localStorage.setItem("theme", "light");
+
 // Ativar tratamento global de erros
 console.log('🔧 Ativando tratamento global de erros...');
 setupGlobalErrorHandling();
