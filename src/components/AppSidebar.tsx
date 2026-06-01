@@ -80,9 +80,9 @@ export function AppSidebar() {
     label: 'Financeiro',
     icon: CircleDollarSign,
     items: [
+      { title: 'Dashboard', url: '/contas-pagar/dashboard', icon: LayoutDashboard, module: 'contas_pagar' },
       { title: 'Contas a Pagar', url: '/contas-pagar', icon: Package, module: 'contas_pagar' },
       { title: 'Controle de Caixa', url: '/controle-caixa', icon: Landmark, module: 'controle_caixa' },
-      { title: 'Parcelas Faturadas', url: '/financeiro/parcelas-faturadas', icon: FileBarChart, module: 'parcelas_faturadas' },
       {
         title: 'Cadastros',
         url: '/financeiro/cadastros',

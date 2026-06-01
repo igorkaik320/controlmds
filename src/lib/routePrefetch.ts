@@ -32,7 +32,7 @@ export const routeLoaders: Record<string, () => Promise<unknown>> = {
   "/categorias-financeiras": () => import("@/pages/CategoriasFinanceirasPage"),
   "/financeiro/tags": () => import("@/pages/FinanceiroTagsPage"),
   "/painel-executivo": () => import("@/pages/PainelExecutivoPage"),
-  "/financeiro/parcelas-faturadas": () => import("@/pages/FaturadosParcelasPage"),
+  "/contas-pagar/dashboard": () => import("@/pages/ContasPagarDashboardPage"),
   "/contas-pagar": () => import("@/pages/ContasPagarPage"),
   "/servicos-maquinas": () => import("@/pages/ServicosMaquinasPage"),
   "/componentes-maquinas": () => import("@/pages/ComponentesMaquinasPage"),

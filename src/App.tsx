@@ -41,7 +41,7 @@ const EmpresasPage = lazy(routeLoaders["/empresas"] as any);
 const CategoriasFinanceirasPage = lazy(routeLoaders["/categorias-financeiras"] as any);
 const FinanceiroTagsPage = lazy(routeLoaders["/financeiro/tags"] as any);
 const PainelExecutivoPage = lazy(routeLoaders["/painel-executivo"] as any);
-const FaturadosParcelasPage = lazy(routeLoaders["/financeiro/parcelas-faturadas"] as any);
+const ContasPagarDashboardPage = lazy(routeLoaders["/contas-pagar/dashboard"] as any);
 const ContasPagarPage = lazy(routeLoaders["/contas-pagar"] as any);
 const ServicosMaquinasPage = lazy(routeLoaders["/servicos-maquinas"] as any);
 const ComponentesMaquinasPage = lazy(routeLoaders["/componentes-maquinas"] as any);
@@ -209,6 +209,7 @@ const App = () => (
                   <Routes>
                 <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
                 <Route path="/" element={<HomeRoute />} />
+                <Route path="/contas-pagar/dashboard" element={<ModuleRoute module="contas_pagar"><ContasPagarDashboardPage /></ModuleRoute>} />
                 <Route path="/contas-pagar" element={<ModuleRoute module="contas_pagar"><ContasPagarPage /></ModuleRoute>} />
                 <Route path="/controle-caixa" element={<ProtectedRoute><Index /></ProtectedRoute>} />
 
@@ -232,11 +233,6 @@ const App = () => (
                   path="/compras/espelho-semanal"
                   element={<ModuleRoute module="espelho_semanal"><EspelhoSemanalPage /></ModuleRoute>}
                 />
-                <Route
-                  path="/financeiro/parcelas-faturadas"
-                  element={<ModuleRoute module="parcelas_faturadas"><FaturadosParcelasPage /></ModuleRoute>}
-                />
-
                 <Route path="/empresas" element={<ModuleRoute module="empresas"><EmpresasPage /></ModuleRoute>} />
                 <Route path="/categorias-financeiras" element={<ModuleRoute module="categorias_financeiras"><CategoriasFinanceirasPage /></ModuleRoute>} />
                 <Route path="/financeiro/tags" element={<ModuleRoute module="financeiro_tags"><FinanceiroTagsPage /></ModuleRoute>} />

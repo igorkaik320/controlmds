@@ -1,4 +1,5 @@
 ﻿import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -64,6 +65,12 @@ type ParcelaForm = {
   observacao: string;
 };
 
+type DashboardFilter = {
+  type: 'fornecedor' | 'categoria' | 'tag' | 'status' | 'mes';
+  value: string;
+  label: string;
+};
+
 function getCategoryLevel(code?: string | null) {
   if (!code) return 0;
   return Math.max(0, code.split('.').length - 1);
@@ -97,6 +104,7 @@ function getStatusFilterLabel(statuses: string[]) {
 export default function ContasPagarPage() {
   const { user } = useAuth();
   const { canCreate, canEdit, canDelete } = useModulePermissions();
+  const location = useLocation();
   const profileMap = useProfileMap();
   const [items, setItems] = useState<ContaPagarComParcelas[]>([]);
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
@@ -195,6 +203,7 @@ export default function ContasPagarPage() {
     searchFornecedor: '',
     dateFromStr: '',
     dateToStr: '',
+    dashboardFilter: null as DashboardFilter | null,
   });
 
   const [form, setForm] = useState({
@@ -236,6 +245,50 @@ export default function ContasPagarPage() {
   useEffect(() => { load(); }, [load]);
 
   useEffect(() => {
+    const state = location.state as {
+      dashboardFilter?: DashboardFilter;
+      filters?: {
+        dateFrom?: string;
+        dateTo?: string;
+        empresa?: string;
+        statuses?: string[];
+      };
+    } | null;
+
+    if (!state?.dashboardFilter) return;
+
+    const appliedStatuses = state.filters?.statuses || [];
+    const appliedDateFrom = state.filters?.dateFrom || '';
+    const appliedDateTo = state.filters?.dateTo || '';
+    const appliedEmpresa = state.filters?.empresa || '';
+
+    setFilterEmpresa(appliedEmpresa);
+    setFilterObra('');
+    setFilterFornecedor('');
+    setFilterStatuses(appliedStatuses);
+    setSearchFornecedor('');
+    setDateFromStr(appliedDateFrom);
+    setDateToStr(appliedDateTo);
+    setStartDate(undefined);
+    setEndDate(undefined);
+    setActiveTab('parcelas');
+    setCurrentPage(1);
+    setParcelasCurrentPage(1);
+    setFiltrosAplicados({
+      empresa: appliedEmpresa,
+      obra: '',
+      fornecedor: '',
+      statuses: appliedStatuses,
+      startDate: undefined,
+      endDate: undefined,
+      searchFornecedor: '',
+      dateFromStr: appliedDateFrom,
+      dateToStr: appliedDateTo,
+      dashboardFilter: state.dashboardFilter,
+    });
+  }, [location.state]);
+
+  useEffect(() => {
     if (form.empresa_id) {
       fetchObrasPorEmpresa(form.empresa_id).then(setObras).catch(() => {});
     } else {
@@ -275,6 +328,26 @@ export default function ContasPagarPage() {
       if (!mesmaObraId && !mesmaObraNome) return false;
     }
     if (filtrosAplicados.fornecedor && i.fornecedor_id !== filtrosAplicados.fornecedor) return false;
+    if (filtrosAplicados.dashboardFilter) {
+      const drill = filtrosAplicados.dashboardFilter;
+      if (drill.type === 'fornecedor' && normalizeSearch(i.fornecedor_nome) !== normalizeSearch(drill.value)) return false;
+      if (drill.type === 'categoria') {
+        const sameCategoryId = i.categoria_financeira_id === drill.value;
+        const categoryLabel = i.categoria_codigo
+          ? `${i.categoria_codigo} - ${i.categoria_nome || 'Sem descrição'}`
+          : i.categoria_nome || 'Sem categoria';
+        const sameCategoryLabel = normalizeSearch(categoryLabel) === normalizeSearch(drill.label)
+          || normalizeSearch(i.categoria_nome) === normalizeSearch(drill.value);
+        if (!sameCategoryId && !sameCategoryLabel) return false;
+      }
+      if (drill.type === 'tag') {
+        const sameTagId = i.tag_id === drill.value;
+        const sameTagName = normalizeSearch(i.tag_nome) === normalizeSearch(drill.value)
+          || normalizeSearch(i.tag_nome) === normalizeSearch(drill.label);
+        const sameEmptyTag = !i.tag_id && !i.tag_nome && normalizeSearch(drill.value) === normalizeSearch('Sem tag');
+        if (!sameTagId && !sameTagName && !sameEmptyTag) return false;
+      }
+    }
     return true;
   }
 
@@ -358,6 +431,7 @@ export default function ContasPagarPage() {
       searchFornecedor,
       dateFromStr,
       dateToStr,
+      dashboardFilter: null,
     });
     setCurrentPage(1);
   }
@@ -383,6 +457,7 @@ export default function ContasPagarPage() {
       searchFornecedor: '',
       dateFromStr: '',
       dateToStr: '',
+      dashboardFilter: null,
     });
     setCurrentPage(1);
   }
@@ -1401,6 +1476,14 @@ export default function ContasPagarPage() {
             <Input className="h-9 rounded-md border-input bg-card text-sm shadow-none" type="date" value={dateToStr} onChange={(e) => setDateToStr(e.target.value)} />
           </div>
         </div>
+        {filtrosAplicados.dashboardFilter ? (
+          <div className="mt-4 flex flex-wrap items-center gap-2 rounded-md border bg-muted/30 px-3 py-2 text-xs">
+            <span className="font-medium text-muted-foreground">Filtro do dashboard:</span>
+            <Badge variant="outline" className="rounded-md bg-card px-2 py-1 text-xs">
+              {filtrosAplicados.dashboardFilter.label}
+            </Badge>
+          </div>
+        ) : null}
         <div className="mt-4 flex justify-end gap-2">
           <Button variant="outline" size="sm" className="h-9" onClick={handleLimparFiltros}>
             Limpar
