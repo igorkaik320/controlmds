@@ -13,6 +13,7 @@ import type { ModuleKey } from "@/lib/modulePermissions";
 import { Lock } from "lucide-react";
 import { MaintenanceNotificationProvider } from "@/lib/maintenanceNotifications";
 import { routeLoaders } from "@/lib/routePrefetch";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 // Lazy-loaded pages — usam o MESMO loader do prefetch para reaproveitar o chunk em cache
 const Index = lazy(routeLoaders["/"] as any);
