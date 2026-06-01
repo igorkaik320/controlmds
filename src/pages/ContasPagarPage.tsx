@@ -37,8 +37,10 @@ import { fetchFinanceiroTags, FinanceiroTag } from '@/lib/financeiroTagsService'
 import ContasPagarParcelasDialog from '@/components/ContasPagarParcelasDialog';
 import FornecedorSelect from '@/components/compras/FornecedorSelect';
 import EmpresaSelect from '@/components/compras/EmpresaSelect';
+import ObservationInfoTooltip from '@/components/compras/ObservationInfoTooltip';
 import SearchableSelect, { SearchableSelectOption } from '@/components/SearchableSelect';
 import { cn } from '@/lib/utils';
+import { useProfileMap } from '@/hooks/useProfileMap';
 
 const STATUS_OPTIONS = [
   { value: 'aberta', label: 'Aberta' },
@@ -95,6 +97,7 @@ function getStatusFilterLabel(statuses: string[]) {
 export default function ContasPagarPage() {
   const { user } = useAuth();
   const { canCreate, canEdit, canDelete } = useModulePermissions();
+  const profileMap = useProfileMap();
   const [items, setItems] = useState<ContaPagarComParcelas[]>([]);
   const [empresas, setEmpresas] = useState<Empresa[]>([]);
   const [fornecedores, setFornecedores] = useState<Fornecedor[]>([]);
@@ -1472,13 +1475,14 @@ export default function ContasPagarPage() {
                 <TableHead onClick={() => handleSort('status')} className="cursor-pointer select-none bg-muted/50 text-xs font-medium text-muted-foreground hover:bg-muted">
                   <div className="flex items-center">Status<SortIcon column="status" /></div>
                 </TableHead>
+                <TableHead className="w-[64px] bg-muted/50 text-center text-xs font-medium text-muted-foreground">Info</TableHead>
                 <TableHead className="bg-muted/50 text-right text-xs font-medium text-muted-foreground">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {visiveis.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={11} className="text-center text-muted-foreground py-8">
                     Nenhuma conta encontrada
                   </TableCell>
                 </TableRow>
@@ -1544,6 +1548,16 @@ export default function ContasPagarPage() {
                       ) : (
                         <span className="text-muted-foreground text-sm">Sem parcelas</span>
                       )}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <ObservationInfoTooltip
+                        observation={conta.observacao || proxima?.observacao}
+                        createdBy={conta.created_by}
+                        createdAt={conta.created_at}
+                        updatedBy={conta.updated_by}
+                        updatedAt={conta.updated_at}
+                        profileMap={profileMap}
+                      />
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center justify-end gap-1">
@@ -1711,13 +1725,14 @@ export default function ContasPagarPage() {
                     <TableHead onClick={() => handleParcelasSort('obra')} className="cursor-pointer select-none bg-muted/50 text-xs font-medium text-muted-foreground hover:bg-muted">
                       <div className="flex items-center">Obra<ParcelasSortIcon column="obra" /></div>
                     </TableHead>
+                    <TableHead className="w-[64px] bg-muted/50 text-center text-xs font-medium text-muted-foreground">Info</TableHead>
                     <TableHead className="bg-muted/50 text-right text-xs font-medium text-muted-foreground">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {consultaParcelas.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={11} className="py-8 text-center text-muted-foreground">
+                      <TableCell colSpan={12} className="py-8 text-center text-muted-foreground">
                         Nenhuma parcela encontrada
                       </TableCell>
                     </TableRow>
@@ -1781,6 +1796,16 @@ export default function ContasPagarPage() {
                       </TableCell>
                       <TableCell className="max-w-[220px] truncate text-xs uppercase text-muted-foreground">
                         {parcela.conta.obra_nome || '-'}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <ObservationInfoTooltip
+                          observation={parcela.observacao || parcela.conta.observacao}
+                          createdBy={parcela.created_by}
+                          createdAt={parcela.created_at}
+                          updatedBy={parcela.updated_by}
+                          updatedAt={parcela.updated_at}
+                          profileMap={profileMap}
+                        />
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center justify-end gap-1">

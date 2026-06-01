@@ -85,6 +85,7 @@ export async function fetchContasPagar(): Promise<ContaPagarComParcelas[]> {
         observacao,
         created_by,
         created_at,
+        updated_by,
         updated_at
       )
     `)
@@ -100,6 +101,7 @@ export async function fetchContasPagar(): Promise<ContaPagarComParcelas[]> {
       ...p,
       created_by: p.created_by || '',
       created_at: p.created_at || '',
+      updated_by: p.updated_by || null,
       updated_at: p.updated_at || '',
     }));
 
