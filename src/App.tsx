@@ -195,6 +195,7 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
 }
 
 const App = () => (
+  <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <DraftGuards />
@@ -204,7 +205,8 @@ const App = () => (
           <AuthProvider>
             <MaintenanceNotificationProvider>
               <Suspense fallback={<PageFallback />}>
-                <Routes>
+                <ErrorBoundary>
+                  <Routes>
                 <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
                 <Route path="/" element={<HomeRoute />} />
                 <Route path="/contas-pagar" element={<ModuleRoute module="contas_pagar"><ContasPagarPage /></ModuleRoute>} />
@@ -282,13 +284,15 @@ const App = () => (
                 <Route path="/config-relatorio" element={<AdminRoute><ConfigRelatorioPage /></AdminRoute>} />
 
                 <Route path="*" element={<NotFound />} />
-                </Routes>
+                  </Routes>
+                </ErrorBoundary>
               </Suspense>
             </MaintenanceNotificationProvider>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;
