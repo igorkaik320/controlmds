@@ -55,6 +55,7 @@ export interface Fornecedor {
   agencia: string | null;
   conta: string | null;
   cnpj_cpf: string | null;
+  celular?: string | null;
   created_by: string;
   created_at: string;
   updated_by?: string | null;
@@ -164,11 +165,24 @@ export async function fetchFornecedores(): Promise<Fornecedor[]> {
   return data || [];
 }
 
+function normalizeFornecedorPayload(f: Partial<Fornecedor>) {
+  return {
+    nome_fornecedor: f.nome_fornecedor?.trim() || '',
+    razao_social: f.razao_social?.trim() || null,
+    banco: f.banco?.trim() || null,
+    agencia: f.agencia?.trim() || null,
+    conta: f.conta?.trim() || null,
+    cnpj_cpf: f.cnpj_cpf?.trim() || null,
+    celular: f.celular?.trim() || null,
+  };
+}
+
 export async function saveFornecedor(f: Omit<Fornecedor, 'id' | 'created_at'>, userId: string) {
   const timestamp = new Date().toISOString();
+  const payload = normalizeFornecedorPayload(f);
   const { data, error } = await supabase
     .from('fornecedores')
-    .insert({ ...f, created_by: userId, created_at: timestamp } as any)
+    .insert({ ...payload, created_by: userId, created_at: timestamp } as any)
     .select()
     .single();
   if (error) throw error;
@@ -186,10 +200,11 @@ export async function saveFornecedor(f: Omit<Fornecedor, 'id' | 'created_at'>, u
 
 export async function updateFornecedor(id: string, f: Partial<Fornecedor>, userId: string) {
   const { data: previous } = await supabase.from('fornecedores').select('*').eq('id', id).maybeSingle();
+  const payload = normalizeFornecedorPayload(f);
 
   const { data, error } = await supabase
     .from('fornecedores')
-    .update({ ...f, updated_at: new Date().toISOString(), updated_by: userId } as any)
+    .update({ ...payload, updated_at: new Date().toISOString(), updated_by: userId } as any)
     .eq('id', id)
     .select()
     .single();
@@ -328,7 +343,11 @@ export async function deleteCompraFaturada(id: string, userId: string) {
   }
 }
 
-export async function syncContaPagarFromCompraFaturada(compra: CompraFaturada, userId: string) {
+export async function syncContaPagarFromCompraFaturada(
+  compra: CompraFaturada,
+  userId: string,
+  options?: { preventExisting?: boolean }
+) {
   const installments = buildInstallmentsFromItem(compra);
   const firstDueDate = toIsoDateString(installments[0]?.due) || compra.data_liquidacao || compra.data;
   const { obraId, empresaId, empresaNome } = await resolveEmpresaFromObraName(compra.obra);
@@ -341,6 +360,9 @@ export async function syncContaPagarFromCompraFaturada(compra: CompraFaturada, u
     .maybeSingle();
 
   if (existingError) throw existingError;
+  if (existing?.id && options?.preventExisting) {
+    throw new Error('Esta compra faturada já existe no contas a pagar.');
+  }
 
   let contaId = existing?.id as string | undefined;
 
@@ -375,6 +397,9 @@ export async function syncContaPagarFromCompraFaturada(compra: CompraFaturada, u
     } catch (error: any) {
       const isDuplicateOrigin = error?.code === '23505';
       if (!isDuplicateOrigin) throw error;
+      if (options?.preventExisting) {
+        throw new Error('Esta compra faturada já existe no contas a pagar.');
+      }
 
       const { data: conflictConta, error: conflictError } = await supabase
         .from('contas_pagar')
@@ -484,6 +509,8 @@ export async function syncCompraFaturadaParcelasFromContaPagar(
     new_values: data,
     user_id: userId,
   });
+
+  return data as Fornecedor;
 }
 
 // ---- Compras à Vista ----

@@ -320,10 +320,10 @@ export default function ComprasAvistaPage() {
   function handleFornecedorSelect(f: Fornecedor) {
     setForm((prev: typeof emptyForm) => ({
       ...prev,
-      banco: f.banco || prev.banco,
-      agencia: f.agencia || prev.agencia,
-      conta: f.conta || prev.conta,
-      cnpj_cpf: f.cnpj_cpf || prev.cnpj_cpf,
+      banco: f.banco ?? '',
+      agencia: f.agencia ?? '',
+      conta: f.conta ?? '',
+      cnpj_cpf: f.cnpj_cpf ?? '',
     }));
   }
 

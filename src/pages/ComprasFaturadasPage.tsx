@@ -460,8 +460,28 @@ function openNew() {
     }
 
     try {
-      await Promise.all(selectedData.map((item) => syncContaPagarFromCompraFaturada(item, user.id)));
-      toast.success(`${selectedData.length} compra(s) enviada(s) para o contas a pagar.`);
+      let enviados = 0;
+      let jaExistentes = 0;
+
+      for (const item of selectedData) {
+        try {
+          await syncContaPagarFromCompraFaturada(item, user.id, { preventExisting: true });
+          enviados += 1;
+        } catch (error: any) {
+          if (String(error?.message || '').includes('já existe no contas a pagar')) {
+            jaExistentes += 1;
+            continue;
+          }
+          throw error;
+        }
+      }
+
+      if (enviados > 0) {
+        toast.success(`${enviados} compra(s) enviada(s) para o contas a pagar.`);
+      }
+      if (jaExistentes > 0) {
+        toast.warning(`${jaExistentes} compra(s) já existiam no contas a pagar e não foram reenviadas.`);
+      }
       setSelectedItems(new Set());
     } catch (e: any) {
       toast.error(e.message || 'Erro ao enviar compras para o contas a pagar.');
@@ -471,7 +491,7 @@ function openNew() {
   function handleFornecedorSelect(f: Fornecedor) {
     setForm((prev: typeof emptyForm) => ({
       ...prev,
-      cnpj_cpf: f.cnpj_cpf || prev.cnpj_cpf,
+      cnpj_cpf: f.cnpj_cpf ?? '',
     }));
   }
 

@@ -40,6 +40,13 @@ import EmpresaSelect from '@/components/compras/EmpresaSelect';
 import SearchableSelect, { SearchableSelectOption } from '@/components/SearchableSelect';
 import { cn } from '@/lib/utils';
 
+const STATUS_OPTIONS = [
+  { value: 'aberta', label: 'Aberta' },
+  { value: 'paga', label: 'Paga' },
+  { value: 'vencida', label: 'Vencida' },
+  { value: 'cancelada', label: 'Cancelada' },
+] as const;
+
 interface Empresa {
   id: string;
   nome: string;
@@ -66,6 +73,23 @@ function normalizeSearch(value?: string | null) {
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .trim();
+}
+
+function getStatusLabel(status: string) {
+  const labels: Record<string, string> = {
+    aberta: 'Aberta',
+    paga: 'Paga',
+    vencida: 'Vencida',
+    cancelada: 'Cancelada',
+  };
+
+  return labels[status] || status;
+}
+
+function getStatusFilterLabel(statuses: string[]) {
+  if (statuses.length === 0) return 'Todos os status';
+  if (statuses.length === STATUS_OPTIONS.length) return 'Todos os status';
+  return statuses.map(getStatusLabel).join(', ');
 }
 
 export default function ContasPagarPage() {
@@ -152,6 +176,8 @@ export default function ContasPagarPage() {
   const [filterEmpresa, setFilterEmpresa] = useState('');
   const [filterObra, setFilterObra] = useState('');
   const [filterFornecedor, setFilterFornecedor] = useState('');
+  const [filterStatuses, setFilterStatuses] = useState<string[]>([]);
+  const [statusQuery, setStatusQuery] = useState('');
   const [filterDataEmissao, setFilterDataEmissao] = useState('');
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
@@ -160,6 +186,7 @@ export default function ContasPagarPage() {
     empresa: '',
     obra: '',
     fornecedor: '',
+    statuses: [] as string[],
     startDate: null as Date | undefined,
     endDate: null as Date | undefined,
     searchFornecedor: '',
@@ -272,6 +299,10 @@ export default function ContasPagarPage() {
 
   const filtered = items.filter((i) => {
     if (!contaPassaFiltrosBasicos(i)) return false;
+    if (filtrosAplicados.statuses.length > 0) {
+      const parcelaPrincipal = getParcelaPrincipal(i);
+      if (!parcelaPrincipal || !filtrosAplicados.statuses.includes(parcelaPrincipal.status)) return false;
+    }
     return contaDentroDoPeriodoPrincipal(i);
   });
 
@@ -318,6 +349,7 @@ export default function ContasPagarPage() {
       empresa: filterEmpresa,
       obra: filterObra,
       fornecedor: filterFornecedor,
+      statuses: filterStatuses,
       startDate: startDate,
       endDate: endDate,
       searchFornecedor,
@@ -331,6 +363,8 @@ export default function ContasPagarPage() {
     setFilterEmpresa('');
     setFilterObra('');
     setFilterFornecedor('');
+    setFilterStatuses([]);
+    setStatusQuery('');
     setStartDate(undefined);
     setEndDate(undefined);
     setSearchFornecedor('');
@@ -340,6 +374,7 @@ export default function ContasPagarPage() {
       empresa: '',
       obra: '',
       fornecedor: '',
+      statuses: [],
       startDate: undefined,
       endDate: undefined,
       searchFornecedor: '',
@@ -767,16 +802,20 @@ export default function ContasPagarPage() {
       )
       .filter((parcela) => !hasPeriodoAplicado || parcelaDentroDoPeriodo(parcela));
 
-    parcelas.sort((a, b) => {
+    const parcelasFiltradas = filtrosAplicados.statuses.length === 0
+      ? parcelas
+      : parcelas.filter((parcela) => filtrosAplicados.statuses.includes(parcela.status));
+
+    parcelasFiltradas.sort((a, b) => {
       if (!parcelasSortKey) {
         const dataA = a.data_vencimento || '';
         const dataB = b.data_vencimento || '';
-        if (dataA !== dataB) return dataA > dataB ? -1 : 1;
+        if (dataA !== dataB) return dataA > dataB ? 1 : -1;
         return (a.conta.fornecedor_nome || '').localeCompare(b.conta.fornecedor_nome || '', 'pt-BR');
       }
 
       const dir = parcelasSortDir === 'asc' ? 1 : -1;
-      const getVal = (item: typeof parcelas[number]): string | number => {
+      const getVal = (item: typeof parcelasFiltradas[number]): string | number => {
         switch (parcelasSortKey) {
           case 'vencimento': return item.data_vencimento || '';
           case 'empresa': return (item.conta.empresa_nome || '').toLowerCase();
@@ -797,7 +836,7 @@ export default function ContasPagarPage() {
       return collator.compare(String(va), String(vb)) * dir;
     });
 
-    return parcelas;
+    return parcelasFiltradas;
   }, [items, filtrosAplicados, obras, parcelasSortKey, parcelasSortDir]);
 
   // Agrupar parcelas por data para o relatório
@@ -835,8 +874,7 @@ export default function ContasPagarPage() {
     result.forEach(group => {
       group.items.sort((a, b) => a.valor_parcela - b.valor_parcela);
     });
-    // Retornar grupos ordenados por data (mesma lógica do FaturadosParcelasPage)
-    return result.sort((a, b) => (a.date > b.date ? -1 : a.date < b.date ? 1 : 0));
+    return result.sort((a, b) => (a.date > b.date ? 1 : a.date < b.date ? -1 : 0));
   }, [consultaParcelas]);
 
   const reportTotal = useMemo(() => {
@@ -864,6 +902,20 @@ export default function ContasPagarPage() {
         keywords: `${obra.nome} ${(obra as any).empresa_nome || ''}`,
       }));
   }, [obras, filterEmpresa]);
+
+  const filteredStatusOptions = useMemo(() => {
+    const term = normalizeSearch(statusQuery);
+    if (!term) return STATUS_OPTIONS;
+    return STATUS_OPTIONS.filter((status) => normalizeSearch(status.label).includes(term));
+  }, [statusQuery]);
+
+  function toggleFilterStatus(status: string) {
+    setFilterStatuses((current) =>
+      current.includes(status)
+        ? current.filter((item) => item !== status)
+        : [...current, status]
+    );
+  }
 
   const categoriaOptions = useMemo<SearchableSelectOption[]>(() => {
     return categorias
@@ -1246,11 +1298,11 @@ export default function ContasPagarPage() {
         <div className="mb-4">
           <h3 className="text-sm font-semibold text-foreground">Filtros</h3>
           <p className="text-xs text-muted-foreground">
-            Refine a consulta por fornecedor e período de vencimento.
+            Refine a consulta por empresa, obra, fornecedor, status e período de vencimento.
           </p>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[260px_260px_minmax(240px,1fr)_180px_180px]">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[220px_220px_minmax(220px,1fr)_150px_170px_170px]">
           <EmpresaSelect
             value={filterEmpresa}
             onChange={(value) => {
@@ -1281,6 +1333,61 @@ export default function ContasPagarPage() {
               value={searchFornecedor}
               onChange={(e) => setSearchFornecedor(e.target.value)}
             />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">Status</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-9 w-full justify-start border-input bg-card px-3 text-left text-sm font-normal shadow-none"
+                >
+                  <span className="truncate">{getStatusFilterLabel(filterStatuses)}</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] p-2">
+                <Input
+                  className="mb-2 h-8 text-sm"
+                  placeholder="Digite para pesquisar"
+                  value={statusQuery}
+                  onChange={(event) => setStatusQuery(event.target.value)}
+                />
+                <div className="max-h-52 overflow-auto">
+                  {filteredStatusOptions.length === 0 ? (
+                    <div className="px-2 py-2 text-sm text-muted-foreground">Nenhum status encontrado</div>
+                  ) : (
+                    filteredStatusOptions.map((status) => (
+                      <button
+                        key={status.value}
+                        type="button"
+                        className="flex w-full items-center gap-2 rounded-sm px-2 py-2 text-left text-sm hover:bg-accent"
+                        onClick={() => toggleFilterStatus(status.value)}
+                      >
+                        <span
+                          className={cn(
+                            'h-4 w-4 rounded border border-input',
+                            filterStatuses.includes(status.value) && 'border-primary bg-primary'
+                          )}
+                        />
+                        <span>{status.label}</span>
+                      </button>
+                    ))
+                  )}
+                </div>
+                {filterStatuses.length > 0 ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="mt-2 h-8 w-full"
+                    onClick={() => setFilterStatuses([])}
+                  >
+                    Limpar status
+                  </Button>
+                ) : null}
+              </PopoverContent>
+            </Popover>
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs font-medium text-muted-foreground">Data inicial</Label>
@@ -2035,7 +2142,7 @@ export default function ContasPagarPage() {
             {/* Resumo dos Filtros */}
             <div className="rounded-md border bg-muted/30 p-4">
               <h4 className="font-semibold mb-2">Filtros Aplicados:</h4>
-              <div className="grid gap-4 text-sm md:grid-cols-4">
+              <div className="grid gap-4 text-sm md:grid-cols-5">
                 <div>
                   <span className="text-muted-foreground">Empresa:</span>
                   <p className="font-medium">
@@ -2069,6 +2176,10 @@ export default function ContasPagarPage() {
                       ? `${filtrosAplicados.startDate ? format(filtrosAplicados.startDate, 'dd/MM/yyyy', { locale: ptBR }) : 'Início'} a ${filtrosAplicados.endDate ? format(filtrosAplicados.endDate, 'dd/MM/yyyy', { locale: ptBR }) : 'Fim'}`
                       : 'Todo o período'}
                   </p>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Status:</span>
+                  <p className="font-medium">{getStatusFilterLabel(filtrosAplicados.statuses)}</p>
                 </div>
               </div>
             </div>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { fetchFornecedores, type Fornecedor } from '@/lib/comprasService';
@@ -47,30 +47,33 @@ export default function FornecedorSelect({
   const [query, setQuery] = useState('');
   const [loadedFornecedores, setLoadedFornecedores] = useState<Fornecedor[]>([]);
 
-  useEffect(() => {
+  const loadFornecedores = useCallback(async (showError = true) => {
     if (fornecedoresProp) return;
 
     let cancelled = false;
 
-    async function loadFornecedores() {
-      try {
-        const fornecedores = await fetchFornecedores();
-        if (!cancelled) {
-          setLoadedFornecedores(fornecedores);
-        }
-      } catch (error: any) {
-        if (!cancelled) {
+    try {
+      const fornecedores = await fetchFornecedores();
+      if (!cancelled) {
+        setLoadedFornecedores(fornecedores);
+      }
+    } catch (error: any) {
+      if (!cancelled && showError) {
           toast.error(error.message || 'Nao foi possivel carregar os fornecedores');
-        }
       }
     }
-
-    loadFornecedores();
 
     return () => {
       cancelled = true;
     };
   }, [fornecedoresProp]);
+
+  useEffect(() => {
+    const cleanupPromise = loadFornecedores();
+    return () => {
+      cleanupPromise?.then((cleanup) => cleanup?.());
+    };
+  }, [loadFornecedores]);
 
   const fornecedores = fornecedoresProp ?? loadedFornecedores;
 
@@ -140,7 +143,10 @@ export default function FornecedorSelect({
             }
             setOpen(true);
           }}
-          onFocus={() => setOpen(true)}
+          onFocus={() => {
+            setOpen(true);
+            loadFornecedores(false);
+          }}
           onBlur={() => setTimeout(() => setOpen(false), 200)}
           placeholder={placeholder}
         />
