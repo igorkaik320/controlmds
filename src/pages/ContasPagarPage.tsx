@@ -2078,26 +2078,25 @@ export default function ContasPagarPage() {
               </div>
               <div>
                 <Label>Quantidade de Parcelas *</Label>
-                <Select 
-                  value={form.quantidade_parcelas} 
+                <Input
+                  type="number"
+                  min={1}
+                  step={1}
+                  inputMode="numeric"
+                  value={form.quantidade_parcelas}
                   disabled={isExternalEditing}
-                  onValueChange={(value) => {
-                    const nextForm = { ...form, quantidade_parcelas: value };
+                  onChange={(event) => {
+                    const value = event.target.value.replace(/\D/g, '');
+                    setForm((prev) => ({ ...prev, quantidade_parcelas: value }));
+                  }}
+                  onBlur={() => {
+                    const quantidade = Math.max(1, parseInt(form.quantidade_parcelas || '1', 10) || 1);
+                    const nextForm = { ...form, quantidade_parcelas: String(quantidade) };
                     setForm(nextForm);
                     regenerateParcelas(nextForm);
                   }}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((num) => (
-                      <SelectItem key={num} value={num.toString()}>
-                        {num} {num === 1 ? 'parcela' : 'parcelas'}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  placeholder="Digite a quantidade"
+                />
               </div>
             </div>
 
