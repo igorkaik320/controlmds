@@ -644,6 +644,7 @@ export default function ContasPagarPage() {
         }
 
         const parcelasAtualizadas = parcelasForm.map((parcela) => ({
+          id: parcela.id,
           conta_pagar_id: editingId,
           numero_parcela: parcela.numero_parcela,
           valor_parcela: parseCurrencyInput(parcela.valor_parcela),
@@ -715,6 +716,7 @@ export default function ContasPagarPage() {
         await replaceParcelasConta(
           editingId,
           parcelasForm.map((parcela) => ({
+            id: parcela.id,
             conta_pagar_id: editingId,
             numero_parcela: parcela.numero_parcela,
             valor_parcela: parseCurrencyInput(parcela.valor_parcela),
@@ -827,8 +829,22 @@ export default function ContasPagarPage() {
     );
   }
 
-  function TagBadge({ nome, cor, compact = false }: { nome?: string | null; cor?: string | null; compact?: boolean }) {
-    if (!nome) return <span className="text-xs text-muted-foreground">-</span>;
+  function getTagDisplay(tagId?: string | null, nome?: string | null, cor?: string | null) {
+    const byId = tagId ? tags.find((tag) => tag.id === tagId) : null;
+    const byName = nome
+      ? tags.find((tag) => normalizeSearch(tag.nome) === normalizeSearch(nome))
+      : null;
+    const tag = byId || byName;
+
+    return {
+      nome: tag?.nome || nome || null,
+      cor: tag?.cor || cor || '#64748b',
+    };
+  }
+
+  function TagBadge({ tagId, nome, cor, compact = false }: { tagId?: string | null; nome?: string | null; cor?: string | null; compact?: boolean }) {
+    const tag = getTagDisplay(tagId, nome, cor);
+    if (!tag.nome) return <span className="text-xs text-muted-foreground">-</span>;
     return (
       <span
         className={cn(
@@ -837,10 +853,10 @@ export default function ContasPagarPage() {
             ? "h-5 w-[86px] justify-center px-1.5 text-[10px]"
             : "h-6 max-w-[120px] px-2 text-[11px]"
         )}
-        style={{ backgroundColor: cor || '#64748b' }}
-        title={nome}
+        style={{ backgroundColor: tag.cor }}
+        title={tag.nome}
       >
-        <span className="truncate">{nome}</span>
+        <span className="truncate">{tag.nome}</span>
       </span>
     );
   }
@@ -959,6 +975,10 @@ export default function ContasPagarPage() {
     return reportGroups.reduce((sum, group) => sum + group.total, 0);
   }, [reportGroups]);
 
+  function getReportObservacao(item: any) {
+    return String(item?.observacao || item?.conta?.observacao || '-').trim() || '-';
+  }
+
   const visiveis = sortedFiltered;
 
   const obraOptions = useMemo<SearchableSelectOption[]>(() => {
@@ -1072,7 +1092,7 @@ export default function ContasPagarPage() {
       const XLSX = await import("xlsx");
       const cleanText = (value: unknown) => String(value ?? "").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "");
       const rows = [
-        ["Vencimento", "Empresa", "Fornecedor", "Tag", "Parcela", "Valor", "Status"],
+        ["Vencimento", "Empresa", "Fornecedor", "Tag", "Observação", "Parcela", "Valor", "Status"],
         ...reportGroups.flatMap((group) =>
           group.items.map((item: any) => [
             item.data_vencimento
@@ -1080,13 +1100,14 @@ export default function ContasPagarPage() {
               : "",
             cleanText(item.conta.empresa_nome),
             cleanText(item.conta.fornecedor_nome),
-            cleanText(item.conta.tag_nome),
+            cleanText(getTagDisplay(item.conta.tag_id, item.conta.tag_nome, item.conta.tag_cor).nome),
+            cleanText(getReportObservacao(item)),
             `${item.numero_parcela}/${item.conta.quantidade_parcelas}`,
             Number(item.valor_parcela || 0),
             cleanText(item.status).toUpperCase(),
           ])
         ),
-        ["", "", "", "", "TOTAL GERAL", reportTotal, ""],
+        ["", "", "", "", "", "TOTAL GERAL", reportTotal, ""],
       ];
 
       const ws = XLSX.utils.aoa_to_sheet(rows);
@@ -1095,6 +1116,7 @@ export default function ContasPagarPage() {
         { wch: 28 },
         { wch: 42 },
         { wch: 18 },
+        { wch: 36 },
         { wch: 14 },
         { wch: 16 },
         { wch: 14 },
@@ -1102,7 +1124,7 @@ export default function ContasPagarPage() {
 
       const range = XLSX.utils.decode_range(ws["!ref"] || "A1");
       for (let row = range.s.r + 1; row <= range.e.r; row += 1) {
-        const cellRef = XLSX.utils.encode_cell({ r: row, c: 5 });
+        const cellRef = XLSX.utils.encode_cell({ r: row, c: 6 });
         if (ws[cellRef]) {
           ws[cellRef].t = "n";
           ws[cellRef].z = "#,##0.00";
@@ -1177,13 +1199,26 @@ export default function ContasPagarPage() {
 
       // Cabeçalho da tabela
       const cols = {
-        venc:      { x: marginLeft,       w: 22 },
-        empresa:   { x: marginLeft + 22,  w: 30 },
-        fornec:    { x: marginLeft + 52,  w: 49 },
-        tag:       { x: marginLeft + 101, w: 22 },
-        parcela:   { x: marginLeft + 126, w: 17 },
-        valor:     { x: marginLeft + 143, w: 20 },
-        status:    { x: marginLeft + 164, w: 18 },
+        venc:      { x: marginLeft,       w: 18 },
+        empresa:   { x: marginLeft + 18,  w: 25 },
+        fornec:    { x: marginLeft + 43,  w: 38 },
+        obs:       { x: marginLeft + 81,  w: 32 },
+        tag:       { x: marginLeft + 113, w: 19 },
+        parcela:   { x: marginLeft + 132, w: 14 },
+        valor:     { x: marginLeft + 146, w: 20 },
+        status:    { x: marginLeft + 166, w: 16 },
+      };
+
+      const wrapPdfText = (value: unknown, width: number, maxLines: number) => {
+        const text = String(value || "-").trim() || "-";
+        const lines = pdf.splitTextToSize(text, width).slice(0, maxLines);
+
+        if (lines.length === maxLines && pdf.splitTextToSize(text, width).length > maxLines) {
+          const last = String(lines[lines.length - 1]);
+          lines[lines.length - 1] = last.length > 3 ? `${last.slice(0, -3)}...` : last;
+        }
+
+        return lines.length ? lines : ["-"];
       };
 
       const pdfBadgeHeight = 4.2;
@@ -1194,12 +1229,13 @@ export default function ContasPagarPage() {
         width: number,
         fill: [number, number, number],
         color: [number, number, number],
-        baselineY: number
+        baselineY: number,
+        fontSize = 6
       ) => {
         pdf.setFillColor(...fill);
         pdf.roundedRect(x, baselineY - 2.9, width, pdfBadgeHeight, pdfBadgeRadius, pdfBadgeRadius, "F");
         pdf.setTextColor(...color);
-        pdf.setFontSize(6);
+        pdf.setFontSize(fontSize);
         pdf.setFont("helvetica", "bold");
         pdf.text(text, x + width / 2, baselineY - 0.7, { align: "center" });
         pdf.setFont("helvetica", "normal");
@@ -1218,6 +1254,7 @@ export default function ContasPagarPage() {
         pdf.text("Vencimento", cols.venc.x, y);
         pdf.text("Empresa", cols.empresa.x, y);
         pdf.text("Fornecedor", cols.fornec.x, y);
+        pdf.text("Obs.", cols.obs.x, y);
         pdf.text("Tag", cols.tag.x + cols.tag.w / 2, y, { align: "center" });
         pdf.text("Parcela", cols.parcela.x + cols.parcela.w / 2, y, { align: "center" });
         pdf.text("Valor", cols.valor.x + cols.valor.w, y, { align: "right" });
@@ -1263,7 +1300,14 @@ export default function ContasPagarPage() {
 
         // Linhas de parcela
         group.items.forEach((item: any, idx: number) => {
-          checkNewPage(7);
+          pdf.setFontSize(7);
+          const empresaLines = wrapPdfText(item.conta.empresa_nome || "-", cols.empresa.w - 2, 3);
+          const fornecLines = wrapPdfText(item.conta.fornecedor_nome || "-", cols.fornec.w - 2, 3);
+          pdf.setFontSize(6.4);
+          const observacaoLines = wrapPdfText(getReportObservacao(item), cols.obs.w - 1, 4);
+          const maxLines = Math.max(empresaLines.length, fornecLines.length, observacaoLines.length);
+          const rowHeight = Math.max(7, maxLines * 3.2 + 3.2);
+          checkNewPage(rowHeight);
 
           // Zebra
           if (idx % 2 === 0) {
@@ -1271,9 +1315,9 @@ export default function ContasPagarPage() {
           } else {
             pdf.setFillColor(252, 252, 252);
           }
-          pdf.rect(marginLeft, y - 3.5, usableWidth, 6.5, "F");
+          pdf.rect(marginLeft, y - 3.5, usableWidth, rowHeight - 0.5, "F");
 
-          pdf.setFontSize(7.5);
+          pdf.setFontSize(7);
           pdf.setFont("helvetica", "normal");
           pdf.setTextColor(50, 50, 50);
 
@@ -1281,22 +1325,31 @@ export default function ContasPagarPage() {
             ? new Date(item.data_vencimento + "T00:00:00").toLocaleDateString("pt-BR")
             : "-";
 
-          const empresaNome: string = (item.conta.empresa_nome || "-").substring(0, 16);
-          const fornecNome: string = (item.conta.fornecedor_nome || "-").substring(0, 24);
-          const tagNome: string = (item.conta.tag_nome || "-").substring(0, 8);
+          const tagDisplay = getTagDisplay(item.conta.tag_id, item.conta.tag_nome, item.conta.tag_cor);
+          pdf.setFontSize(5.2);
+          const tagNome = wrapPdfText(tagDisplay.nome || "-", cols.tag.w - 2, 1)[0];
+          const tagBadgeWidth = Math.min(cols.tag.w - 1, Math.max(9, pdf.getTextWidth(tagNome) + 4));
+          const tagBadgeX = cols.tag.x + (cols.tag.w - tagBadgeWidth) / 2;
+          pdf.setFontSize(7);
           const parcelaText = `${item.numero_parcela}/${item.conta.quantidade_parcelas}`;
           const valorText = formatCurrency(item.valor_parcela);
           const statusValue: string = item.status || "-";
           const statusText: string = statusValue.toUpperCase().substring(0, 8);
 
           pdf.text(vencText, cols.venc.x, y);
-          pdf.text(empresaNome, cols.empresa.x, y);
-          pdf.text(fornecNome, cols.fornec.x, y);
+          pdf.text(empresaLines, cols.empresa.x, y);
+          pdf.text(fornecLines, cols.fornec.x, y);
 
-          if (item.conta.tag_nome) {
-            const [tagR, tagG, tagB] = hexToRgb(item.conta.tag_cor);
+          pdf.setFontSize(6.4);
+          pdf.setTextColor(80, 80, 80);
+          pdf.text(observacaoLines, cols.obs.x, y);
+          pdf.setFontSize(7);
+          pdf.setTextColor(50, 50, 50);
+
+          if (tagDisplay.nome) {
+            const [tagR, tagG, tagB] = hexToRgb(tagDisplay.cor);
             const [textR, textG, textB] = getReadableTextColor([tagR, tagG, tagB]);
-            drawPdfBadge(tagNome, cols.tag.x, cols.tag.w, [tagR, tagG, tagB], [textR, textG, textB], y);
+            drawPdfBadge(tagNome, tagBadgeX, tagBadgeWidth, [tagR, tagG, tagB], [textR, textG, textB], y, 5.2);
           } else {
             pdf.text("-", cols.tag.x + cols.tag.w / 2, y, { align: "center" });
           }
@@ -1323,9 +1376,9 @@ export default function ContasPagarPage() {
           drawPdfBadge(statusText, cols.status.x, cols.status.w, [br, bg, bb], [tr, tg, tb], y);
 
           pdf.setDrawColor(240, 240, 240);
-          pdf.line(marginLeft, y + 2.5, marginRight, y + 2.5);
+          pdf.line(marginLeft, y + rowHeight - 4.5, marginRight, y + rowHeight - 4.5);
 
-          y += 7;
+          y += rowHeight;
         });
 
         checkNewPage(8);
@@ -1585,7 +1638,7 @@ export default function ContasPagarPage() {
                       <OrigemBadge origem={conta.origem} />
                     </TableCell>
                     <TableCell>
-                      <TagBadge nome={conta.tag_nome} cor={conta.tag_cor} />
+                      <TagBadge tagId={conta.tag_id} nome={conta.tag_nome} cor={conta.tag_cor} />
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {conta.categoria_codigo ? `${conta.categoria_codigo} - ${conta.categoria_nome}` : '-'}
@@ -1845,7 +1898,7 @@ export default function ContasPagarPage() {
                         <OrigemBadge origem={parcela.conta.origem} />
                       </TableCell>
                       <TableCell>
-                        <TagBadge nome={parcela.conta.tag_nome} cor={parcela.conta.tag_cor} />
+                        <TagBadge tagId={parcela.conta.tag_id} nome={parcela.conta.tag_nome} cor={parcela.conta.tag_cor} />
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {parcela.numero_parcela}/{parcela.conta.quantidade_parcelas || parcela.conta.parcelas.length}
@@ -2314,6 +2367,7 @@ export default function ContasPagarPage() {
                       <TableHead>Vencimento</TableHead>
                       <TableHead>Empresa</TableHead>
                       <TableHead>Fornecedor</TableHead>
+                      <TableHead>Obs.</TableHead>
                       <TableHead>Tag</TableHead>
                       <TableHead>Parcela</TableHead>
                       <TableHead className="text-right">Valor</TableHead>
@@ -2323,7 +2377,7 @@ export default function ContasPagarPage() {
                   <TableBody>
                     {reportGroups.map((group) => [
                       <TableRow key={group.date}>
-                        <TableCell colSpan={7} className="bg-muted/20 py-2">
+                        <TableCell colSpan={8} className="bg-muted/20 py-2">
                           <div>
                             <p className="text-sm font-semibold text-foreground">{group.dateLabel}</p>
                             <p className="text-xs text-muted-foreground">
@@ -2346,8 +2400,11 @@ export default function ContasPagarPage() {
                             <TableCell className="text-xs py-1">
                               {item.conta.fornecedor_nome || '-'}
                             </TableCell>
+                            <TableCell className="max-w-[220px] whitespace-normal py-1 text-[11px] leading-tight text-muted-foreground">
+                              {getReportObservacao(item)}
+                            </TableCell>
                             <TableCell className="py-1">
-                              <TagBadge nome={item.conta.tag_nome} cor={item.conta.tag_cor} compact />
+                              <TagBadge tagId={item.conta.tag_id} nome={item.conta.tag_nome} cor={item.conta.tag_cor} compact />
                             </TableCell>
                             <TableCell className="text-center text-xs py-1">
                               {item.numero_parcela}/{item.conta.quantidade_parcelas}
@@ -2363,7 +2420,7 @@ export default function ContasPagarPage() {
                           </TableRow>
                         )),
                         <TableRow key={`${group.date}-total`}>
-                          <TableCell colSpan={5} className="bg-muted/30 py-2 text-right text-xs font-bold uppercase text-foreground">
+                          <TableCell colSpan={6} className="bg-muted/30 py-2 text-right text-xs font-bold uppercase text-foreground">
                             Total do dia
                           </TableCell>
                           <TableCell className="bg-muted/30 py-2 text-right text-xs font-bold">
@@ -2375,7 +2432,7 @@ export default function ContasPagarPage() {
                     
                     {/* Total Geral */}
                       <TableRow>
-                        <TableCell colSpan={7} className="py-2">
+                        <TableCell colSpan={8} className="py-2">
                           <div className="flex justify-between items-center border-t-2 border-black">
                             <p className="font-bold text-sm">TOTAL GERAL</p>
                             <p className="font-bold text-base">

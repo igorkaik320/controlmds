@@ -166,10 +166,15 @@ export async function updateContaPagar(
     .eq('id', id)
     .maybeSingle();
 
+  const { id: _id, numero: _numero, created_by: _createdBy, created_at: _createdAt, ...safeConta } = conta as Partial<ContaPagar> & {
+    id?: string;
+    numero?: number;
+  };
+
   const { data, error } = await supabase
     .from('contas_pagar')
     .update({
-      ...conta,
+      ...safeConta,
       updated_at: new Date().toISOString(),
       updated_by: userId,
     } as any)
@@ -215,6 +220,11 @@ export async function deleteContaPagar(id: string, userId: string): Promise<void
 }
 
 // ---- Parcelas ----
+type ParcelaInsertPayload = Omit<ContaPagarParcela, 'id' | 'created_at' | 'updated_at'> & {
+  id?: string;
+  created_at?: string | null;
+};
+
 export async function updateParcela(
   id: string,
   parcela: Partial<ContaPagarParcela>,
@@ -249,20 +259,21 @@ export async function updateParcela(
 }
 
 export async function saveParcelas(
-  parcelas: Omit<ContaPagarParcela, 'id' | 'created_at' | 'updated_at'>[],
+  parcelas: ParcelaInsertPayload[],
   userId: string
 ): Promise<ContaPagarParcela[]> {
   const timestamp = new Date().toISOString();
 
-  const parcelasLimpas = parcelas.map(p => ({
+  const parcelasLimpas = parcelas.map(({ id: _id, ...p }) => ({
     ...p,
     data_vencimento: p.data_vencimento || null,
     data_pagamento: p.data_pagamento || null,
     valor_pago: p.valor_pago ?? null,
     observacao: p.observacao || null,
-    created_by: userId,
-    created_at: timestamp,
+    created_by: p.created_by || userId,
+    created_at: p.created_at || timestamp,
     updated_at: timestamp,
+    updated_by: userId,
   }));
 
   const { data, error } = await supabase
@@ -276,10 +287,26 @@ export async function saveParcelas(
 
 export async function replaceParcelasConta(
   contaPagarId: string,
-  parcelas: Omit<ContaPagarParcela, 'id' | 'created_at' | 'updated_at'>[],
+  parcelas: ParcelaInsertPayload[],
   userId: string
 ): Promise<ContaPagarParcela[]> {
-  const parcelasPorNumero = new Map<number, Omit<ContaPagarParcela, 'id' | 'created_at' | 'updated_at'>>();
+  const { data: existentes, error: existentesError } = await supabase
+    .from('contas_pagar_parcelas')
+    .select('*')
+    .eq('conta_pagar_id', contaPagarId);
+
+  if (existentesError) throw existentesError;
+
+  const existentesPorId = new Map<string, ContaPagarParcela>();
+  const existentesPorNumero = new Map<number, ContaPagarParcela>();
+  ((existentes || []) as ContaPagarParcela[]).forEach((parcela) => {
+    existentesPorId.set(parcela.id, parcela);
+    if (!existentesPorNumero.has(parcela.numero_parcela)) {
+      existentesPorNumero.set(parcela.numero_parcela, parcela);
+    }
+  });
+
+  const parcelasPorNumero = new Map<number, ParcelaInsertPayload>();
 
   parcelas
     .filter((parcela) => parcela.conta_pagar_id === contaPagarId)
@@ -293,7 +320,14 @@ export async function replaceParcelasConta(
       ...parcela,
       conta_pagar_id: contaPagarId,
       numero_parcela: index + 1,
-      created_by: parcela.created_by || userId,
+      created_by: existentesPorId.get(parcela.id || '')?.created_by
+        || existentesPorNumero.get(parcela.numero_parcela)?.created_by
+        || parcela.created_by
+        || userId,
+      created_at: existentesPorId.get(parcela.id || '')?.created_at
+        || existentesPorNumero.get(parcela.numero_parcela)?.created_at
+        || parcela.created_at
+        || null,
     }));
 
   const { error: deleteError } = await supabase
