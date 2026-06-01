@@ -849,8 +849,8 @@ export default function ContasPagarPage() {
     return obras.map((obra) => ({
       value: obra.id,
       label: obra.nome,
-      description: obra.empresa_nome || undefined,
-      keywords: `${obra.nome} ${obra.empresa_nome || ''}`,
+      description: (obra as any).empresa_nome || undefined,
+      keywords: `${obra.nome} ${(obra as any).empresa_nome || ''}`,
     }));
   }, [obras]);
 
@@ -860,8 +860,8 @@ export default function ContasPagarPage() {
       .map((obra) => ({
         value: obra.id,
         label: obra.nome,
-        description: obra.empresa_nome || undefined,
-        keywords: `${obra.nome} ${obra.empresa_nome || ''}`,
+        description: (obra as any).empresa_nome || undefined,
+        keywords: `${obra.nome} ${(obra as any).empresa_nome || ''}`,
       }));
   }, [obras, filterEmpresa]);
 

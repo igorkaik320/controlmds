@@ -153,7 +153,7 @@ async function resolveEmpresaFromObraName(obraNome: string | null | undefined): 
   return {
     obraId: obra?.id || null,
     empresaId: obra?.empresa_id || null,
-    empresaNome: obra?.empresas?.nome || null,
+    empresaNome: (Array.isArray(obra?.empresas) ? obra?.empresas?.[0]?.nome : (obra as any)?.empresas?.nome) || null,
   };
 }
 

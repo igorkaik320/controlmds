@@ -13,6 +13,7 @@ import type { ModuleKey } from "@/lib/modulePermissions";
 import { Lock } from "lucide-react";
 import { MaintenanceNotificationProvider } from "@/lib/maintenanceNotifications";
 import { routeLoaders } from "@/lib/routePrefetch";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 // Lazy-loaded pages — usam o MESMO loader do prefetch para reaproveitar o chunk em cache
 const Index = lazy(routeLoaders["/"] as any);
@@ -194,6 +195,7 @@ function AuthRoute({ children }: { children: React.ReactNode }) {
 }
 
 const App = () => (
+  <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <DraftGuards />
@@ -203,7 +205,8 @@ const App = () => (
           <AuthProvider>
             <MaintenanceNotificationProvider>
               <Suspense fallback={<PageFallback />}>
-                <Routes>
+                <ErrorBoundary>
+                  <Routes>
                 <Route path="/auth" element={<AuthRoute><Auth /></AuthRoute>} />
                 <Route path="/" element={<HomeRoute />} />
                 <Route path="/contas-pagar" element={<ModuleRoute module="contas_pagar"><ContasPagarPage /></ModuleRoute>} />
@@ -281,13 +284,15 @@ const App = () => (
                 <Route path="/config-relatorio" element={<AdminRoute><ConfigRelatorioPage /></AdminRoute>} />
 
                 <Route path="*" element={<NotFound />} />
-                </Routes>
+                  </Routes>
+                </ErrorBoundary>
               </Suspense>
             </MaintenanceNotificationProvider>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;

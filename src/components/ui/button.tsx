@@ -57,8 +57,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         return;
       }
 
-      const result = onClick?.(event);
-      const isPromiseLike = result && typeof (result as Promise<unknown>).then === "function";
+      const result: any = onClick?.(event);
+      const isPromiseLike = !!result && typeof result.then === "function";
 
       if (!isPromiseLike) return;
 
