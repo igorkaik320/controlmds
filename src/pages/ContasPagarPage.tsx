@@ -1232,6 +1232,10 @@ export default function ContasPagarPage() {
   const parcelasPageStartIndex = (safeParcelasCurrentPage - 1) * pageSize;
   const parcelasPageEndIndex = Math.min(parcelasPageStartIndex + pageSize, consultaParcelas.length);
   const paginatedConsultaParcelas = consultaParcelas.slice(parcelasPageStartIndex, parcelasPageEndIndex);
+  const reportEmpresaNome = useMemo(() => {
+    if (!filtrosAplicados.empresa) return '';
+    return empresas.find((empresa) => empresa.id === filtrosAplicados.empresa)?.nome || '';
+  }, [empresas, filtrosAplicados.empresa]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -1358,7 +1362,14 @@ export default function ContasPagarPage() {
       pdf.setFontSize(14);
       pdf.setTextColor(30, 30, 30);
       pdf.setFont("helvetica", "bold");
-      pdf.text("Contas a Pagar", marginLeft, y);
+      pdf.text("CONTAS A PAGAR", pageWidth / 2, y, { align: "center" });
+      if (reportEmpresaNome) {
+        y += 5;
+        pdf.setFontSize(10);
+        pdf.setTextColor(30, 30, 30);
+        pdf.setFont("helvetica", "bold");
+        pdf.text(pdf.splitTextToSize(reportEmpresaNome, usableWidth - 45), pageWidth / 2, y, { align: "center" });
+      }
 
       pdf.setFontSize(8);
       pdf.setTextColor(120, 120, 120);
@@ -1369,7 +1380,7 @@ export default function ContasPagarPage() {
         y,
         { align: "right" }
       );
-      y += 3;
+      y += reportEmpresaNome ? 4 : 3;
 
       // Linha separadora do cabeçalho
       pdf.setDrawColor(200, 200, 200);
@@ -2731,9 +2742,17 @@ export default function ContasPagarPage() {
             <div ref={reportRef}>
               <div className="mb-3 rounded-md border bg-white px-4 py-3">
                 <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">Relatório</p>
-                <div className="mt-1 flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
-                  <h3 className="text-base font-semibold leading-tight">Contas a Pagar</h3>
-                  <p className="text-sm text-muted-foreground">
+                <div className="mt-1 grid gap-2 sm:grid-cols-[1fr_auto_1fr] sm:items-start">
+                  <span className="hidden sm:block" />
+                  <div className="text-center">
+                    <h3 className="text-base font-semibold uppercase leading-tight">Contas a Pagar</h3>
+                    {reportEmpresaNome && (
+                      <p className="mt-1 text-sm font-semibold uppercase tracking-wide text-foreground">
+                        {reportEmpresaNome}
+                      </p>
+                    )}
+                  </div>
+                  <p className="text-sm text-muted-foreground sm:text-right">
                     Gerado em: {new Date().toLocaleDateString('pt-BR')}
                   </p>
                 </div>
