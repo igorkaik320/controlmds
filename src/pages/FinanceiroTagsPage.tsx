@@ -20,21 +20,17 @@ import {
   updateFinanceiroTag,
 } from '@/lib/financeiroTagsService';
 
-const colorOptions = [
-  { label: 'Vermelho', value: '#ef4444' },
-  { label: 'Laranja', value: '#f97316' },
-  { label: 'Amarelo', value: '#eab308' },
-  { label: 'Verde', value: '#22c55e' },
-  { label: 'Azul', value: '#3b82f6' },
-  { label: 'Roxo', value: '#8b5cf6' },
-  { label: 'Cinza', value: '#64748b' },
-];
-
 const emptyForm = {
   nome: '',
   cor: '#ef4444',
   ativa: 'true',
 };
+
+function normalizeHexColor(value: string) {
+  const raw = value.trim();
+  const withHash = raw.startsWith('#') ? raw : `#${raw}`;
+  return /^#[0-9a-fA-F]{6}$/.test(withHash) ? withHash.toLowerCase() : '';
+}
 
 function formatAuditDate(iso?: string | null) {
   if (!iso) return '-';
@@ -107,6 +103,12 @@ export default function FinanceiroTagsPage() {
       return;
     }
 
+    const cor = normalizeHexColor(form.cor);
+    if (!cor) {
+      toast.error('Informe uma cor válida no formato #RRGGBB');
+      return;
+    }
+
     const nome = form.nome.trim().toUpperCase();
     const duplicate = items.find((item) => item.id !== editingId && item.nome.trim().toLowerCase() === nome.toLowerCase());
     if (duplicate) {
@@ -117,7 +119,7 @@ export default function FinanceiroTagsPage() {
     try {
       const payload = {
         nome,
-        cor: form.cor,
+        cor,
         ativa: form.ativa === 'true',
         created_by: user.id,
         updated_by: user.id,
@@ -265,21 +267,25 @@ export default function FinanceiroTagsPage() {
             </div>
             <div>
               <Label>Cor *</Label>
-              <Select value={form.cor} onValueChange={(value) => setForm((prev) => ({ ...prev, cor: value }))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {colorOptions.map((color) => (
-                    <SelectItem key={color.value} value={color.value}>
-                      <span className="inline-flex items-center gap-2">
-                        <span className="h-3 w-3 rounded-full" style={{ backgroundColor: color.value }} />
-                        {color.label}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <Input
+                  type="color"
+                  value={normalizeHexColor(form.cor) || '#000000'}
+                  onChange={(e) => setForm((prev) => ({ ...prev, cor: e.target.value }))}
+                  className="h-10 w-14 cursor-pointer p-1"
+                  aria-label="Selecionar cor da tag"
+                />
+                <Input
+                  value={form.cor}
+                  onChange={(e) => setForm((prev) => ({ ...prev, cor: e.target.value }))}
+                  onBlur={(e) => {
+                    const color = normalizeHexColor(e.target.value);
+                    if (color) setForm((prev) => ({ ...prev, cor: color }));
+                  }}
+                  placeholder="#ef4444"
+                  className="font-mono uppercase"
+                />
+              </div>
             </div>
             <div>
               <Label>Status</Label>

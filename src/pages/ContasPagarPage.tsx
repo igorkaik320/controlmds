@@ -1214,7 +1214,6 @@ export default function ContasPagarPage() {
       .map((tag) => ({
         value: tag.id,
         label: tag.nome,
-        description: tag.cor,
         keywords: `${tag.nome} ${tag.cor}`,
       }));
   }, [tags]);
