@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { recordAuditEntry } from '@/lib/audit';
+import type { ContaPagarParcelaAnexo } from '@/lib/contasPagarAnexosService';
 
 // Types
 export interface ContaPagar {
@@ -39,12 +40,14 @@ export interface ContaPagarParcela {
   data_vencimento: string;
   data_pagamento: string | null;
   valor_pago: number | null;
+  conta_corrente_id?: string | null;
   status: 'aberta' | 'paga' | 'vencida' | 'cancelada';
   observacao: string | null;
   created_by: string;
   created_at: string;
   updated_by?: string | null;
   updated_at: string;
+  anexos?: ContaPagarParcelaAnexo[];
 }
 
 export interface ContaPagarComParcelas extends ContaPagar {
@@ -70,9 +73,7 @@ function dedupeParcelasPorNumero(parcelas: ContaPagarParcela[]): ContaPagarParce
 
 // ---- Contas a Pagar ----
 export async function fetchContasPagar(): Promise<ContaPagarComParcelas[]> {
-  const { data, error } = await supabase
-    .from('contas_pagar')
-    .select(`
+  const selectBase = `
       *,
       contas_pagar_parcelas (
         id,
@@ -81,6 +82,7 @@ export async function fetchContasPagar(): Promise<ContaPagarComParcelas[]> {
         data_vencimento,
         data_pagamento,
         valor_pago,
+        conta_corrente_id,
         status,
         observacao,
         created_by,
@@ -88,8 +90,51 @@ export async function fetchContasPagar(): Promise<ContaPagarComParcelas[]> {
         updated_by,
         updated_at
       )
-    `)
+    `;
+  const selectComAnexos = `
+      *,
+      contas_pagar_parcelas (
+        id,
+        numero_parcela,
+        valor_parcela,
+        data_vencimento,
+        data_pagamento,
+        valor_pago,
+        conta_corrente_id,
+        status,
+        observacao,
+        created_by,
+        created_at,
+        updated_by,
+        updated_at,
+        contas_pagar_parcela_anexos (
+          id,
+          parcela_id,
+          nome_arquivo,
+          nome_exibicao,
+          caminho_storage,
+          tipo_arquivo,
+          tamanho_bytes,
+          created_by,
+          created_at
+        )
+      )
+    `;
+
+  let { data, error } = await supabase
+    .from('contas_pagar')
+    .select(selectComAnexos)
     .order('created_at', { ascending: false });
+
+  if (error && String(error.message || '').includes('contas_pagar_parcela_anexos')) {
+    const fallback = await supabase
+      .from('contas_pagar')
+      .select(selectBase)
+      .order('created_at', { ascending: false });
+
+    data = fallback.data;
+    error = fallback.error;
+  }
 
   if (error) {
     console.error('Erro ao buscar contas a pagar:', error);
@@ -103,6 +148,8 @@ export async function fetchContasPagar(): Promise<ContaPagarComParcelas[]> {
       created_at: p.created_at || '',
       updated_by: p.updated_by || null,
       updated_at: p.updated_at || '',
+      conta_corrente_id: p.conta_corrente_id || null,
+      anexos: p.contas_pagar_parcela_anexos || [],
     }));
 
     return {
@@ -237,6 +284,7 @@ export async function updateParcela(
     data_vencimento: parcela.data_vencimento || null,
     data_pagamento: parcela.data_pagamento || null,
     valor_pago: parcela.valor_pago ?? null,
+    conta_corrente_id: parcela.conta_corrente_id ?? null,
     status: parcela.status,
     observacao: parcela.observacao || null,
     updated_at: new Date().toISOString(),
@@ -264,11 +312,12 @@ export async function saveParcelas(
 ): Promise<ContaPagarParcela[]> {
   const timestamp = new Date().toISOString();
 
-  const parcelasLimpas = parcelas.map(({ id: _id, ...p }) => ({
+  const parcelasLimpas = parcelas.map(({ id: _id, anexos: _anexos, ...p }) => ({
     ...p,
     data_vencimento: p.data_vencimento || null,
     data_pagamento: p.data_pagamento || null,
     valor_pago: p.valor_pago ?? null,
+    conta_corrente_id: p.conta_corrente_id ?? null,
     observacao: p.observacao || null,
     created_by: p.created_by || userId,
     created_at: p.created_at || timestamp,
@@ -370,17 +419,89 @@ export async function updateParcelasStatus(
   status: string,
   userId: string
 ): Promise<void> {
+  if (status !== 'paga') {
+    await (supabase as any)
+      .from('contas_correntes_movimentacoes')
+      .delete()
+      .eq('origem_tipo', 'contas_pagar_parcela')
+      .in('origem_id', ids);
+  }
+
   const { error } = await supabase
     .from('contas_pagar_parcelas')
     .update({ 
       status, 
       updated_at: new Date().toISOString(), 
       updated_by: userId,
-      ...(status === 'paga' ? { data_pagamento: new Date().toISOString().split('T')[0] } : {}),
+      ...(status !== 'paga' ? { data_pagamento: null, conta_corrente_id: null } : {}),
     } as any)
     .in('id', ids);
 
   if (error) throw error;
+}
+
+export async function pagarParcelaContaPagar(
+  parcelaId: string,
+  dataPagamento: string,
+  contaCorrenteId: string,
+  userId: string
+): Promise<void> {
+  const { data: parcela, error: parcelaError } = await (supabase as any)
+    .from('contas_pagar_parcelas')
+    .select('*, contas_pagar (fornecedor_nome, observacao)')
+    .eq('id', parcelaId)
+    .single();
+
+  if (parcelaError) throw parcelaError;
+
+  await (supabase as any)
+    .from('contas_correntes_movimentacoes')
+    .delete()
+    .eq('origem_tipo', 'contas_pagar_parcela')
+    .eq('origem_id', parcelaId);
+
+  const { error: updateError } = await (supabase as any)
+    .from('contas_pagar_parcelas')
+    .update({
+      status: 'paga',
+      data_pagamento: dataPagamento,
+      conta_corrente_id: contaCorrenteId,
+      updated_at: new Date().toISOString(),
+      updated_by: userId,
+    })
+    .eq('id', parcelaId);
+
+  if (updateError) throw updateError;
+
+  const fornecedor = parcela?.contas_pagar?.fornecedor_nome || 'Conta a pagar';
+  const observacao = parcela?.contas_pagar?.observacao ? ` - ${parcela.contas_pagar.observacao}` : '';
+  const { error: movimentoError } = await (supabase as any)
+    .from('contas_correntes_movimentacoes')
+    .insert({
+      conta_corrente_id: contaCorrenteId,
+      origem_tipo: 'contas_pagar_parcela',
+      origem_id: parcelaId,
+      tipo: 'saida',
+      data_movimentacao: dataPagamento,
+      valor: -Math.abs(Number(parcela.valor_parcela || 0)),
+      descricao: `Pagamento - ${fornecedor}${observacao}`,
+      created_by: userId,
+    });
+
+  if (movimentoError) throw movimentoError;
+
+  await recordAuditEntry({
+    entity_type: 'contas_pagar_parcelas',
+    entity_id: parcelaId,
+    action: 'baixa',
+    old_values: parcela,
+    new_values: {
+      status: 'paga',
+      data_pagamento: dataPagamento,
+      conta_corrente_id: contaCorrenteId,
+    },
+    user_id: userId,
+  });
 }
 
 // ---- Gerar Parcelas ----
@@ -406,6 +527,7 @@ export function gerarParcelas(
       data_vencimento: data.toISOString().split('T')[0],
       data_pagamento: null,
       valor_pago: null,
+      conta_corrente_id: null,
       status: 'aberta' as const,
       observacao: null,
       created_by: userId,
@@ -414,3 +536,5 @@ export function gerarParcelas(
 
   return parcelas;
 }
+
+

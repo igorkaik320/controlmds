@@ -40,6 +40,7 @@ const RevisoesCombustivelPage = lazy(routeLoaders["/combustivel/revisoes"] as an
 const EmpresasPage = lazy(routeLoaders["/empresas"] as any);
 const CategoriasFinanceirasPage = lazy(routeLoaders["/categorias-financeiras"] as any);
 const FinanceiroTagsPage = lazy(routeLoaders["/financeiro/tags"] as any);
+const ContasCorrentesPage = lazy(routeLoaders["/financeiro/contas-correntes"] as any);
 const PainelExecutivoPage = lazy(routeLoaders["/painel-executivo"] as any);
 const ContasPagarDashboardPage = lazy(routeLoaders["/contas-pagar/dashboard"] as any);
 const ContasPagarPage = lazy(routeLoaders["/contas-pagar"] as any);
@@ -125,6 +126,7 @@ function HomeRoute() {
     { module: "revisoes_combustivel", path: "/combustivel/revisoes" },
     { module: "empresas", path: "/empresas" },
     { module: "categorias_financeiras", path: "/categorias-financeiras" },
+    { module: "contas_correntes", path: "/financeiro/contas-correntes" },
     { module: "equipamentos", path: "/equipamentos" },
     { module: "setores", path: "/setores" },
     { module: "fornecedores", path: "/fornecedores" },
@@ -236,6 +238,7 @@ const App = () => (
                 <Route path="/empresas" element={<ModuleRoute module="empresas"><EmpresasPage /></ModuleRoute>} />
                 <Route path="/categorias-financeiras" element={<ModuleRoute module="categorias_financeiras"><CategoriasFinanceirasPage /></ModuleRoute>} />
                 <Route path="/financeiro/tags" element={<ModuleRoute module="financeiro_tags"><FinanceiroTagsPage /></ModuleRoute>} />
+                <Route path="/financeiro/contas-correntes" element={<ModuleRoute module="contas_correntes"><ContasCorrentesPage /></ModuleRoute>} />
                 <Route path="/fornecedores" element={<ModuleRoute module="fornecedores"><FornecedoresPage /></ModuleRoute>} />
                 <Route path="/obras" element={<ModuleRoute module="obras"><ObrasPage /></ModuleRoute>} />
                 <Route path="/responsaveis" element={<ModuleRoute module="responsaveis"><ResponsaveisPage /></ModuleRoute>} />

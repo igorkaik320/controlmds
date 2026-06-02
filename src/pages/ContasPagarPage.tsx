@@ -10,7 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Pencil, Trash2, Eye, Calendar as CalendarIcon, Building, CheckSquare, FileText, Search, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Plus, Pencil, Trash2, Eye, Calendar as CalendarIcon, Building, CheckSquare, FileText, Search, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight, Paperclip, Download } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useModulePermissions } from '@/hooks/useModulePermissions';
 import { toast } from 'sonner';
@@ -26,15 +27,24 @@ import {
   updateContaPagar, 
   deleteContaPagar,
   replaceParcelasConta,
+  pagarParcelaContaPagar,
   updateParcelasStatus,
   ContaPagarComParcelas,
   ContaPagarParcela
 } from '@/lib/contasPagarService';
+import { ContaCorrente, fetchContasCorrentes } from '@/lib/contasCorrentesService';
 import { fetchEmpresas } from '@/lib/empresasService';
 import { fetchFornecedores, Fornecedor, syncCompraFaturadaParcelasFromContaPagar } from '@/lib/comprasService';
 import { fetchObras, fetchObrasPorEmpresa, Obra } from '@/lib/obrasService';
 import { CategoriaFinanceira, fetchCategoriasFinanceiras } from '@/lib/categoriasFinanceirasService';
 import { fetchFinanceiroTags, FinanceiroTag } from '@/lib/financeiroTagsService';
+import {
+  ContaPagarParcelaAnexo,
+  deleteParcelaAnexo,
+  getParcelaAnexoUrl,
+  renameParcelaAnexo,
+  uploadParcelaAnexo,
+} from '@/lib/contasPagarAnexosService';
 import ContasPagarParcelasDialog from '@/components/ContasPagarParcelasDialog';
 import FornecedorSelect from '@/components/compras/FornecedorSelect';
 import EmpresaSelect from '@/components/compras/EmpresaSelect';
@@ -112,6 +122,7 @@ export default function ContasPagarPage() {
   const [obras, setObras] = useState<Obra[]>([]);
   const [categorias, setCategorias] = useState<CategoriaFinanceira[]>([]);
   const [tags, setTags] = useState<FinanceiroTag[]>([]);
+  const [contasCorrentes, setContasCorrentes] = useState<ContaCorrente[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
   const [showParcelasDialog, setShowParcelasDialog] = useState(false);
@@ -124,8 +135,18 @@ export default function ContasPagarPage() {
   const [exportingPdf, setExportingPdf] = useState(false);
   const [exportingExcel, setExportingExcel] = useState(false);
   const [savingConta, setSavingConta] = useState(false);
+  const [attachmentParcela, setAttachmentParcela] = useState<ContaPagarParcela | null>(null);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const [previewAnexo, setPreviewAnexo] = useState<{ anexo: ContaPagarParcelaAnexo; url: string } | null>(null);
+  const [renamingAnexo, setRenamingAnexo] = useState<ContaPagarParcelaAnexo | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+  const [paymentParcelas, setPaymentParcelas] = useState<ContaPagarParcela[]>([]);
+  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
+  const [paymentContaId, setPaymentContaId] = useState('');
+  const [savingPayment, setSavingPayment] = useState(false);
   const [activeTab, setActiveTab] = useState('contas');
   const savingContaRef = useRef(false);
+  const attachmentInputRef = useRef<HTMLInputElement>(null);
   const reportRef = useRef<HTMLDivElement>(null);
   const printRef = useRef<HTMLDivElement>(null);
 
@@ -223,18 +244,20 @@ export default function ContasPagarPage() {
   const load = useCallback(async () => {
     try {
       await marcarParcelasVencidas(user?.id);
-      const [contasData, empresasData, fornecedoresData, categoriasData, tagsData] = await Promise.all([
+      const [contasData, empresasData, fornecedoresData, categoriasData, tagsData, contasCorrentesData] = await Promise.all([
         fetchContasPagar(),
         fetchEmpresas().catch(() => []),
         fetchFornecedores().catch(() => []),
         fetchCategoriasFinanceiras().catch(() => []),
         fetchFinanceiroTags().catch(() => []),
+        fetchContasCorrentes().catch(() => []),
       ]);
       setItems(contasData);
       setEmpresas(empresasData);
       setFornecedores(fornecedoresData);
       setCategorias(categoriasData);
       setTags(tagsData);
+      setContasCorrentes(contasCorrentesData);
     } catch (e: any) {
       toast.error('Erro ao carregar dados: ' + e.message);
     } finally {
@@ -791,6 +814,18 @@ export default function ContasPagarPage() {
   // Bulk status change
   async function handleBulkStatusChange(newStatus: string) {
     if (selectedParcelas.size === 0) return;
+    if (newStatus === 'paga') {
+      const parcelasSelecionadas = consultaParcelas.filter((parcela) => selectedParcelas.has(parcela.id));
+      if (parcelasSelecionadas.length === 0) {
+        toast.error('Nenhuma parcela selecionada para baixa.');
+        return;
+      }
+      setPaymentParcelas(parcelasSelecionadas);
+      setPaymentDate(new Date().toISOString().split('T')[0]);
+      setPaymentContaId(contasCorrentes.find((conta) => conta.ativa)?.id || contasCorrentes[0]?.id || '');
+      setShowBulkStatus(false);
+      return;
+    }
     try {
       await updateParcelasStatus(Array.from(selectedParcelas), newStatus, user?.id || '');
       toast.success(`${selectedParcelas.size} parcela(s) atualizada(s) para "${newStatus}"`);
@@ -804,6 +839,22 @@ export default function ContasPagarPage() {
 
   // Inline single parcela status change
   async function handleInlineStatusChange(parcelaId: string, newStatus: string) {
+    if (newStatus === 'paga') {
+      const parcela = consultaParcelas.find((item) => item.id === parcelaId)
+        || items.flatMap((conta) => conta.parcelas).find((item) => item.id === parcelaId)
+        || null;
+
+      if (!parcela) {
+        toast.error('Parcela não encontrada.');
+        return;
+      }
+
+      setPaymentParcelas([parcela]);
+      setPaymentDate(new Date().toISOString().split('T')[0]);
+      setPaymentContaId(contasCorrentes.find((conta) => conta.ativa)?.id || contasCorrentes[0]?.id || '');
+      return;
+    }
+
     try {
       await updateParcelasStatus([parcelaId], newStatus, user?.id || '');
       toast.success('Status atualizado');
@@ -811,6 +862,135 @@ export default function ContasPagarPage() {
     } catch (e: any) {
       toast.error(e.message);
     }
+  }
+
+  async function handleConfirmPayment() {
+    if (!user || paymentParcelas.length === 0) return;
+    if (!paymentDate) {
+      toast.error('Informe a data de pagamento.');
+      return;
+    }
+    if (!paymentContaId) {
+      toast.error('Selecione a conta corrente.');
+      return;
+    }
+
+    setSavingPayment(true);
+    try {
+      for (const parcela of paymentParcelas) {
+        await pagarParcelaContaPagar(parcela.id, paymentDate, paymentContaId, user.id);
+      }
+      toast.success(`${paymentParcelas.length} parcela(s) baixada(s) como paga`);
+      setPaymentParcelas([]);
+      setSelectedParcelas(new Set());
+      await load();
+    } catch (e: any) {
+      toast.error(e.message || 'Erro ao baixar parcela.');
+    } finally {
+      setSavingPayment(false);
+    }
+  }
+
+  async function handleAttachmentUpload(file?: File | null) {
+    if (!user || !attachmentParcela?.id || !file) return;
+
+    setUploadingAttachment(true);
+    try {
+      const anexo = await uploadParcelaAnexo(attachmentParcela.id, file, user.id);
+      setAttachmentParcela((prev) => prev ? { ...prev, anexos: [anexo, ...(prev.anexos || [])] } : prev);
+      await load();
+      toast.success('Anexo enviado');
+    } catch (e: any) {
+      toast.error(e.message || 'Erro ao enviar anexo.');
+    } finally {
+      setUploadingAttachment(false);
+      if (attachmentInputRef.current) attachmentInputRef.current.value = '';
+    }
+  }
+
+  async function handleAttachmentDownload(anexo: ContaPagarParcelaAnexo) {
+    try {
+      const url = await getParcelaAnexoUrl(anexo);
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (e: any) {
+      toast.error(e.message || 'Erro ao abrir anexo.');
+    }
+  }
+
+  async function handleAttachmentPreview(anexo: ContaPagarParcelaAnexo) {
+    try {
+      const url = await getParcelaAnexoUrl(anexo);
+      setPreviewAnexo({ anexo, url });
+    } catch (e: any) {
+      toast.error(e.message || 'Erro ao pré-visualizar anexo.');
+    }
+  }
+
+  function openRenameAnexo(anexo: ContaPagarParcelaAnexo) {
+    setRenamingAnexo(anexo);
+    setRenameValue(anexo.nome_exibicao || anexo.nome_arquivo);
+  }
+
+  async function handleAttachmentRename() {
+    if (!user || !renamingAnexo) return;
+    try {
+      const updated = await renameParcelaAnexo(renamingAnexo, renameValue, user.id);
+      setAttachmentParcela((prev) => prev ? {
+        ...prev,
+        anexos: (prev.anexos || []).map((item) => item.id === updated.id ? updated : item),
+      } : prev);
+      setRenamingAnexo(null);
+      await load();
+      toast.success('Anexo renomeado');
+    } catch (e: any) {
+      toast.error(e.message || 'Erro ao renomear anexo.');
+    }
+  }
+
+  async function handleAttachmentDelete(anexo: ContaPagarParcelaAnexo) {
+    if (!user || !confirm('Excluir este anexo?')) return;
+    try {
+      await deleteParcelaAnexo(anexo, user.id);
+      setAttachmentParcela((prev) => prev ? { ...prev, anexos: (prev.anexos || []).filter((item) => item.id !== anexo.id) } : prev);
+      await load();
+      toast.success('Anexo excluído');
+    } catch (e: any) {
+      toast.error(e.message || 'Erro ao excluir anexo.');
+    }
+  }
+
+  function AnexoButton({ parcela, disabled = false }: { parcela?: ContaPagarParcela | null; disabled?: boolean }) {
+    const count = parcela?.anexos?.length || 0;
+    const canOpen = Boolean(parcela?.id) && !disabled;
+
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className={cn('h-7 w-7', count > 0 ? 'text-primary' : 'text-muted-foreground')}
+            disabled={!canOpen}
+            onClick={() => parcela && setAttachmentParcela(parcela)}
+          >
+            <Paperclip className="h-4 w-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          {canOpen
+            ? count > 0 ? `${count} anexo(s)` : 'Adicionar anexo'
+            : 'Salve a parcela antes de anexar arquivos'}
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  function formatFileSize(bytes?: number | null) {
+    if (!bytes) return '-';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
   }
 
   function OrigemBadge({ origem }: { origem?: string | null }) {
@@ -1861,6 +2041,7 @@ export default function ContasPagarPage() {
                     <TableHead onClick={() => handleParcelasSort('obra')} className="cursor-pointer select-none bg-muted/50 text-xs font-medium text-muted-foreground hover:bg-muted">
                       <div className="flex items-center">Obra<ParcelasSortIcon column="obra" /></div>
                     </TableHead>
+                    <TableHead className="w-[64px] bg-muted/50 text-center text-xs font-medium text-muted-foreground">Anexo</TableHead>
                     <TableHead className="w-[64px] bg-muted/50 text-center text-xs font-medium text-muted-foreground">Info</TableHead>
                     <TableHead className="bg-muted/50 text-right text-xs font-medium text-muted-foreground">Ações</TableHead>
                   </TableRow>
@@ -1868,7 +2049,7 @@ export default function ContasPagarPage() {
                 <TableBody>
                   {consultaParcelas.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={12} className="py-8 text-center text-muted-foreground">
+                      <TableCell colSpan={13} className="py-8 text-center text-muted-foreground">
                         Nenhuma parcela encontrada
                       </TableCell>
                     </TableRow>
@@ -1932,6 +2113,9 @@ export default function ContasPagarPage() {
                       </TableCell>
                       <TableCell className="max-w-[220px] truncate text-xs uppercase text-muted-foreground">
                         {parcela.conta.obra_nome || '-'}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <AnexoButton parcela={parcela} />
                       </TableCell>
                       <TableCell className="text-center">
                         <ObservationInfoTooltip
@@ -2187,7 +2371,7 @@ export default function ContasPagarPage() {
               </div>
 
               <div className="overflow-x-auto">
-                <Table className="min-w-[980px]">
+                <Table className="min-w-[1040px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-20 bg-muted/50 text-xs font-medium text-muted-foreground">Parcela</TableHead>
@@ -2196,13 +2380,16 @@ export default function ContasPagarPage() {
                       <TableHead className="w-36 bg-muted/50 text-xs font-medium text-muted-foreground">Status</TableHead>
                       <TableHead className="w-40 bg-muted/50 text-xs font-medium text-muted-foreground">Pagamento</TableHead>
                       <TableHead className="min-w-44 bg-muted/50 text-xs font-medium text-muted-foreground">Obs.</TableHead>
+                      <TableHead className="w-16 bg-muted/50 text-center text-xs font-medium text-muted-foreground">Anexo</TableHead>
                       <TableHead className="w-12 bg-muted/50 text-right text-xs font-medium text-muted-foreground"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {parcelasForm.map((parcela, index) => (
-                      <TableRow key={parcela.id || index} className="hover:bg-muted/30">
-                        <TableCell className="font-medium">{parcela.numero_parcela}</TableCell>
+                    {parcelasForm.map((parcela, index) => {
+                      const parcelaComAnexos = editingConta?.parcelas.find((item) => item.id === parcela.id) || null;
+                      return (
+                        <TableRow key={parcela.id || index} className="hover:bg-muted/30">
+                          <TableCell className="font-medium">{parcela.numero_parcela}</TableCell>
                         <TableCell>
                           <Input
                             type="date"
@@ -2222,7 +2409,20 @@ export default function ContasPagarPage() {
                         <TableCell>
                           <Select
                             value={parcela.status}
-                            onValueChange={(value: ContaPagarParcela['status']) => updateParcelaForm(index, { status: value })}
+                            onValueChange={(value: ContaPagarParcela['status']) => {
+                              if (value === 'paga') {
+                                const parcelaExistente = editingConta?.parcelas.find((item) => item.id === parcela.id);
+                                if (!parcelaExistente) {
+                                  toast.error('Salve a parcela antes de baixar como paga.');
+                                  return;
+                                }
+                                setPaymentParcelas([parcelaExistente]);
+                                setPaymentDate(new Date().toISOString().split('T')[0]);
+                                setPaymentContaId(contasCorrentes.find((conta) => conta.ativa)?.id || contasCorrentes[0]?.id || '');
+                                return;
+                              }
+                              updateParcelaForm(index, { status: value });
+                            }}
                           >
                             <SelectTrigger className="h-9">
                               <SelectValue />
@@ -2251,6 +2451,9 @@ export default function ContasPagarPage() {
                             className="h-9"
                           />
                         </TableCell>
+                        <TableCell className="text-center">
+                          <AnexoButton parcela={parcelaComAnexos} disabled={!editingId} />
+                        </TableCell>
                         <TableCell className="text-right">
                           <Button
                             type="button"
@@ -2263,8 +2466,9 @@ export default function ContasPagarPage() {
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
                         </TableCell>
-                      </TableRow>
-                    ))}
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
@@ -2290,6 +2494,186 @@ export default function ContasPagarPage() {
         userId={user?.id || ''}
         enforceTotal={contaParcelas?.origem === 'CF' ? Number(contaParcelas.valor_total) : undefined}
       />
+
+      <Dialog open={Boolean(attachmentParcela)} onOpenChange={(open) => !open && setAttachmentParcela(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>
+              Anexos da Parcela {attachmentParcela?.numero_parcela || ''}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">
+              <p>
+                Vencimento: {' '}
+                <span className="font-medium text-foreground">
+                  {attachmentParcela?.data_vencimento
+                    ? new Date(`${attachmentParcela.data_vencimento}T00:00:00`).toLocaleDateString('pt-BR')
+                    : '-'}
+                </span>
+              </p>
+              <p>
+                Valor: <span className="font-medium text-foreground">{formatCurrency(attachmentParcela?.valor_parcela || 0)}</span>
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Input
+                ref={attachmentInputRef}
+                type="file"
+                className="max-w-sm"
+                disabled={uploadingAttachment}
+                onChange={(event) => handleAttachmentUpload(event.target.files?.[0])}
+              />
+              {uploadingAttachment && <span className="text-xs text-muted-foreground">Enviando...</span>}
+            </div>
+
+            <div className="overflow-auto rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Arquivo</TableHead>
+                    <TableHead className="w-28">Tamanho</TableHead>
+                    <TableHead className="w-36">Data</TableHead>
+                    <TableHead className="w-24 text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(attachmentParcela?.anexos || []).length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={4} className="py-6 text-center text-muted-foreground">
+                        Nenhum anexo nesta parcela
+                      </TableCell>
+                    </TableRow>
+                  )}
+
+                  {(attachmentParcela?.anexos || []).map((anexo) => (
+                    <TableRow key={anexo.id}>
+                      <TableCell className="font-medium">
+                        <span className="inline-flex max-w-[320px] items-center gap-2">
+                          <Paperclip className="h-4 w-4 shrink-0 text-muted-foreground" />
+                          <span className="truncate">{anexo.nome_exibicao || anexo.nome_arquivo}</span>
+                        </span>
+                      </TableCell>
+                      <TableCell>{formatFileSize(anexo.tamanho_bytes)}</TableCell>
+                      <TableCell>{new Date(anexo.created_at).toLocaleDateString('pt-BR')}</TableCell>
+                      <TableCell>
+                        <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="icon" onClick={() => handleAttachmentPreview(anexo)} title="Pré-visualizar">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleAttachmentDownload(anexo)} title="Abrir anexo">
+                            <Download className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => openRenameAnexo(anexo)} title="Renomear anexo">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleAttachmentDelete(anexo)} title="Excluir anexo">
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAttachmentParcela(null)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(renamingAnexo)} onOpenChange={(open) => !open && setRenamingAnexo(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Renomear Anexo</DialogTitle>
+          </DialogHeader>
+          <div>
+            <Label>Nome do anexo</Label>
+            <Input value={renameValue} onChange={(event) => setRenameValue(event.target.value)} />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenamingAnexo(null)}>Cancelar</Button>
+            <Button onClick={handleAttachmentRename}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(previewAnexo)} onOpenChange={(open) => !open && setPreviewAnexo(null)}>
+        <DialogContent className="max-w-5xl">
+          <DialogHeader>
+            <DialogTitle>{previewAnexo?.anexo.nome_exibicao || previewAnexo?.anexo.nome_arquivo || 'Pré-visualização'}</DialogTitle>
+          </DialogHeader>
+          <div className="h-[70vh] overflow-hidden rounded-md border bg-muted/20">
+            {previewAnexo?.anexo.tipo_arquivo?.startsWith('image/') ? (
+              <img src={previewAnexo.url} alt={previewAnexo.anexo.nome_arquivo} className="h-full w-full object-contain" />
+            ) : (
+              <iframe src={previewAnexo?.url} title="Pré-visualização do anexo" className="h-full w-full bg-white" />
+            )}
+          </div>
+          <DialogFooter>
+            {previewAnexo && (
+              <Button variant="outline" onClick={() => handleAttachmentDownload(previewAnexo.anexo)}>
+                <Download className="mr-2 h-4 w-4" />
+                Baixar
+              </Button>
+            )}
+            <Button onClick={() => setPreviewAnexo(null)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={paymentParcelas.length > 0} onOpenChange={(open) => !open && setPaymentParcelas([])}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{paymentParcelas.length > 1 ? 'Baixar Parcelas' : 'Baixar Parcela'}</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="rounded-md border bg-muted/30 p-3 text-sm">
+              <p className="text-muted-foreground">Valor da baixa</p>
+              <p className="text-lg font-semibold">
+                {formatCurrency(paymentParcelas.reduce((sum, parcela) => sum + Number(parcela.valor_parcela || 0), 0))}
+              </p>
+              {paymentParcelas.length > 1 && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {paymentParcelas.length} parcelas selecionadas
+                </p>
+              )}
+            </div>
+            <div>
+              <Label>Data de pagamento</Label>
+              <Input type="date" value={paymentDate} onChange={(event) => setPaymentDate(event.target.value)} />
+            </div>
+            <div>
+              <Label>Conta corrente</Label>
+              <Select value={paymentContaId} onValueChange={setPaymentContaId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a conta" />
+                </SelectTrigger>
+                <SelectContent>
+                  {contasCorrentes.map((conta) => (
+                    <SelectItem key={conta.id} value={conta.id}>
+                      {conta.banco} - Ag. {conta.agencia} - Conta {conta.numero_conta}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPaymentParcelas([])} disabled={savingPayment}>Cancelar</Button>
+            <Button onClick={handleConfirmPayment} disabled={savingPayment || contasCorrentes.length === 0}>
+              {savingPayment ? 'Baixando...' : 'Confirmar Baixa'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Diálogo de Relatório */}
       <Dialog open={showReport} onOpenChange={setShowReport}>

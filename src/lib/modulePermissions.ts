@@ -13,6 +13,7 @@ export const MODULES = [
   { key: 'empresas', label: 'Empresas' },
   { key: 'categorias_financeiras', label: 'Categorias Financeiras' },
   { key: 'financeiro_tags', label: 'Tags Financeiras' },
+  { key: 'contas_correntes', label: 'Contas Correntes' },
   { key: 'combustivel_dashboard', label: 'Dashboard Combustivel' },
   { key: 'abastecimentos', label: 'Abastecimentos' },
   { key: 'revisoes_combustivel', label: 'Revisoes' },

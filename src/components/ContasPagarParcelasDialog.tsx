@@ -139,6 +139,7 @@ export default function ContasPagarParcelasDialog({
       await replaceParcelasConta(
         contaPagarId,
         parcelas.map((p) => ({
+          id: p.id,
           conta_pagar_id: contaPagarId,
           numero_parcela: p.numero_parcela,
           valor_parcela: p.valor_parcela,

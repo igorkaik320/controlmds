@@ -90,6 +90,7 @@ export function AppSidebar() {
         children: [
           { title: 'Categorias', url: '/categorias-financeiras', icon: Tags, module: 'categorias_financeiras' },
           { title: 'Tags', url: '/financeiro/tags', icon: Tags, module: 'financeiro_tags' },
+          { title: 'Contas Correntes', url: '/financeiro/contas-correntes', icon: Landmark, module: 'contas_correntes' },
         ],
       },
     ],
