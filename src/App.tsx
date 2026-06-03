@@ -26,6 +26,7 @@ const EspelhoGeralPage = lazy(routeLoaders["/compras/espelho"] as any);
 const ProgramacaoSemanalPage = lazy(routeLoaders["/compras/programacao-semanal"] as any);
 const EspelhoSemanalPage = lazy(routeLoaders["/compras/espelho-semanal"] as any);
 const ConfigRelatorioPage = lazy(routeLoaders["/config-relatorio"] as any);
+const AvisosPage = lazy(routeLoaders["/avisos"] as any);
 const FornecedoresPage = lazy(routeLoaders["/fornecedores"] as any);
 const ObrasPage = lazy(routeLoaders["/obras"] as any);
 const ResponsaveisPage = lazy(routeLoaders["/responsaveis"] as any);
@@ -239,6 +240,7 @@ const App = () => (
                 <Route path="/categorias-financeiras" element={<ModuleRoute module="categorias_financeiras"><CategoriasFinanceirasPage /></ModuleRoute>} />
                 <Route path="/financeiro/tags" element={<ModuleRoute module="financeiro_tags"><FinanceiroTagsPage /></ModuleRoute>} />
                 <Route path="/financeiro/contas-correntes" element={<ModuleRoute module="contas_correntes"><ContasCorrentesPage /></ModuleRoute>} />
+                <Route path="/avisos" element={<ProtectedRoute><AvisosPage /></ProtectedRoute>} />
                 <Route path="/fornecedores" element={<ModuleRoute module="fornecedores"><FornecedoresPage /></ModuleRoute>} />
                 <Route path="/obras" element={<ModuleRoute module="obras"><ObrasPage /></ModuleRoute>} />
                 <Route path="/responsaveis" element={<ModuleRoute module="responsaveis"><ResponsaveisPage /></ModuleRoute>} />

@@ -17,6 +17,7 @@ export const routeLoaders: Record<string, () => Promise<unknown>> = {
   "/compras/programacao-semanal": () => import("@/pages/ProgramacaoSemanalPage"),
   "/compras/espelho-semanal": () => import("@/pages/EspelhoSemanalPage"),
   "/config-relatorio": () => import("@/pages/ConfigRelatorioPage"),
+  "/avisos": () => import("@/pages/AvisosPage"),
   "/fornecedores": () => import("@/pages/FornecedoresPage"),
   "/obras": () => import("@/pages/ObrasPage"),
   "/responsaveis": () => import("@/pages/ResponsaveisPage"),

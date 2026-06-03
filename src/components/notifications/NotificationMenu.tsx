@@ -1,4 +1,5 @@
 import { AlertTriangle, Bell } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -19,6 +20,7 @@ interface NotificationMenuProps {
 }
 
 export function NotificationMenu({ compact = false }: NotificationMenuProps) {
+  const navigate = useNavigate();
   const {
     visibleNotifications,
     hasVisibleNotifications,
@@ -27,6 +29,22 @@ export function NotificationMenu({ compact = false }: NotificationMenuProps) {
     handleDismissToday,
     openNotificationDialog,
   } = useMaintenanceNotifications();
+
+  function openNotification(notification: any, openReport = false) {
+    if (notification.kind !== "financeiro") return;
+    navigate("/contas-pagar", {
+      state: {
+        dashboardFilter: { type: "status", value: "", label: "Aviso financeiro" },
+        filters: {
+          dateFrom: notification.dateFrom,
+          dateTo: notification.dateTo,
+          statuses: notification.statuses,
+        },
+        openReport,
+      },
+    });
+    setMiniPanelOpen(false);
+  }
 
   return (
     <Popover open={miniPanelOpen} onOpenChange={setMiniPanelOpen}>
@@ -56,30 +74,55 @@ export function NotificationMenu({ compact = false }: NotificationMenuProps) {
       <PopoverContent className="w-[320px] space-y-3">
         {visibleNotifications.length === 0 ? (
           <div className="rounded-md border border-dashed border-muted p-3 text-center text-sm text-muted-foreground">
-            Nenhuma manutenção próxima encontrada.
+            Nenhum aviso encontrado.
           </div>
         ) : (
           <div className="max-h-64 space-y-3 overflow-y-auto">
-            {visibleNotifications.map((notification) => (
+            {visibleNotifications.map((notification: any) => (
               <div key={notification.id} className="rounded-lg border border-muted/50 bg-background p-3 shadow-sm">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold">{notification.equipamento_nome}</p>
-                    <p className="text-xs text-muted-foreground">{notification.setor_nome || "Setor não informado"}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Próxima: {formatLocalDate(notification.proxima_manutencao)}
-                    </p>
-                    {notification.fornecedor_nome && (
-                      <p className="text-xs text-muted-foreground">Fornecedor: {notification.fornecedor_nome}</p>
+                    {notification.kind === "financeiro" ? (
+                      <>
+                        <p className="text-sm font-semibold">{notification.titulo}</p>
+                        <p className="text-xs text-muted-foreground">{notification.descricao}</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-sm font-semibold">{notification.equipamento_nome}</p>
+                        <p className="text-xs text-muted-foreground">{notification.setor_nome || "Setor não informado"}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Próxima: {formatLocalDate(notification.proxima_manutencao)}
+                        </p>
+                        {notification.fornecedor_nome && (
+                          <p className="text-xs text-muted-foreground">Fornecedor: {notification.fornecedor_nome}</p>
+                        )}
+                      </>
                     )}
                   </div>
                   <div className="flex flex-col items-end gap-1">
                     <Badge variant="secondary" className="text-[10px]">
-                      {notification.diasDiff} dia{notification.diasDiff === 1 ? "" : "s"}
+                      {notification.kind === "financeiro"
+                        ? "Financeiro"
+                        : `${notification.diasDiff} dia${notification.diasDiff === 1 ? "" : "s"}`}
                     </Badge>
                     <AlertTriangle className="h-4 w-4 text-yellow-600" />
                   </div>
                 </div>
+                {notification.kind === "financeiro" && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {notification.mostrarLinkConsulta && (
+                      <Button size="sm" className="h-8" onClick={() => openNotification(notification)}>
+                        Ver parcelas
+                      </Button>
+                    )}
+                    {notification.mostrarLinkRelatorio && (
+                      <Button size="sm" variant="outline" className="h-8" onClick={() => openNotification(notification, true)}>
+                        Relatório
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>

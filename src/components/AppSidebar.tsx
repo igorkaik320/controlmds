@@ -162,6 +162,7 @@ export function AppSidebar() {
       { title: 'Obras', url: '/obras', icon: Building2, module: 'obras' },
       { title: 'Responsáveis', url: '/responsaveis', icon: UserCheck, module: 'responsaveis' },
       { title: 'Setores', url: '/setores', icon: MapPin, module: 'setores' },
+      { title: 'Avisos', url: '/avisos', icon: AlertTriangle },
     ],
   });
 

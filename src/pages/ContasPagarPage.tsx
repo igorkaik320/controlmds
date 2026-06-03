@@ -145,6 +145,7 @@ export default function ContasPagarPage() {
   const [paymentContaId, setPaymentContaId] = useState('');
   const [savingPayment, setSavingPayment] = useState(false);
   const [activeTab, setActiveTab] = useState('contas');
+  const [openReportAfterFilter, setOpenReportAfterFilter] = useState(false);
   const savingContaRef = useRef(false);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
   const reportRef = useRef<HTMLDivElement>(null);
@@ -276,6 +277,7 @@ export default function ContasPagarPage() {
         empresa?: string;
         statuses?: string[];
       };
+      openReport?: boolean;
     } | null;
 
     if (!state?.dashboardFilter) return;
@@ -297,6 +299,7 @@ export default function ContasPagarPage() {
     setActiveTab('parcelas');
     setCurrentPage(1);
     setParcelasCurrentPage(1);
+    setOpenReportAfterFilter(Boolean(state.openReport));
     setFiltrosAplicados({
       empresa: appliedEmpresa,
       obra: '',
@@ -1254,6 +1257,14 @@ export default function ContasPagarPage() {
       setParcelasCurrentPage(parcelasTotalPages);
     }
   }, [parcelasCurrentPage, parcelasTotalPages]);
+
+  useEffect(() => {
+    if (!openReportAfterFilter) return;
+    if (reportGroups.length > 0) {
+      setShowReport(true);
+      setOpenReportAfterFilter(false);
+    }
+  }, [openReportAfterFilter, reportGroups]);
 
   function handleOpenReport() {
     if (reportGroups.length === 0) {
