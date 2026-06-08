@@ -1153,26 +1153,12 @@ export default function ContasPagarPage() {
     });
     
     const result = Object.values(groups);
-    // Ordenar itens de cada dia pela ordem cadastrada nas tags.
+    // Ordenar itens de cada dia por valor crescente no relatório.
     result.forEach(group => {
-      group.items.sort((a, b) => {
-        const tagA = getTagDisplay(a.conta.tag_id, a.conta.tag_nome, a.conta.tag_cor);
-        const tagB = getTagDisplay(b.conta.tag_id, b.conta.tag_nome, b.conta.tag_cor);
-        const ordemA = tagA.ordem ?? Number.MAX_SAFE_INTEGER;
-        const ordemB = tagB.ordem ?? Number.MAX_SAFE_INTEGER;
-        if (ordemA !== ordemB) return ordemA - ordemB;
-
-        const tagNameCompare = (tagA.nome || '').localeCompare(tagB.nome || '', 'pt-BR', { sensitivity: 'base', numeric: true });
-        if (tagNameCompare !== 0) return tagNameCompare;
-
-        const fornecedorCompare = (a.conta.fornecedor_nome || '').localeCompare(b.conta.fornecedor_nome || '', 'pt-BR', { sensitivity: 'base', numeric: true });
-        if (fornecedorCompare !== 0) return fornecedorCompare;
-
-        return (a.numero_parcela || 0) - (b.numero_parcela || 0);
-      });
+      group.items.sort((a, b) => (Number(a.valor_parcela) || 0) - (Number(b.valor_parcela) || 0));
     });
     return result.sort((a, b) => (a.date > b.date ? 1 : a.date < b.date ? -1 : 0));
-  }, [reportParcelas, tags]);
+  }, [reportParcelas]);
 
   const reportTotal = useMemo(() => {
     return reportGroups.reduce((sum, group) => sum + group.total, 0);
