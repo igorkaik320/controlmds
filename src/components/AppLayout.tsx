@@ -13,6 +13,7 @@ import { confirmDraftDiscard } from '@/lib/draftGuard';
 function getPageHeader(pathname: string) {
   if (
     pathname.includes('contas-pagar') ||
+    pathname.includes('financeiro') ||
     pathname.includes('faturados-parcelas') ||
     pathname.includes('compras-faturadas') ||
     pathname.includes('compras-avista')

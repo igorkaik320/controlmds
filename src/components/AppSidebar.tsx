@@ -84,6 +84,14 @@ export function AppSidebar() {
       { title: 'Contas a Pagar', url: '/contas-pagar', icon: Package, module: 'contas_pagar' },
       { title: 'Controle de Caixa', url: '/controle-caixa', icon: Landmark, module: 'controle_caixa' },
       {
+        title: 'Relatórios',
+        url: '/financeiro/relatorios',
+        icon: FileBarChart,
+        children: [
+          { title: 'Fornecedores', url: '/financeiro/relatorios/fornecedores', icon: Users, module: 'contas_pagar' },
+        ],
+      },
+      {
         title: 'Cadastros',
         url: '/financeiro/cadastros',
         icon: Cog,

@@ -1022,6 +1022,7 @@ export default function ContasPagarPage() {
     return {
       nome: tag?.nome || nome || null,
       cor: tag?.cor || cor || '#64748b',
+      ordem: tag?.ordem ?? null,
     };
   }
 
@@ -1116,11 +1117,16 @@ export default function ContasPagarPage() {
     return parcelasFiltradas;
   }, [items, filtrosAplicados, obras, parcelasSortKey, parcelasSortDir]);
 
+  const reportParcelas = useMemo(() => {
+    if (selectedParcelas.size === 0) return consultaParcelas;
+    return consultaParcelas.filter((parcela) => selectedParcelas.has(parcela.id));
+  }, [consultaParcelas, selectedParcelas]);
+
   // Agrupar parcelas por data para o relatório
   const reportGroups = useMemo(() => {
     const groups: Record<string, { date: string; dateLabel: string; parcels: number; total: number; items: any[] }> = {};
     
-    consultaParcelas.forEach(parcela => {
+    reportParcelas.forEach(parcela => {
       const date = parcela.data_vencimento || '0000-00-00';
 
       if (!groups[date]) {
@@ -1147,12 +1153,26 @@ export default function ContasPagarPage() {
     });
     
     const result = Object.values(groups);
-    // Ordenar itens de cada dia em ordem crescente de valor (depois de adicionar todas as parcelas)
+    // Ordenar itens de cada dia pela ordem cadastrada nas tags.
     result.forEach(group => {
-      group.items.sort((a, b) => a.valor_parcela - b.valor_parcela);
+      group.items.sort((a, b) => {
+        const tagA = getTagDisplay(a.conta.tag_id, a.conta.tag_nome, a.conta.tag_cor);
+        const tagB = getTagDisplay(b.conta.tag_id, b.conta.tag_nome, b.conta.tag_cor);
+        const ordemA = tagA.ordem ?? Number.MAX_SAFE_INTEGER;
+        const ordemB = tagB.ordem ?? Number.MAX_SAFE_INTEGER;
+        if (ordemA !== ordemB) return ordemA - ordemB;
+
+        const tagNameCompare = (tagA.nome || '').localeCompare(tagB.nome || '', 'pt-BR', { sensitivity: 'base', numeric: true });
+        if (tagNameCompare !== 0) return tagNameCompare;
+
+        const fornecedorCompare = (a.conta.fornecedor_nome || '').localeCompare(b.conta.fornecedor_nome || '', 'pt-BR', { sensitivity: 'base', numeric: true });
+        if (fornecedorCompare !== 0) return fornecedorCompare;
+
+        return (a.numero_parcela || 0) - (b.numero_parcela || 0);
+      });
     });
     return result.sort((a, b) => (a.date > b.date ? 1 : a.date < b.date ? -1 : 0));
-  }, [consultaParcelas]);
+  }, [reportParcelas, tags]);
 
   const reportTotal = useMemo(() => {
     return reportGroups.reduce((sum, group) => sum + group.total, 0);

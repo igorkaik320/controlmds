@@ -5,6 +5,7 @@ export interface FinanceiroTag {
   id: string;
   nome: string;
   cor: string;
+  ordem: number | null;
   ativa: boolean;
   created_by: string | null;
   created_at: string;
@@ -16,6 +17,7 @@ export async function fetchFinanceiroTags(): Promise<FinanceiroTag[]> {
   const { data, error } = await supabase
     .from('financeiro_tags')
     .select('*')
+    .order('ordem', { ascending: true, nullsFirst: false })
     .order('nome', { ascending: true });
 
   if (error) throw error;

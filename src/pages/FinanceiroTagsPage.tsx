@@ -23,6 +23,7 @@ import {
 const emptyForm = {
   nome: '',
   cor: '#ef4444',
+  ordem: '',
   ativa: 'true',
 };
 
@@ -92,6 +93,7 @@ export default function FinanceiroTagsPage() {
     setForm({
       nome: item.nome,
       cor: item.cor,
+      ordem: item.ordem == null ? '' : String(item.ordem),
       ativa: item.ativa ? 'true' : 'false',
     });
     setShowDialog(true);
@@ -110,6 +112,12 @@ export default function FinanceiroTagsPage() {
     }
 
     const nome = form.nome.trim().toUpperCase();
+    const ordem = form.ordem.trim() ? Number(form.ordem) : null;
+    if (ordem != null && (!Number.isInteger(ordem) || ordem < 0)) {
+      toast.error('Informe uma ordem valida');
+      return;
+    }
+
     const duplicate = items.find((item) => item.id !== editingId && item.nome.trim().toLowerCase() === nome.toLowerCase());
     if (duplicate) {
       toast.error('Já existe uma tag com este nome');
@@ -120,6 +128,7 @@ export default function FinanceiroTagsPage() {
       const payload = {
         nome,
         cor,
+        ordem,
         ativa: form.ativa === 'true',
         created_by: user.id,
         updated_by: user.id,
@@ -202,6 +211,7 @@ export default function FinanceiroTagsPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Tag</TableHead>
+              <TableHead>Ordem</TableHead>
               <TableHead>Cor</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Auditoria</TableHead>
@@ -211,7 +221,7 @@ export default function FinanceiroTagsPage() {
           <TableBody>
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground">
+                <TableCell colSpan={6} className="text-center text-muted-foreground">
                   Nenhuma tag encontrada
                 </TableCell>
               </TableRow>
@@ -221,6 +231,9 @@ export default function FinanceiroTagsPage() {
               <TableRow key={item.id}>
                 <TableCell>
                   <TagPreview nome={item.nome} cor={item.cor} />
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  {item.ordem ?? '-'}
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -286,6 +299,17 @@ export default function FinanceiroTagsPage() {
                   className="font-mono uppercase"
                 />
               </div>
+            </div>
+            <div>
+              <Label>Ordem</Label>
+              <Input
+                type="number"
+                min="0"
+                step="1"
+                value={form.ordem}
+                onChange={(e) => setForm((prev) => ({ ...prev, ordem: e.target.value }))}
+                placeholder="Ex: 1"
+              />
             </div>
             <div>
               <Label>Status</Label>
