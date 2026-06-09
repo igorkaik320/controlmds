@@ -7,6 +7,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Plus, Pencil, Trash2, FileDown, FileSpreadsheet, Search, RotateCcw } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useModulePermissions } from '@/hooks/useModulePermissions';
@@ -22,7 +30,12 @@ import {
   formatCurrencyBR,
   formatDateBR,
 } from '@/lib/comprasService';
-import { exportProgramacaoSemanalPDF, exportProgramacaoSemanalXLSX } from '@/lib/comprasExport';
+import {
+  exportProgramacaoSemanalPDF,
+  exportProgramacaoSemanalStatusPDF,
+  exportProgramacaoSemanalStatusXLSX,
+  exportProgramacaoSemanalXLSX,
+} from '@/lib/comprasExport';
 import { formatCPFCNPJ, formatCurrencyInput, parseCurrencyInput } from '@/lib/formatters';
 import FornecedorSelect from '@/components/compras/FornecedorSelect';
 import ObraSelect from '@/components/compras/ObraSelect';
@@ -407,7 +420,7 @@ export default function ProgramacaoSemanalPage() {
     }
   }
 
-  async function handleExportPDF() {
+  async function handleExportPDF(type: 'semanal' | 'status' = 'semanal') {
     const reportItems = getReportItems();
 
     if (reportItems.length === 0) {
@@ -436,14 +449,24 @@ export default function ProgramacaoSemanalPage() {
       };
     }
 
+    if (type === 'status') {
+      exportProgramacaoSemanalStatusPDF(reportItems, config, observation);
+      return;
+    }
+
     exportProgramacaoSemanalPDF(reportItems, config, observation);
   }
 
-  function handleExportXLSX() {
+  function handleExportXLSX(type: 'semanal' | 'status' = 'semanal') {
     const reportItems = getReportItems();
 
     if (reportItems.length === 0) {
       toast.error('Nenhum lançamento selecionado para exportar.');
+      return;
+    }
+
+    if (type === 'status') {
+      exportProgramacaoSemanalStatusXLSX(reportItems, observation);
       return;
     }
 
@@ -494,21 +517,35 @@ export default function ProgramacaoSemanalPage() {
           )}
 
           {canExport('programacao_semanal') && (
-            <>
-              <Button variant="outline" size="sm" onClick={handleExportPDF}>
-                <FileDown className="mr-1 h-4 w-4" />
-                PDF
-              </Button>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExportXLSX}
-              >
-                <FileSpreadsheet className="mr-1 h-4 w-4" />
-                Excel
-              </Button>
-            </>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <FileDown className="mr-1 h-4 w-4" />
+                  Relatório
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Semanal</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => handleExportPDF('semanal')}>
+                  <FileDown className="mr-2 h-4 w-4" />
+                  PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExportXLSX('semanal')}>
+                  <FileSpreadsheet className="mr-2 h-4 w-4" />
+                  Excel
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Status</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => handleExportPDF('status')}>
+                  <FileDown className="mr-2 h-4 w-4" />
+                  PDF
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleExportXLSX('status')}>
+                  <FileSpreadsheet className="mr-2 h-4 w-4" />
+                  Excel
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
 
           {canCreate('programacao_semanal') && (

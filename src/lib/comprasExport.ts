@@ -613,6 +613,112 @@ export async function exportProgramacaoSemanalXLSX(items: ProgramacaoSemanal[], 
   XLSX.writeFile(wb, 'programacao-semanal.xlsx');
 }
 
+function getProgramacaoStatusLabel(item: ProgramacaoSemanal) {
+  const status = item.status || 'aberta';
+  if (status === 'aberta' && item.data && item.data < new Date().toISOString().split('T')[0]) return 'VENCIDA';
+  const labels: Record<string, string> = {
+    aberta: 'ABERTA',
+    paga: 'PAGA',
+    vencida: 'VENCIDA',
+    cancelada: 'CANCELADA',
+  };
+  return labels[status] || status.toUpperCase();
+}
+
+// ---- Programacao Semanal Status PDF ----
+export async function exportProgramacaoSemanalStatusPDF(items: ProgramacaoSemanal[], config?: ConfigRelatorio | null, observation?: string) {
+  const { default: jsPDF } = await import('jspdf');
+  const { default: autoTable } = await import('jspdf-autotable');
+  const doc = new jsPDF({ orientation: 'landscape' });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const headerColor = config ? hexToRgb(config.cor_cabecalho) : ([30, 55, 100] as [number, number, number]);
+  const fontSize = config?.tamanho_fonte || 8;
+
+  await addLogos(doc, config || null, pageWidth);
+
+  doc.setFontSize(16);
+  doc.text('PROGRAMACAO SEMANAL - STATUS', pageWidth / 2, 16, { align: 'center' });
+  doc.setFontSize(10);
+  doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, 28);
+
+  const rows = items.map((i) => [
+    formatDateBR(i.data),
+    i.fornecedor,
+    i.pedido || '',
+    formatCurrencyBR(i.valor),
+    i.obra || '',
+    i.responsavel || '',
+    getProgramacaoStatusLabel(i),
+    formatDateBR(i.data_pagamento || ''),
+    i.observacao || '',
+  ]);
+
+  const total = items.reduce((s, i) => s + i.valor, 0);
+  rows.push(['', '', 'TOTAL', formatCurrencyBR(total), '', '', '', '', '']);
+
+  autoTable(doc, {
+    startY: 34,
+    head: [['Data', 'Fornecedor', 'Pedido', 'Valor', 'Obra', 'Responsavel', 'Status', 'Pagamento', 'Observacao']],
+    body: rows,
+    tableWidth: 'auto',
+    margin: { left: 10, right: 10 },
+    styles: {
+      fontSize,
+      fontStyle: config?.negrito ? 'bold' : 'normal',
+      overflow: 'linebreak',
+      lineWidth: 0.3,
+      lineColor: [0, 0, 0],
+    },
+    headStyles: {
+      fillColor: headerColor,
+      lineWidth: 0.3,
+      lineColor: [0, 0, 0],
+    },
+    columnStyles: {
+      3: { halign: 'right' },
+      6: { halign: 'center', fontStyle: 'bold' },
+    },
+    tableLineWidth: 0.3,
+    tableLineColor: [0, 0, 0],
+  });
+
+  addObservation(doc, observation);
+  doc.save('programacao-semanal-status.pdf');
+}
+
+// ---- Programacao Semanal Status XLSX ----
+export async function exportProgramacaoSemanalStatusXLSX(items: ProgramacaoSemanal[], observation?: string) {
+  const XLSX = await import('xlsx');
+  const wb = XLSX.utils.book_new();
+
+  const data: any[][] = [
+    ['Data', 'Fornecedor', 'Pedido', 'Valor', 'Obra', 'Responsavel', 'Status', 'Pagamento', 'Observacao'],
+    ...items.map((i) => [
+      formatDateBR(i.data),
+      i.fornecedor,
+      i.pedido || '',
+      i.valor,
+      i.obra || '',
+      i.responsavel || '',
+      getProgramacaoStatusLabel(i),
+      formatDateBR(i.data_pagamento || ''),
+      i.observacao || '',
+    ]),
+    ['', '', 'TOTAL', items.reduce((s, i) => s + i.valor, 0), '', '', '', '', ''],
+  ];
+
+  if (observation?.trim()) {
+    data.push([]);
+    data.push(['OBSERVACAO:', observation]);
+  }
+
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  applySheetColumns(ws, [12, 30, 16, 14, 24, 20, 14, 14, 30]);
+
+  XLSX.utils.book_append_sheet(wb, ws, 'Status');
+  XLSX.writeFile(wb, 'programacao-semanal-status.xlsx');
+}
+
 // ---- Espelho Semanal PDF ----
 export async function exportEspelhoSemanalPDF(items: EspelhoItem[], dateStr: string, config?: ConfigRelatorio | null, observation?: string) {
   const { default: jsPDF } = await import('jspdf');
