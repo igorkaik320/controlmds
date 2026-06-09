@@ -9,6 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import EmpresaSelect from '@/components/compras/EmpresaSelect';
 import { fetchContasPagar, ContaPagarComParcelas, ContaPagarParcela } from '@/lib/contasPagarService';
+import { fetchProgramacaoSemanal, ProgramacaoSemanal } from '@/lib/comprasService';
+import { fetchObras, Obra } from '@/lib/obrasService';
 import { formatCurrency } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -29,6 +31,12 @@ const STATUS_COLORS: Record<string, string> = {
 
 const CHART_COLORS = ['#0f172a', '#2563eb', '#f97316', '#16a34a', '#9333ea', '#0891b2', '#be123c', '#ca8a04'];
 
+const PROGRAMACAO_STATUS_COLORS: Record<string, string> = {
+  aberta: '#2563eb',
+  paga: '#16a34a',
+  vencida: '#dc2626',
+};
+
 type DashboardParcela = ContaPagarParcela & {
   conta: ContaPagarComParcelas;
 };
@@ -41,6 +49,13 @@ type ChartGroup = {
   name: string;
   value: number;
   filterValue: string;
+};
+
+type ProgramacaoStatusChartItem = {
+  name: string;
+  value: number;
+  filterValue: string;
+  color: string;
 };
 
 function monthLabel(date: string) {
@@ -61,6 +76,25 @@ function compactCurrency(value: number) {
     notation: 'compact',
     maximumFractionDigits: 1,
   }).format(value);
+}
+
+function todayISO() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function normalizeLookupText(value: string | null | undefined) {
+  return (value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+function getProgramacaoStatus(item: ProgramacaoSemanal) {
+  const itemStatus = item.status || 'aberta';
+  if (itemStatus === 'aberta' && item.data && item.data < todayISO()) return 'vencida';
+  return itemStatus;
 }
 
 function CustomTooltip({ active, payload, label }: any) {
@@ -138,6 +172,8 @@ export default function ContasPagarDashboardPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<ContaPagarComParcelas[]>([]);
+  const [programacaoItems, setProgramacaoItems] = useState<ProgramacaoSemanal[]>([]);
+  const [obras, setObras] = useState<Obra[]>([]);
 
   const [draftDateFrom, setDraftDateFrom] = useState('');
   const [draftDateTo, setDraftDateTo] = useState('');
@@ -152,7 +188,14 @@ export default function ContasPagarDashboardPage() {
   const load = useCallback(async () => {
     try {
       setLoading(true);
-      setItems(await fetchContasPagar());
+      const [contas, programacao, obrasData] = await Promise.all([
+        fetchContasPagar(),
+        fetchProgramacaoSemanal(),
+        fetchObras(),
+      ]);
+      setItems(contas);
+      setProgramacaoItems(programacao);
+      setObras(obrasData);
     } catch (error: any) {
       toast.error(error?.message || 'Erro ao carregar dashboard.');
     } finally {
@@ -268,6 +311,39 @@ export default function ContasPagarDashboardPage() {
       color: STATUS_COLORS[key] || '#64748b',
     }));
   }, [chartItems]);
+
+  const programacaoPorStatus = useMemo<ProgramacaoStatusChartItem[]>(() => {
+    const obrasPorNome = new Map(
+      obras.map((obra) => [normalizeLookupText(obra.nome), obra])
+    );
+
+    const totals = new Map<string, number>([
+      ['aberta', 0],
+      ['paga', 0],
+      ['vencida', 0],
+    ]);
+
+    programacaoItems.forEach((item) => {
+      if (!item.data) return;
+      if (dateFrom && item.data < dateFrom) return;
+      if (dateTo && item.data > dateTo) return;
+
+      if (empresa) {
+        const obra = obrasPorNome.get(normalizeLookupText(item.obra));
+        if (obra?.empresa_id !== empresa) return;
+      }
+
+      const statusValue = getProgramacaoStatus(item);
+      if (!totals.has(statusValue)) return;
+      totals.set(statusValue, (totals.get(statusValue) || 0) + Number(item.valor || 0));
+    });
+
+    return [
+      { name: 'Aberto', filterValue: 'aberta', value: totals.get('aberta') || 0, color: PROGRAMACAO_STATUS_COLORS.aberta },
+      { name: 'Pago', filterValue: 'paga', value: totals.get('paga') || 0, color: PROGRAMACAO_STATUS_COLORS.paga },
+      { name: 'Vencido', filterValue: 'vencida', value: totals.get('vencida') || 0, color: PROGRAMACAO_STATUS_COLORS.vencida },
+    ].filter((item) => item.value > 0);
+  }, [programacaoItems, obras, dateFrom, dateTo, empresa]);
 
   function handleConsultar() {
     setDateFrom(draftDateFrom);
@@ -509,7 +585,7 @@ export default function ContasPagarDashboardPage() {
         </Card>
       </div>
 
-      <div className="grid gap-4">
+      <div className="grid gap-4 xl:grid-cols-2">
         <Card className="rounded-lg p-4">
           <div className="mb-4 flex items-center justify-between">
             <div>
@@ -532,6 +608,37 @@ export default function ContasPagarDashboardPage() {
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
+          </div>
+        </Card>
+
+        <Card className="rounded-lg p-4">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-semibold">Programação Semanal</h3>
+              <p className="text-xs text-muted-foreground">Aberto, pago e vencido no período filtrado.</p>
+            </div>
+            <CalendarClock className="h-4 w-4 text-muted-foreground" />
+          </div>
+          <div className="h-[320px]">
+            {programacaoPorStatus.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={programacaoPorStatus} margin={{ left: 4, right: 16, top: 8, bottom: 16 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#334155' }} />
+                  <YAxis tickFormatter={compactCurrency} tick={{ fontSize: 11, fill: '#64748b' }} width={72} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Bar dataKey="value" name="Valor" radius={[4, 4, 0, 0]}>
+                    {programacaoPorStatus.map((entry) => (
+                      <Cell key={entry.filterValue} fill={entry.color} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex h-full items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
+                Nenhum valor de programação semanal no filtro atual.
+              </div>
+            )}
           </div>
         </Card>
       </div>
