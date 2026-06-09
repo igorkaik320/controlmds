@@ -103,6 +103,9 @@ export interface ProgramacaoSemanal {
   obra: string | null;
   observacao: string | null;
   responsavel: string | null;
+  status?: 'aberta' | 'paga' | 'vencida' | 'cancelada';
+  data_pagamento?: string | null;
+  conta_corrente_id?: string | null;
   created_by: string;
   created_at: string;
   updated_by?: string | null;
@@ -651,6 +654,101 @@ export async function updateProgramacaoSemanal(id: string, c: Partial<Programaca
     user_id: (c.updated_by as string) || '',
   });
   return data;
+}
+
+export async function updateProgramacaoSemanalStatus(ids: string[], status: string, userId: string) {
+  if (ids.length === 0) return;
+
+  const { error } = await (supabase as any)
+    .from('programacao_semanal')
+    .update({
+      status,
+      updated_at: new Date().toISOString(),
+      updated_by: userId,
+      ...(status !== 'paga' ? { data_pagamento: null, conta_corrente_id: null } : {}),
+    })
+    .in('id', ids);
+
+  if (error) throw error;
+
+  if (status !== 'paga') {
+    const { error: movimentosError } = await (supabase as any)
+      .from('contas_correntes_movimentacoes')
+      .delete()
+      .eq('origem_tipo', 'programacao_semanal')
+      .in('origem_id', ids);
+
+    if (movimentosError) throw movimentosError;
+  }
+}
+
+export async function baixarProgramacaoSemanal(
+  ids: string[],
+  dataPagamento: string,
+  contaCorrenteId: string,
+  userId: string
+) {
+  if (ids.length === 0) return;
+
+  const { data: registros, error: registrosError } = await (supabase as any)
+    .from('programacao_semanal')
+    .select('*')
+    .in('id', ids);
+
+  if (registrosError) throw registrosError;
+
+  await (supabase as any)
+    .from('contas_correntes_movimentacoes')
+    .delete()
+    .eq('origem_tipo', 'programacao_semanal')
+    .in('origem_id', ids);
+
+  const { error: updateError } = await (supabase as any)
+    .from('programacao_semanal')
+    .update({
+      status: 'paga',
+      data_pagamento: dataPagamento,
+      conta_corrente_id: contaCorrenteId,
+      updated_at: new Date().toISOString(),
+      updated_by: userId,
+    })
+    .in('id', ids);
+
+  if (updateError) throw updateError;
+
+  const movimentos = (registros || []).map((item: ProgramacaoSemanal) => ({
+    conta_corrente_id: contaCorrenteId,
+    origem_tipo: 'programacao_semanal',
+    origem_id: item.id,
+    tipo: 'saida',
+    data_movimentacao: dataPagamento,
+    valor: -Math.abs(Number(item.valor || 0)),
+    descricao: `Programação semanal - ${item.fornecedor}${item.observacao ? ` - ${item.observacao}` : ''}`,
+    created_by: userId,
+  }));
+
+  if (movimentos.length > 0) {
+    const { error: movimentoError } = await (supabase as any)
+      .from('contas_correntes_movimentacoes')
+      .insert(movimentos);
+
+    if (movimentoError) throw movimentoError;
+  }
+
+  for (const item of registros || []) {
+    await recordAuditEntry({
+      entity_type: 'programacao_semanal',
+      entity_id: item.id,
+      action: 'baixa',
+      old_values: item,
+      new_values: {
+        status: 'paga',
+        data_pagamento: dataPagamento,
+        conta_corrente_id: contaCorrenteId,
+      },
+      user_id: userId,
+    });
+  }
 }
 
 export async function deleteProgramacaoSemanal(id: string, userId: string) {

@@ -20,8 +20,10 @@ import {
   saveContaCorrente,
   updateContaCorrente,
 } from '@/lib/contasCorrentesService';
+import { Empresa, fetchEmpresas } from '@/lib/empresasService';
 
 const emptyForm = {
+  empresa_id: '',
   banco: '',
   agencia: '',
   numero_conta: '',
@@ -44,6 +46,7 @@ export default function ContasCorrentesPage() {
   const { user } = useAuth();
   const { canCreate, canEdit, canDelete } = useModulePermissions();
   const [items, setItems] = useState<ContaCorrente[]>([]);
+  const [empresas, setEmpresas] = useState<Empresa[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -54,7 +57,9 @@ export default function ContasCorrentesPage() {
 
   const load = useCallback(async () => {
     try {
-      setItems(await fetchContasCorrentes());
+      const [contas, empresasData] = await Promise.all([fetchContasCorrentes(), fetchEmpresas()]);
+      setItems(contas);
+      setEmpresas(empresasData);
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -66,12 +71,17 @@ export default function ContasCorrentesPage() {
     load();
   }, [load]);
 
+  const empresaMap = useMemo(() => {
+    return new Map(empresas.map((empresa) => [empresa.id, empresa.nome]));
+  }, [empresas]);
+
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
     if (!term) return items;
     return items.filter((item) =>
       [
         item.banco,
+        item.empresa_id ? empresaMap.get(item.empresa_id) || '' : '',
         item.agencia,
         item.numero_conta,
         item.digito_verificador || '',
@@ -79,7 +89,7 @@ export default function ContasCorrentesPage() {
         item.observacao || '',
       ].some((value) => value.toLowerCase().includes(term))
     );
-  }, [items, search]);
+  }, [empresaMap, items, search]);
 
   function openNew() {
     setEditingId(null);
@@ -90,6 +100,7 @@ export default function ContasCorrentesPage() {
   function openEdit(item: ContaCorrente) {
     setEditingId(item.id);
     setForm({
+      empresa_id: item.empresa_id || '',
       banco: item.banco,
       agencia: item.agencia,
       numero_conta: item.numero_conta,
@@ -112,6 +123,7 @@ export default function ContasCorrentesPage() {
 
     const payload = {
       banco: form.banco.trim().toUpperCase(),
+      empresa_id: form.empresa_id || null,
       agencia: form.agencia.trim(),
       numero_conta: form.numero_conta.trim(),
       digito_verificador: form.digito_verificador.trim() || null,
@@ -207,6 +219,7 @@ export default function ContasCorrentesPage() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>Empresa</TableHead>
               <TableHead>Banco</TableHead>
               <TableHead>Agência</TableHead>
               <TableHead>Conta</TableHead>
@@ -222,7 +235,7 @@ export default function ContasCorrentesPage() {
           <TableBody>
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={10} className="text-center text-muted-foreground">
+                <TableCell colSpan={11} className="text-center text-muted-foreground">
                   Nenhuma conta corrente encontrada
                 </TableCell>
               </TableRow>
@@ -230,6 +243,7 @@ export default function ContasCorrentesPage() {
 
             {filtered.map((item) => (
               <TableRow key={item.id}>
+                <TableCell>{item.empresa_id ? empresaMap.get(item.empresa_id) || '-' : '-'}</TableCell>
                 <TableCell className="font-medium">
                   <span className="inline-flex items-center gap-2">
                     <Landmark className="h-4 w-4 text-muted-foreground" />
@@ -273,6 +287,18 @@ export default function ContasCorrentesPage() {
           </DialogHeader>
 
           <div className="grid gap-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <Label>Empresa</Label>
+              <Select value={form.empresa_id || 'none'} onValueChange={(value) => setForm((prev) => ({ ...prev, empresa_id: value === 'none' ? '' : value }))}>
+                <SelectTrigger><SelectValue placeholder="Selecione a empresa" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sem empresa vinculada</SelectItem>
+                  {empresas.map((empresa) => (
+                    <SelectItem key={empresa.id} value={empresa.id}>{empresa.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div>
               <Label>Banco *</Label>
               <Input value={form.banco} onChange={(e) => setForm((prev) => ({ ...prev, banco: e.target.value }))} placeholder="Ex: Banco do Brasil" />

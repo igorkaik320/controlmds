@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Pencil, Trash2, FileDown, FileSpreadsheet, Search, RotateCcw } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useModulePermissions } from '@/hooks/useModulePermissions';
@@ -14,6 +15,8 @@ import {
   fetchProgramacaoSemanal,
   saveProgramacaoSemanal,
   updateProgramacaoSemanal,
+  updateProgramacaoSemanalStatus,
+  baixarProgramacaoSemanal,
   deleteProgramacaoSemanal,
   fetchConfigRelatorio,
   formatCurrencyBR,
@@ -29,9 +32,10 @@ import { useFormDraft } from '@/hooks/useFormDraft';
 import { toast } from 'sonner';
 import type { Fornecedor } from '@/lib/comprasService';
 import { fetchObras, Obra } from '@/lib/obrasService';
-import { fetchEmpresas } from '@/lib/empresasService';
+import { Empresa, fetchEmpresas } from '@/lib/empresasService';
 import { fetchProfiles } from '@/lib/cashRegister';
-import AuditInfo from '@/components/AuditInfo';
+import { ContaCorrente, fetchContasCorrentes } from '@/lib/contasCorrentesService';
+import ObservationInfoTooltip from '@/components/compras/ObservationInfoTooltip';
 import { useDataRefreshFlash } from '@/hooks/useDataRefreshFlash';
 import TablePagination from '@/components/TablePagination';
 import { usePagination } from '@/hooks/usePagination';
@@ -50,14 +54,48 @@ const emptyForm = {
   responsavel: '',
 };
 
+const STATUS_OPTIONS = [
+  { value: 'aberta', label: 'Aberta' },
+  { value: 'paga', label: 'Paga' },
+  { value: 'vencida', label: 'Vencida' },
+  { value: 'cancelada', label: 'Cancelada' },
+];
+
+function todayISO() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function getProgramacaoStatus(item: ProgramacaoSemanal) {
+  const status = item.status || 'aberta';
+  if (status === 'aberta' && item.data && item.data < todayISO()) return 'vencida';
+  return status;
+}
+
+function getStatusClass(status: string) {
+  const classes: Record<string, string> = {
+    aberta: 'bg-primary/15 text-primary hover:bg-primary/20',
+    paga: 'bg-success/15 text-success hover:bg-success/20',
+    vencida: 'bg-destructive/15 text-destructive hover:bg-destructive/20',
+    cancelada: 'bg-muted text-muted-foreground hover:bg-muted/80',
+  };
+  return classes[status] || classes.aberta;
+}
+
 export default function ProgramacaoSemanalPage() {
   const { user } = useAuth();
   const { canCreate, canEdit, canDelete, canExport } = useModulePermissions();
   const [items, setItems] = useState<ProgramacaoSemanal[]>([]);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [obras, setObras] = useState<Obra[]>([]);
+  const [empresas, setEmpresas] = useState<Empresa[]>([]);
+  const [contasCorrentes, setContasCorrentes] = useState<ContaCorrente[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDialog, setShowDialog] = useState(false);
+  const [paymentItems, setPaymentItems] = useState<ProgramacaoSemanal[]>([]);
+  const [paymentDate, setPaymentDate] = useState('');
+  const [paymentEmpresaId, setPaymentEmpresaId] = useState('');
+  const [paymentContaId, setPaymentContaId] = useState('');
+  const [savingPayment, setSavingPayment] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [profileMap, setProfileMap] = useState<Record<string, string>>({});
   const { contentRef, flashAfterUpdate } = useDataRefreshFlash();
@@ -85,19 +123,22 @@ export default function ProgramacaoSemanalPage() {
 
   const load = useCallback(async () => {
     try {
-      const [programacao, obrasData, empresas, profiles] = await Promise.all([
+      const [programacao, obrasData, empresasData, profiles, contasData] = await Promise.all([
         fetchProgramacaoSemanal(),
         fetchObras(),
         fetchEmpresas(),
         fetchProfiles(),
+        fetchContasCorrentes(),
       ]);
 
       setItems(programacao);
       setObras(obrasData);
+      setEmpresas(empresasData);
+      setContasCorrentes(contasData);
       setProfileMap(profiles);
 
       if (draftFilterEmpresa) {
-        const empresa = empresas.find((e) => e.id === draftFilterEmpresa);
+        const empresa = empresasData.find((e) => e.id === draftFilterEmpresa);
         if (empresa) {
           setEmpresaLogos({
             logo_esquerda: empresa.logo_esquerda,
@@ -141,6 +182,11 @@ export default function ProgramacaoSemanalPage() {
   const selectedVisibleCount = filtered.filter((item) => selectedItems.has(item.id)).length;
   const allVisibleSelected = filtered.length > 0 && selectedVisibleCount === filtered.length;
   const pagination = usePagination(filtered);
+  const contasCorrentesPagamento = contasCorrentes.filter((conta) => {
+    if (!conta.ativa) return false;
+    if (!paymentEmpresaId) return true;
+    return conta.empresa_id === paymentEmpresaId;
+  });
 
   function getReportItems() {
     return selectedItems.size > 0 ? filtered.filter((item) => selectedItems.has(item.id)) : filtered;
@@ -180,6 +226,83 @@ export default function ProgramacaoSemanalPage() {
       }
       return next;
     });
+  }
+
+  function openPaymentDialog(itemsToPay: ProgramacaoSemanal[]) {
+    if (itemsToPay.length === 0) {
+      toast.error('Nenhum lançamento selecionado para baixa.');
+      return;
+    }
+
+    const firstConta = contasCorrentes.find((conta) => conta.ativa) || contasCorrentes[0];
+    setPaymentItems(itemsToPay);
+    setPaymentDate(new Date().toISOString().split('T')[0]);
+    setPaymentEmpresaId(firstConta?.empresa_id || '');
+    setPaymentContaId(firstConta?.id || '');
+  }
+
+  async function handleStatusChange(item: ProgramacaoSemanal, newStatus: string) {
+    if (!user) return;
+    if (newStatus === 'paga') {
+      openPaymentDialog([item]);
+      return;
+    }
+
+    try {
+      await updateProgramacaoSemanalStatus([item.id], newStatus, user.id);
+      toast.success('Status atualizado');
+      await load();
+    } catch (e: any) {
+      toast.error(e.message || 'Erro ao atualizar status.');
+    }
+  }
+
+  async function handleBulkStatusChange(newStatus: string) {
+    if (!user || selectedItems.size === 0) return;
+    const selected = filtered.filter((item) => selectedItems.has(item.id));
+
+    if (newStatus === 'paga') {
+      openPaymentDialog(selected);
+      return;
+    }
+
+    try {
+      await updateProgramacaoSemanalStatus(selected.map((item) => item.id), newStatus, user.id);
+      toast.success(`${selected.length} lançamento(s) atualizado(s)`);
+      setSelectedItems(new Set());
+      await load();
+    } catch (e: any) {
+      toast.error(e.message || 'Erro ao atualizar status.');
+    }
+  }
+
+  async function handleConfirmPayment() {
+    if (!user || paymentItems.length === 0) return;
+    if (!paymentDate) {
+      toast.error('Informe a data de pagamento.');
+      return;
+    }
+    if (!paymentEmpresaId) {
+      toast.error('Selecione a empresa.');
+      return;
+    }
+    if (!paymentContaId) {
+      toast.error('Selecione a conta corrente.');
+      return;
+    }
+
+    setSavingPayment(true);
+    try {
+      await baixarProgramacaoSemanal(paymentItems.map((item) => item.id), paymentDate, paymentContaId, user.id);
+      toast.success(`${paymentItems.length} lançamento(s) baixado(s) como pago`);
+      setPaymentItems([]);
+      setSelectedItems(new Set());
+      await load();
+    } catch (e: any) {
+      toast.error(e.message || 'Erro ao baixar lançamentos.');
+    } finally {
+      setSavingPayment(false);
+    }
   }
 
   function handleLimpar() {
@@ -357,6 +480,19 @@ export default function ProgramacaoSemanalPage() {
         </div>
 
         <div className="flex gap-2">
+          {selectedItems.size > 0 && (
+            <Select onValueChange={handleBulkStatusChange}>
+              <SelectTrigger className="h-9 w-[172px]">
+                <SelectValue placeholder="Alterar status" />
+              </SelectTrigger>
+              <SelectContent>
+                {STATUS_OPTIONS.map((status) => (
+                  <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+
           {canExport('programacao_semanal') && (
             <>
               <Button variant="outline" size="sm" onClick={handleExportPDF}>
@@ -471,7 +607,8 @@ export default function ProgramacaoSemanalPage() {
               <TableHead className="text-right">Valor</TableHead>
               <TableHead>Obra</TableHead>
               <TableHead>Responsável</TableHead>
-              <TableHead>Obs.</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-center">Info</TableHead>
               <TableHead className="w-[92px] text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -479,7 +616,7 @@ export default function ProgramacaoSemanalPage() {
           <TableBody>
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={13} className="text-center text-muted-foreground">
+                <TableCell colSpan={14} className="text-center text-muted-foreground">
                   Nenhum registro
                 </TableCell>
               </TableRow>
@@ -515,19 +652,31 @@ export default function ProgramacaoSemanalPage() {
                     {i.responsavel || '—'}
                   </div>
                 </TableCell>
-                <TableCell className="max-w-[190px]">
-                  <div className="truncate" title={i.observacao || '—'}>
-                    {i.observacao || '—'}
-                  </div>
-                  <div className="mt-1">
-                    <AuditInfo
-                      createdBy={i.created_by}
-                      createdAt={i.created_at}
-                      updatedBy={i.updated_by}
-                      updatedAt={i.updated_at}
-                      profileMap={profileMap}
-                    />
-                  </div>
+                <TableCell>
+                  <Select
+                    value={getProgramacaoStatus(i)}
+                    onValueChange={(value) => handleStatusChange(i, value)}
+                    disabled={!canEdit('programacao_semanal')}
+                  >
+                    <SelectTrigger className={`h-7 w-[104px] rounded-md border-transparent px-2.5 text-[11px] font-semibold capitalize shadow-none [&>svg]:text-current ${getStatusClass(getProgramacaoStatus(i))}`}>
+                      <span>{getProgramacaoStatus(i)}</span>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STATUS_OPTIONS.map((status) => (
+                        <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </TableCell>
+                <TableCell className="text-center">
+                  <ObservationInfoTooltip
+                    observation={i.observacao}
+                    createdBy={i.created_by}
+                    createdAt={i.created_at}
+                    updatedBy={i.updated_by}
+                    updatedAt={i.updated_at}
+                    profileMap={profileMap}
+                  />
                 </TableCell>
                 <TableCell>
                   <div className="flex justify-end gap-1">
@@ -680,6 +829,88 @@ export default function ProgramacaoSemanalPage() {
               Cancelar
             </Button>
             <Button onClick={handleSubmit}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={paymentItems.length > 0}
+        onOpenChange={(open) => {
+          if (!open && !savingPayment) {
+            setPaymentItems([]);
+          }
+        }}
+      >
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Baixar Programação Semanal</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              {paymentItems.length} lançamento(s) selecionado(s) para baixa.
+            </p>
+
+            <div>
+              <Label>Data de pagamento *</Label>
+              <Input
+                type="date"
+                value={paymentDate}
+                onChange={(event) => setPaymentDate(event.target.value)}
+              />
+            </div>
+
+            <div>
+              <Label>Empresa *</Label>
+              <Select
+                value={paymentEmpresaId || ''}
+                onValueChange={(value) => {
+                  setPaymentEmpresaId(value);
+                  const conta = contasCorrentes.find((item) => item.ativa && item.empresa_id === value);
+                  setPaymentContaId(conta?.id || '');
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a empresa" />
+                </SelectTrigger>
+                <SelectContent>
+                  {empresas.map((empresa) => (
+                    <SelectItem key={empresa.id} value={empresa.id}>{empresa.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label>Conta corrente *</Label>
+              <Select value={paymentContaId || ''} onValueChange={setPaymentContaId} disabled={!paymentEmpresaId}>
+                <SelectTrigger>
+                  <SelectValue placeholder={paymentEmpresaId ? 'Selecione a conta' : 'Selecione a empresa primeiro'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {contasCorrentesPagamento.map((conta) => (
+                    <SelectItem key={conta.id} value={conta.id}>
+                      {conta.banco} - Ag. {conta.agencia} - Conta {conta.numero_conta}
+                      {conta.digito_verificador ? `-${conta.digito_verificador}` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {paymentEmpresaId && contasCorrentesPagamento.length === 0 && (
+                <p className="mt-1 text-xs text-destructive">
+                  Nenhuma conta ativa vinculada a esta empresa.
+                </p>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPaymentItems([])} disabled={savingPayment}>
+              Cancelar
+            </Button>
+            <Button onClick={handleConfirmPayment} disabled={savingPayment}>
+              {savingPayment ? 'Baixando...' : 'Confirmar baixa'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

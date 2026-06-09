@@ -143,6 +143,7 @@ export default function ContasPagarPage() {
   const [renameValue, setRenameValue] = useState('');
   const [paymentParcelas, setPaymentParcelas] = useState<ContaPagarParcela[]>([]);
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
+  const [paymentEmpresaId, setPaymentEmpresaId] = useState('');
   const [paymentContaId, setPaymentContaId] = useState('');
   const [savingPayment, setSavingPayment] = useState(false);
   const [activeTab, setActiveTab] = useState('contas');
@@ -242,6 +243,14 @@ export default function ContasPagarPage() {
     observacao: '',
   });
   const [parcelasForm, setParcelasForm] = useState<ParcelaForm[]>([]);
+
+  const contasCorrentesPagamento = useMemo(() => {
+    return contasCorrentes.filter((conta) => {
+      if (!conta.ativa) return false;
+      if (!paymentEmpresaId) return true;
+      return conta.empresa_id === paymentEmpresaId;
+    });
+  }, [contasCorrentes, paymentEmpresaId]);
 
   const load = useCallback(async () => {
     try {
@@ -823,6 +832,27 @@ export default function ContasPagarPage() {
     });
   }
 
+  function openPaymentDialog(parcelas: ContaPagarParcela[]) {
+    if (parcelas.length === 0) {
+      toast.error('Nenhuma parcela selecionada para baixa.');
+      return;
+    }
+
+    const firstParcelaId = parcelas[0]?.id;
+    const contaDaParcela = firstParcelaId
+      ? items.find((conta) => conta.parcelas.some((parcela) => parcela.id === firstParcelaId))
+      : null;
+    const empresaId = contaDaParcela?.empresa_id || '';
+    const contaInicial = empresaId
+      ? contasCorrentes.find((conta) => conta.ativa && conta.empresa_id === empresaId)
+      : contasCorrentes.find((conta) => conta.ativa) || contasCorrentes[0];
+
+    setPaymentParcelas(parcelas);
+    setPaymentDate(new Date().toISOString().split('T')[0]);
+    setPaymentEmpresaId(empresaId || contaInicial?.empresa_id || '');
+    setPaymentContaId(contaInicial?.id || '');
+  }
+
   // Bulk status change
   async function handleBulkStatusChange(newStatus: string) {
     if (selectedParcelas.size === 0) return;
@@ -832,9 +862,7 @@ export default function ContasPagarPage() {
         toast.error('Nenhuma parcela selecionada para baixa.');
         return;
       }
-      setPaymentParcelas(parcelasSelecionadas);
-      setPaymentDate(new Date().toISOString().split('T')[0]);
-      setPaymentContaId(contasCorrentes.find((conta) => conta.ativa)?.id || contasCorrentes[0]?.id || '');
+      openPaymentDialog(parcelasSelecionadas);
       setShowBulkStatus(false);
       return;
     }
@@ -861,9 +889,7 @@ export default function ContasPagarPage() {
         return;
       }
 
-      setPaymentParcelas([parcela]);
-      setPaymentDate(new Date().toISOString().split('T')[0]);
-      setPaymentContaId(contasCorrentes.find((conta) => conta.ativa)?.id || contasCorrentes[0]?.id || '');
+      openPaymentDialog([parcela]);
       return;
     }
 
@@ -880,6 +906,10 @@ export default function ContasPagarPage() {
     if (!user || paymentParcelas.length === 0) return;
     if (!paymentDate) {
       toast.error('Informe a data de pagamento.');
+      return;
+    }
+    if (!paymentEmpresaId) {
+      toast.error('Selecione a empresa.');
       return;
     }
     if (!paymentContaId) {
@@ -2452,9 +2482,7 @@ export default function ContasPagarPage() {
                                   toast.error('Salve a parcela antes de baixar como paga.');
                                   return;
                                 }
-                                setPaymentParcelas([parcelaExistente]);
-                                setPaymentDate(new Date().toISOString().split('T')[0]);
-                                setPaymentContaId(contasCorrentes.find((conta) => conta.ativa)?.id || contasCorrentes[0]?.id || '');
+                                openPaymentDialog([parcelaExistente]);
                                 return;
                               }
                               updateParcelaForm(index, { status: value });
@@ -2686,25 +2714,51 @@ export default function ContasPagarPage() {
               <Input type="date" value={paymentDate} onChange={(event) => setPaymentDate(event.target.value)} />
             </div>
             <div>
-              <Label>Conta corrente</Label>
-              <Select value={paymentContaId} onValueChange={setPaymentContaId}>
+              <Label>Empresa</Label>
+              <Select
+                value={paymentEmpresaId}
+                onValueChange={(value) => {
+                  setPaymentEmpresaId(value);
+                  const conta = contasCorrentes.find((item) => item.ativa && item.empresa_id === value);
+                  setPaymentContaId(conta?.id || '');
+                }}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione a conta" />
+                  <SelectValue placeholder="Selecione a empresa" />
                 </SelectTrigger>
                 <SelectContent>
-                  {contasCorrentes.map((conta) => (
+                  {empresas.map((empresa) => (
+                    <SelectItem key={empresa.id} value={empresa.id}>{empresa.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Conta corrente</Label>
+              <Select value={paymentContaId} onValueChange={setPaymentContaId} disabled={!paymentEmpresaId}>
+                <SelectTrigger>
+                  <SelectValue placeholder={paymentEmpresaId ? 'Selecione a conta' : 'Selecione a empresa primeiro'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {contasCorrentesPagamento.map((conta) => (
                     <SelectItem key={conta.id} value={conta.id}>
                       {conta.banco} - Ag. {conta.agencia} - Conta {conta.numero_conta}
+                      {conta.digito_verificador ? `-${conta.digito_verificador}` : ''}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {paymentEmpresaId && contasCorrentesPagamento.length === 0 && (
+                <p className="mt-1 text-xs text-destructive">
+                  Nenhuma conta ativa vinculada a esta empresa.
+                </p>
+              )}
             </div>
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setPaymentParcelas([])} disabled={savingPayment}>Cancelar</Button>
-            <Button onClick={handleConfirmPayment} disabled={savingPayment || contasCorrentes.length === 0}>
+            <Button onClick={handleConfirmPayment} disabled={savingPayment || contasCorrentesPagamento.length === 0}>
               {savingPayment ? 'Baixando...' : 'Confirmar Baixa'}
             </Button>
           </DialogFooter>

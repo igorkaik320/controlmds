@@ -3,6 +3,7 @@ import { recordAuditEntry } from '@/lib/audit';
 
 export interface ContaCorrente {
   id: string;
+  empresa_id: string | null;
   banco: string;
   agencia: string;
   numero_conta: string;
