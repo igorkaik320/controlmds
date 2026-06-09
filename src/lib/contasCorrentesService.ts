@@ -7,6 +7,7 @@ export interface ContaCorrente {
   agencia: string;
   numero_conta: string;
   digito_verificador: string | null;
+  id_ofx: string | null;
   data_saldo_inicial: string;
   saldo_inicial: number;
   saldo_atual?: number;

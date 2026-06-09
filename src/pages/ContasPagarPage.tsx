@@ -52,6 +52,7 @@ import ObservationInfoTooltip from '@/components/compras/ObservationInfoTooltip'
 import SearchableSelect, { SearchableSelectOption } from '@/components/SearchableSelect';
 import { cn } from '@/lib/utils';
 import { useProfileMap } from '@/hooks/useProfileMap';
+import { subscribeDataRefresh } from '@/lib/dataRefreshEvents';
 
 const STATUS_OPTIONS = [
   { value: 'aberta', label: 'Aberta' },
@@ -267,6 +268,14 @@ export default function ContasPagarPage() {
   }, [user?.id]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    return subscribeDataRefresh((event) => {
+      if (event.source !== 'conciliacao-ofx') return;
+      void load();
+      toast.info('Contas a Pagar atualizado pela conciliação OFX.');
+    });
+  }, [load]);
 
   useEffect(() => {
     const state = location.state as {

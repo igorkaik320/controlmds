@@ -34,6 +34,7 @@ export const routeLoaders: Record<string, () => Promise<unknown>> = {
   "/financeiro/tags": () => import("@/pages/FinanceiroTagsPage"),
   "/financeiro/contas-correntes": () => import("@/pages/ContasCorrentesPage"),
   "/financeiro/relatorios/fornecedores": () => import("@/pages/FinanceiroRelatorioFornecedoresPage"),
+  "/financeiro/conciliacao-ofx": () => import("@/pages/ConciliacaoOfxPage"),
   "/painel-executivo": () => import("@/pages/PainelExecutivoPage"),
   "/contas-pagar/dashboard": () => import("@/pages/ContasPagarDashboardPage"),
   "/contas-pagar": () => import("@/pages/ContasPagarPage"),

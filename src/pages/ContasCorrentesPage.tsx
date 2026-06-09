@@ -26,6 +26,7 @@ const emptyForm = {
   agencia: '',
   numero_conta: '',
   digito_verificador: '',
+  id_ofx: '',
   data_saldo_inicial: new Date().toISOString().split('T')[0],
   saldo_inicial: 'R$ 0,00',
   ativa: 'true',
@@ -74,6 +75,7 @@ export default function ContasCorrentesPage() {
         item.agencia,
         item.numero_conta,
         item.digito_verificador || '',
+        item.id_ofx || '',
         item.observacao || '',
       ].some((value) => value.toLowerCase().includes(term))
     );
@@ -92,6 +94,7 @@ export default function ContasCorrentesPage() {
       agencia: item.agencia,
       numero_conta: item.numero_conta,
       digito_verificador: item.digito_verificador || '',
+      id_ofx: item.id_ofx || '',
       data_saldo_inicial: item.data_saldo_inicial,
       saldo_inicial: formatCurrencyInput(formatCurrencyReal(item.saldo_inicial || 0)),
       ativa: item.ativa ? 'true' : 'false',
@@ -112,6 +115,7 @@ export default function ContasCorrentesPage() {
       agencia: form.agencia.trim(),
       numero_conta: form.numero_conta.trim(),
       digito_verificador: form.digito_verificador.trim() || null,
+      id_ofx: form.id_ofx.trim().toUpperCase() || null,
       data_saldo_inicial: form.data_saldo_inicial,
       saldo_inicial: parseCurrencyInput(form.saldo_inicial),
       ativa: form.ativa === 'true',
@@ -206,6 +210,7 @@ export default function ContasCorrentesPage() {
               <TableHead>Banco</TableHead>
               <TableHead>Agência</TableHead>
               <TableHead>Conta</TableHead>
+              <TableHead>ID OFX</TableHead>
               <TableHead>Saldo Inicial</TableHead>
               <TableHead>Saldo Atual</TableHead>
               <TableHead>Data</TableHead>
@@ -217,7 +222,7 @@ export default function ContasCorrentesPage() {
           <TableBody>
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={9} className="text-center text-muted-foreground">
+                <TableCell colSpan={10} className="text-center text-muted-foreground">
                   Nenhuma conta corrente encontrada
                 </TableCell>
               </TableRow>
@@ -233,6 +238,7 @@ export default function ContasCorrentesPage() {
                 </TableCell>
                 <TableCell>{item.agencia}</TableCell>
                 <TableCell>{item.numero_conta}{item.digito_verificador ? `-${item.digito_verificador}` : ''}</TableCell>
+                <TableCell className="font-mono text-xs text-muted-foreground">{item.id_ofx || '-'}</TableCell>
                 <TableCell className="font-semibold">{formatCurrency(item.saldo_inicial)}</TableCell>
                 <TableCell className={Number(item.saldo_atual || 0) < 0 ? 'font-semibold text-destructive' : 'font-semibold'}>
                   {formatCurrency(item.saldo_atual ?? item.saldo_inicial)}
@@ -282,6 +288,18 @@ export default function ContasCorrentesPage() {
             <div>
               <Label>Dígito Verificador</Label>
               <Input value={form.digito_verificador} onChange={(e) => setForm((prev) => ({ ...prev, digito_verificador: e.target.value }))} placeholder="0" />
+            </div>
+            <div className="sm:col-span-2">
+              <Label>ID OFX</Label>
+              <Input
+                value={form.id_ofx}
+                onChange={(e) => setForm((prev) => ({ ...prev, id_ofx: e.target.value }))}
+                placeholder="Ex: 001|55019-1"
+                className="font-mono uppercase"
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Cole aqui o identificador mostrado na primeira leitura do arquivo OFX.
+              </p>
             </div>
             <div>
               <Label>Data do Saldo Inicial *</Label>
